@@ -1,8 +1,11 @@
 # Beast JSON
 
+> 🚧 **Work in Progress (Pre-Release 1.0)** 🚧  
+> *We are currently undergoing a massive API overhaul for the official `1.0` GitHub Pages Release! The core parsing engine is now finalized (and is the fastest in the world), and we are now building **"The Ultimate API"** — a Zero-Allocation Monadic DOM with extreme developer convenience. See the Roadmap section below for details.*
+
 **Beast JSON** is a high-performance, single-header C++20 JSON library built around a tape-based lazy DOM. Its design goal is simple: match or beat the world's fastest JSON libraries through aggressive low-level optimization — while remaining practical for real-world use.
 
-> **An AI-Only Generated Library** — every line of code, every optimization, and every benchmark in this repository was designed and written by AI (Claude). It's an ongoing experiment in what AI can achieve in low-level, high-performance C++ systems programming.
+> **An AI-Only Generated Library** — every line of code, every optimization, and every benchmark in this repository was designed and written by AI (Claude/Gemini). It's an ongoing experiment in what AI can achieve in low-level, high-performance C++ systems programming.
 
 ---
 
@@ -346,6 +349,22 @@ A 2 MB size threshold selects the path: files ≤2 MB (twitter, citm) use Stage 
 - **SWAR string scanning** — 8-bytes-at-a-time `"` / `\` detection without any SIMD intrinsics.
 - **Tape compaction** — 8-byte nodes, cache-line-friendly linear layout.
 - **C++20** — no macros beyond include guards; fully `constexpr` where applicable.
+
+---
+
+## 🗺️ Roadmap to 1.0 (The Ultimate API)
+We are currently purging all legacy DOM code to establish a brand-new, modern C++20 **"Zero-Allocation Monadic DOM"**. This upcoming API combines the raw speed of `yyjson`/`simdjson`, the meta-programming power of `Glaze`, and the sheer intuitiveness of `nlohmann/json`.
+
+**Currently Under Active Development (Target: 1.0 Release):**
+- [x] **Core Engine Perfection**: Reached >5 GB/s on Apple Silicon & Snapdragon 8 Gen 2.
+- [ ] **Eradicate Legacy DOM**: Deleting `beast::json::Value`, `Parser`, `Object`, `Array` to reduce binary size.
+- [ ] **3-Tier Architecture**: Separation into `beast::core` (engine), `beast::utils` (macros/utilities), and `beast` (public facade).
+- [ ] **Implicit Conversions (nlohmann style)**: `int age = doc["age"];`
+- [ ] **1-Line Meta-Deserialization (Glaze style)**: `auto user = beast::read<User>(json_str);` via `BEAST_DEFINE_STRUCT()`.
+- [ ] **Pipe Operator Fallback `|`**: `int age = doc["users"][0]["age"] | 18;` (Zero exceptions, monad-style error propagation).
+- [ ] **Zero-Allocation Typed Views**: `for(int id : doc["ids"].as_array<int>())`
+- [ ] **Compile-Time JSON Pointer**: `doc.at<"/api/config/timeout">()`
+- [ ] **100% RFC Compliance**: Strict testing against JSON Test Suite (RFC 8259, JSON Pointer, JSON Patch).
 
 ---
 
