@@ -82,25 +82,44 @@ if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
 endif()
 
 # Phase 47: Profile-Guided Optimization (PGO)
-# Usage:
-#   Step 1 — instrument build:
-#     cmake -DPGO_MODE=GENERATE -B build && cmake --build build -j$(nproc)
-#     ./build/benchmarks/bench_all --iter 30 --all   # collects .gcda profiles
-#   Step 2 — optimized build:
-#     cmake -DPGO_MODE=USE -B build && cmake --build build -j$(nproc)
 #
-# GCC PGO: .gcda files are written alongside .o files in the build directory.
-# -fprofile-use (without a path) reads them from the same location automatically.
-# -fprofile-correction tolerates minor profile/source mismatches.
+# Clang-native flow (used when compiler is Clang):
+#   Step 1 — instrument:
+#     cmake -DPGO_MODE=GENERATE -B build_bench && cd build_bench && ninja bench_quick bench_all
+#     cd benchmarks && ./bench_quick --iter 30 --all && ./bench_all --iter 30 --all
+#     llvm-profdata merge *.profraw -o pgo.profdata
+#   Step 2 — optimized:
+#     cmake -DPGO_MODE=USE -DPGO_PROFILE_FILE=<abs-path>/pgo.profdata -B build_bench
+#     ninja bench_quick bench_all
+#
+# GCC flow (non-Clang):
+#   Step 1: cmake -DPGO_MODE=GENERATE && ninja && run_benchmarks
+#   Step 2: cmake -DPGO_MODE=USE && ninja
 set(PGO_MODE "" CACHE STRING "PGO mode: GENERATE or USE (leave empty for normal build)")
+set(PGO_PROFILE_FILE "" CACHE FILEPATH "Path to .profdata file for Clang PGO USE mode")
+
 if(PGO_MODE STREQUAL "GENERATE")
-    message(STATUS "PGO: instrument build (GENERATE) — run benchmarks to collect profiles")
-    add_compile_options(-fprofile-generate)
-    add_link_options(-fprofile-generate)
+    message(STATUS "PGO: instrument build (GENERATE)")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options(-fprofile-instr-generate)
+        add_link_options(-fprofile-instr-generate)
+    else()
+        add_compile_options(-fprofile-generate)
+        add_link_options(-fprofile-generate)
+    endif()
 elseif(PGO_MODE STREQUAL "USE")
-    message(STATUS "PGO: optimized build (USE) — reading .gcda profiles from build tree")
-    add_compile_options(-fprofile-use -fprofile-correction)
-    add_link_options(-fprofile-use -fprofile-correction)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        if(NOT PGO_PROFILE_FILE)
+            message(FATAL_ERROR "PGO USE with Clang requires -DPGO_PROFILE_FILE=<path/to/pgo.profdata>")
+        endif()
+        message(STATUS "PGO: Clang optimized build — ${PGO_PROFILE_FILE}")
+        add_compile_options(-fprofile-instr-use=${PGO_PROFILE_FILE})
+        add_link_options(-fprofile-instr-use=${PGO_PROFILE_FILE})
+    else()
+        message(STATUS "PGO: GCC optimized build — reading .gcda profiles from build tree")
+        add_compile_options(-fprofile-use -fprofile-correction)
+        add_link_options(-fprofile-use -fprofile-correction)
+    endif()
 endif()
 
 # C++17 Benchmarks
