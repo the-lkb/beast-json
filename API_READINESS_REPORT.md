@@ -28,25 +28,31 @@
 
 ---
 
-## 🏗️ PART 2: `beast::lazy` 아키텍처 개편 및 Core-Utils 분리
-파일의 네임스페이스 구조를 `beast::json` (전면 삭제) -> `beast::core` (엔진) / `beast::utils` (사용자 API) / `beast::lazy` (외부 노출 인터페이스) 로 논리적 재구축해야 합니다.
+## 🏗️ PART 2: 아키텍처 레이어링 (Core-Utils-API 분리) 및 사용자 친화적 네이밍
+최종 사용자는 내부적으로 파서가 지연 평가(Lazy)를 쓰는지, DOM을 구축하는지 알 필요가 없어야 합니다. 가장 직관적이고 표준적인 네이밍을 제공하면서도, 내부 코드는 철저히 분리된 레이어로 관리되어야 합니다.
 
-### 2-1. `beast::lazy::Value` Zero-Overhead Accessors (필수)
-현재 `dump()`, `is_object()`, `is_array()`만 존재하는 이 클래스에 생명을 불어넣어야 합니다.
+전문가 수준의 라이브러리 설계를 위해 다음 3-Tier 아키텍처를 채택합니다.
 
-- **원시타입 추출기 (Primitive Extractors)**
-  - `std::string_view as_string_view() const` : `TapeNodeType::StringRaw`를 검사하고, 테이프 오프셋에서 원본 메모리 `string_view` 반환.
-  - `int64_t as_int64() const`
-  - `double as_double() const` : **[핵심]** 파서 타임에 실행되던 Russ Cox / Beast Float 부동소수점 스캐너 로직(128-bit PowMantissa)을 파서에서 잘라내어 이 `as_double()` 내부로 이식(Lazy Evaluation)해야 파싱 속도가 200μs 대로 유지됩니다.
+### Layer 1: The Core Engine (`namespace beast::core`)
+JSON을 물리적으로 파싱하고 직렬화하는 절대적인 "엔진부"입니다. 외부(사용자)에선 이 레이어의 존재나 클래스를 직접 조작하지 않습니다.
+- **포함 대상**: SIMD/SWAR 스캐너(`simd`, `lookup`), 이스케이프 파서, 숫자 파싱(Russ Cox `PowMantissa`, `Unrounded`), `TapeArena`, `Stage1Index`, 코어 `Parser` 및 `Serializer`.
+- **목표**: 100% RFC 8259 준수, 제로 할당, 최대 ILP(Instruction-Level Parallelism) 기반의 처리 속도 확보.
 
-- **컨테이너 네비게이션 (Container Navigate)**
-  - `Value operator[](std::string_view key) const` : 현재 오브젝트의 시작 오프셋부터 배열 길이만큼 테이프를 선형 스캔하며 키 문자열 비교 (SIMD 활용 권장).
-  - `Value operator[](size_t index) const` : 배열 요소의 O(1) 또는 SIMD 스킵 기반 접근.
+### Layer 2: The Utilities (`namespace beast::utils` 또는 `beast::ext`)
+코어 데이터 위에 확장 기능을 부여하는 유틸리티/플러그인 레이어입니다.
+- **포함 대상**: C++ 매크로/템플릿 기반 자동 O/R 매퍼(`to_json`, `from_json`, `BEAST_DEFINE_STRUCT`), JSON Pointer (RFC 6901), JSON Patch (RFC 6902) 등.
+- **목표**: 코어 엔진의 가벼움을 해치지 않으면서, 필요할 때만 인클루드/사용하여 생산성을 극대화.
 
-### 2-2. Utils: Auto Serialize / Deserialize 
-사용자 C++ 구조체를 맵핑하기 위한 템플릿/매크로 메타프로그래밍 유틸리티를 추가합니다.
+### Layer 3: The Public API (`namespace beast`)
+사용자가 최종적으로 마주치는 "단일 진입점(Facade)"입니다. 기존의 `lazy`라는 구현 종속적 이름은 내부로 숨기고 표준적인 네이밍을 노출합니다.
 
-- **C++ STL 컬렉션 호환성**: `std::vector<T>`, `std::map<std::string, T>`, `std::optional<T>`가 `to_json` / `from_json` 패턴이나 `BEAST_DEFINE_STRUCT()` 매크로에 의해 `beast::lazy::Value`와 완벽히 상호 호환되어야 함.
+- **`beast::Value` (기존 `beast::lazy::Value` 진화형)**:
+  - 사용자는 오직 `beast::parse("...")`를 통해 `beast::Value`를 받습니다.
+  - 내부적으로는 Tape 참조를 들고 있는 Lazy 객체이지만, 겉으로는 완벽한 DOM 객체처럼 동작합니다.
+  - **필수 구현 접근자**: `as_int64()`, `as_double()`, `as_string_view()`, `as_bool()`, `operator[](std::string_view)`, `operator[](size_t)`.
+- **`beast::parse()`**: 코어의 `parse_staged()`를 감싸는 래퍼 함수.
+
+이 구조 전환을 통해 사용자는 "단순히 `beast::Value v = beast::parse(json);`을 썼을 뿐인데 세계에서 가장 빠르다"는 경험을 하게 됩니다.
 
 ---
 
