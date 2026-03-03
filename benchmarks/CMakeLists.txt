@@ -167,28 +167,65 @@ target_compile_features(bench_quick PRIVATE cxx_std_20)
 target_compile_features(bench_ser_profile PRIVATE cxx_std_20)
 
 # ── Architecture-specific flags ───────────────────────────────────────────────
-# x86_64: enable -march=native so AVX-512/AVX2 intrinsics are compiled correctly
-#         and auto-vectorization can use native ISA. LTO is kept enabled.
-# AArch64 + Clang: disable SVE auto-vectorization and LTO to prevent SIGILL on
-#         Android kernels that do not expose SVE to userspace (kernel 5.15).
-#         beast_json uses explicit arm_neon.h intrinsics (unaffected by -fno-vectorize).
+# The AArch64 space is NOT monolithic. Three distinct sub-targets require
+# different flag strategies:
+#
+#   (A) x86_64 (Intel/AMD):
+#       -march=native → enables AVX-512/AVX2/SSE4.2 depending on CPU.
+#       Auto-vectorization safe; LTO safe.
+#
+#   (B) Apple Silicon (macOS AArch64 — M1/M2/M3/M4):
+#       -march=native → enables NEON + DOTPROD + SHA3 (M2+) + crypto.
+#       SVE does NOT exist on Apple Silicon → zero SIGILL risk.
+#       -fno-vectorize is WRONG here: it prevents compiler from using DOTPROD
+#         and other extensions exposed by -march=native.
+#       LTO is safe on Apple (uses lld/ld64, no GIMPLE LTO issue).
+#       yyjson must also get -march=native for fair comparison (yyjson has its
+#         own NEON paths gated on __ARM_NEON + compiler DOTPROD hints).
+#
+#   (C) Android/Linux AArch64 (Snapdragon, Graviton, etc.) + Clang:
+#       SVE hardware may be present but Android kernels < 5.16 do NOT expose
+#         SVE to userspace → any SVE instruction triggers SIGILL at runtime.
+#       Clang with -march=native + LTO emits SVE at link time even when source
+#         only uses arm_neon.h intrinsics (LTO can inline + auto-vectorize).
+#       -fno-vectorize -fno-slp-vectorize -fno-lto: required safety guards.
+#       beast_json's explicit NEON intrinsics are unaffected by -fno-vectorize.
+#       Graviton 3/4 (Linux, SVE exposed): use -march=armv8.4-a+sve explicitly
+#         rather than -march=native to avoid accidental SVE2/SME emission.
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64|AMD64")
-    # x86_64: use native ISA; keep LTO and auto-vectorization intact.
+    # (A) x86_64: native ISA; LTO and auto-vectorization intact.
     foreach(_tgt bench_all bench_file_io bench_lazy_dom bench_quick bench_ser_profile)
         if(TARGET ${_tgt})
             target_compile_options(${_tgt} PRIVATE -march=native)
         endif()
     endforeach()
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
-    # AArch64 + Clang: SVE safety — disable auto-vectorizer and LTO per-target.
-    # Clang generates SVE at LTO link time even when source uses NEON intrinsics.
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        foreach(_tgt bench_all bench_file_io bench_lazy_dom bench_quick)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        # (B) Apple Silicon — no SVE, safe to use -march=native + auto-vectorize.
+        # This unlocks DOTPROD (UDOT/SDOT), SHA3/EOR3 (M2+), and correct
+        # BEAST_PREFETCH_DISTANCE (512B) via BEAST_ARCH_APPLE_SILICON macro.
+        foreach(_tgt bench_all bench_file_io bench_lazy_dom bench_quick bench_ser_profile)
             if(TARGET ${_tgt})
-                target_compile_options(${_tgt} PRIVATE -fno-lto -fno-vectorize -fno-slp-vectorize)
+                target_compile_options(${_tgt} PRIVATE -march=native)
+            endif()
+        endforeach()
+        # Give yyjson the same ISA flags so comparisons are fair.
+        if(TARGET yyjson)
+            target_compile_options(yyjson PRIVATE -march=native)
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        # (C) Non-Apple AArch64 + Clang: SVE SIGILL safety guards.
+        # Clang generates SVE at LTO link time even when source only uses NEON.
+        foreach(_tgt bench_all bench_file_io bench_lazy_dom bench_quick bench_ser_profile)
+            if(TARGET ${_tgt})
+                target_compile_options(${_tgt} PRIVATE
+                    -fno-lto -fno-vectorize -fno-slp-vectorize)
                 target_link_options(${_tgt} PRIVATE -fno-lto)
             endif()
         endforeach()
     endif()
+    # GCC on Linux AArch64: -march=native is generally safe (GCC does not emit
+    # SVE at LTO time for NEON-only sources), but omitted here for conservatism.
+    # Enable explicitly when targeting known-SVE systems (e.g., Graviton 3).
 endif()

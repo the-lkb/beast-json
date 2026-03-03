@@ -86,6 +86,16 @@
 #define BEAST_ARCH_X86_64 1
 #elif defined(__aarch64__) || defined(_M_ARM64)
 #define BEAST_ARCH_ARM64 1
+// Apple Silicon (M1/M2/M3/M4 family) — distinct from generic AArch64:
+//   • 128-byte L1/L2 cache lines (vs 64-byte on Cortex/Graviton)
+//   • ~576-entry ROB (vs ~200 on Cortex-X3, ~300 on Neoverse V2)
+//   • No SVE/SVE2 exposure — SIGILL risk does NOT exist here
+//   • DOTPROD (UDOT/SDOT) always available
+//   • SHA3 (EOR3) available on M2+ but not M1
+//   • AMX (Apple Matrix Coprocessor) — proprietary, not exposed via intrinsics
+#if defined(__APPLE__)
+#define BEAST_ARCH_APPLE_SILICON 1
+#endif
 #elif defined(__arm__) || defined(_M_ARM)
 #define BEAST_ARCH_ARM32 1
 #elif defined(__mips__)
@@ -118,6 +128,29 @@
 #define BEAST_HAS_NEON 1
 #include <arm_neon.h>
 #endif
+// ARM ISA extension detection — all require -march=native or explicit target flags
+// DOTPROD: UDOT/SDOT 4×uint8 multiply-accumulate.
+//   Available on: Apple M1/M2/M3, Cortex-A76+, Cortex-X1+, Neoverse V1/N2.
+//   Enables branchless 4-byte character classification in a single instruction.
+#if defined(__ARM_FEATURE_DOTPROD)
+#define BEAST_HAS_DOTPROD 1
+#endif
+// SVE: ARM Scalable Vector Extension (variable-width SIMD: 128–2048 bits).
+//   Available on: AWS Graviton 3 (Neoverse V1, 256-bit), Neoverse V2, Cortex-X4.
+//   NOT available on Apple Silicon (AMX is Apple's proprietary equivalent).
+//   NOT exposed on Android kernels < 5.16 even when hardware supports it.
+//   Use only with explicit -march=armv8.4-a+sve guard or runtime detection.
+#if defined(__ARM_FEATURE_SVE)
+#define BEAST_HAS_SVE 1
+#include <arm_sve.h>
+#endif
+// SHA3/EOR3: 3-way XOR (EOR3), rotate-XOR (RAX1), XOR-accumulate (XAR).
+//   Available on: Apple M2/M3/M4, Cortex-A710+, Neoverse V2.
+//   NOT available on Apple M1.
+//   EOR3 enables single-instruction backslash-escape propagation in Stage 1.
+#if defined(__ARM_FEATURE_SHA3)
+#define BEAST_HAS_SHA3 1
+#endif
 #endif
 
 // ============================================================================
@@ -140,13 +173,60 @@ using Allocator = std::pmr::polymorphic_allocator<char>;
 } // namespace beast
 
 // ============================================================================
+// Cache Line Size & Prefetch Distance
+// ============================================================================
+//
+// Architecture-specific tuning constants:
+//
+//  BEAST_CACHE_LINE_SIZE: L1 cache line size in bytes.
+//    Apple Silicon (M1/M2/M3): 128 bytes — double the ARM standard.
+//      Impacts: alignas() for hot tables, prefetch stride granularity.
+//    All other AArch64 (Cortex-X, Neoverse): 64 bytes (ARM standard).
+//    x86_64: 64 bytes (Intel/AMD standard).
+//
+//  BEAST_PREFETCH_DISTANCE: bytes to look ahead in __builtin_prefetch.
+//    Optimal = (pipeline depth × clock speed × bytes/cycle).
+//    Apple M1 Pro L2 latency ≈ 10ns × 3.2 GHz ≈ 32 cycles.
+//      At 10 bytes/cycle parse throughput → 320B ideal; round to 384B
+//      (3 × 128B cache lines). Using 512B (4 lines) gives headroom.
+//    Cortex-X3 L2 latency ≈ 12ns × 3.4 GHz ≈ 40 cycles.
+//      Phase 58-A A/B result: 256B optimal (4 × 64B cache lines).
+//    x86_64 (Phase 48): 192B optimal (measured on Raptor Lake).
+//
+//  BEAST_PREFETCH_LOCALITY: __builtin_prefetch 'locality' hint (0-3).
+//    0 = NTA (non-temporal, bypass L1/L2 — for once-through streaming)
+//    1 = L2 hint (data used soon but L1 has better uses) ← parse hot path
+//    3 = L1 hint (data used immediately) ← for x86 tight loops
+
+#if defined(BEAST_ARCH_APPLE_SILICON)
+#define BEAST_CACHE_LINE_SIZE    128
+#define BEAST_PREFETCH_DISTANCE  512   // 4 × 128B M1 cache lines
+#define BEAST_PREFETCH_LOCALITY  1     // L2 hint; parse consumes sequentially
+#elif defined(BEAST_ARCH_ARM64)
+#define BEAST_CACHE_LINE_SIZE    64
+#define BEAST_PREFETCH_DISTANCE  256   // 4 × 64B; Phase 58-A A/B winner
+#define BEAST_PREFETCH_LOCALITY  1     // L2 hint (NTA hurt: Phase 58-A)
+#elif defined(BEAST_ARCH_X86_64)
+#define BEAST_CACHE_LINE_SIZE    64
+#define BEAST_PREFETCH_DISTANCE  192   // Phase 48 measured optimum
+#define BEAST_PREFETCH_LOCALITY  1     // L2 hint
+#else
+#define BEAST_CACHE_LINE_SIZE    64
+#define BEAST_PREFETCH_DISTANCE  128
+#define BEAST_PREFETCH_LOCALITY  1
+#endif
+
+// ============================================================================
 // C++20 Compiler Intrinsics & Branching Hints
 // ============================================================================
 
 #ifdef __GNUC__
 #define BEAST_INLINE   __attribute__((always_inline)) inline
 #define BEAST_NOINLINE __attribute__((noinline))
-#define BEAST_PREFETCH(addr) __builtin_prefetch(addr, 0, 3)
+// Read-ahead prefetch with architecture-tuned locality hint.
+// Always use this macro in the parse hot loop — never hardcode distance/locality.
+#define BEAST_PREFETCH(addr) \
+    __builtin_prefetch((addr), 0, BEAST_PREFETCH_LOCALITY)
 #else
 #define BEAST_INLINE   inline
 #define BEAST_NOINLINE
@@ -580,7 +660,9 @@ public:
 namespace lookup {
 
 // 2-digit decimal number table (00-99) for fast serialization
-alignas(64) static const char digit_table[200] = {
+// Aligned to BEAST_CACHE_LINE_SIZE (128B on Apple Silicon, 64B elsewhere)
+// so that the first access doesn't straddle a cache line boundary.
+alignas(BEAST_CACHE_LINE_SIZE) static const char digit_table[200] = {
     '0', '0', '0', '1', '0', '2', '0', '3', '0', '4', '0', '5', '0', '6', '0',
     '7', '0', '8', '0', '9', '1', '0', '1', '1', '1', '2', '1', '3', '1', '4',
     '1', '5', '1', '6', '1', '7', '1', '8', '1', '9', '2', '0', '2', '1', '2',
@@ -597,7 +679,7 @@ alignas(64) static const char digit_table[200] = {
     '7', '9', '8', '9', '9'};
 
 // Hex character to value (0xFF = invalid)
-alignas(64) static const uint8_t hex_table[256] = {
+alignas(BEAST_CACHE_LINE_SIZE) static const uint8_t hex_table[256] = {
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -622,7 +704,7 @@ alignas(64) static const uint8_t hex_table[256] = {
     0xFF, 0xFF, 0xFF, 0xFF};
 
 // Escape check table (1 = needs escape)
-alignas(64) static const uint8_t escape_table[256] = {
+alignas(BEAST_CACHE_LINE_SIZE) static const uint8_t escape_table[256] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0-15
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 16-31
     0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 32-47: '"' (34)
@@ -6723,9 +6805,12 @@ class Parser {
         }
 
         while (p_ < end_) {
-          // Phase 58-A: prefetch input 4 cache lines (256B) ahead — read, L2
-          // hint. 256B optimal on Cortex-X3 (192B baseline was sub-optimal).
-          __builtin_prefetch(p_ + 256, 0, 1);
+          // Phase 58-A / Apple Silicon: prefetch BEAST_PREFETCH_DISTANCE bytes
+          // ahead with L2 locality hint. Distance is arch-tuned at compile time:
+          //   Apple Silicon (M1/M2/M3): 512B (4 × 128B cache lines)
+          //   Cortex-X3 / generic ARM64: 256B (4 × 64B; Phase 58-A winner)
+          //   x86_64: 192B (Phase 48 measured optimum)
+          BEAST_PREFETCH(p_ + BEAST_PREFETCH_DISTANCE);
           // Phase 32: LUT dispatch — 11 ActionId cases vs 17 raw char cases.
           // kActionLut[c] maps every byte to an ActionId in one L1 cache
           // access.
