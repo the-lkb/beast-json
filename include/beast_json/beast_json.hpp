@@ -5264,13 +5264,22 @@ public:
             //   Overwrite semantics (store 16B, advance w by slen): identical to
             //   Phase 72-M1.  Positions w[slen..15] are overwritten by next node.
             //   Source safety: sp+16 ≤ src+source.size() ensures vld1q in-bounds.
+            //
+            // Phase 76-M1: M1 rare fallback (sp+16 > source.end_, < 0.01% of
+            //   strings) uses std::memcpy — removes the ~20-instruction scalar
+            //   cascade from the M1 hot function → ~18 instructions saved → better
+            //   I-cache for the vld1q/vst1q hot path.  Performance of the fallback
+            //   itself is unchanged (both are ~O(slen) for slen ≤ 16).
 #if BEAST_ARCH_APPLE_SILICON
             if (sp + 16 <= src + (buf_cap - 16)) {
               vst1q_u8(reinterpret_cast<uint8_t *>(w),
                        vld1q_u8(reinterpret_cast<const uint8_t *>(sp)));
               w += slen;
-            } else  // fallthrough to shared scalar cascade below
-#endif  // BEAST_ARCH_APPLE_SILICON
+            } else {
+              std::memcpy(w, sp, slen);
+              w += slen;
+            }
+#else  // generic NEON (non-Apple-Silicon): scalar 16-8-4-1 cascade
             {
               uint16_t rem = slen;
               if (rem >= 16) {
@@ -5302,6 +5311,7 @@ public:
               while (rem--)
                 *w++ = *sp++;
             }
+#endif  // BEAST_ARCH_APPLE_SILICON
           }
         } else {
           std::memcpy(w, sp, slen);
@@ -5455,14 +5465,17 @@ public:
             vst1q_u8(uw + slen - 16, vld1q_u8(up + slen - 16));
             w += slen;
           } else {
-            // Phase 75-M1: see dump() above for full rationale.
+            // Phase 75-M1 / Phase 76-M1: see dump() above for full rationale.
 #if BEAST_ARCH_APPLE_SILICON
             if (sp + 16 <= src + (buf_cap - 16)) {
               vst1q_u8(reinterpret_cast<uint8_t *>(w),
                        vld1q_u8(reinterpret_cast<const uint8_t *>(sp)));
               w += slen;
-            } else  // fallthrough to shared scalar cascade below
-#endif  // BEAST_ARCH_APPLE_SILICON
+            } else {
+              std::memcpy(w, sp, slen);
+              w += slen;
+            }
+#else  // generic NEON (non-Apple-Silicon): scalar 16-8-4-1 cascade
             {
               uint16_t rem = slen;
               if (rem >= 16) {
@@ -5483,6 +5496,7 @@ public:
               }
               while (rem--) *w++ = *sp++;
             }
+#endif  // BEAST_ARCH_APPLE_SILICON
           }
         } else {
           std::memcpy(w, sp, slen);
