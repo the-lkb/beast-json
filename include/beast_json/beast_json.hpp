@@ -5255,14 +5255,17 @@ public:
             vst1q_u8(uw + slen - 16, vld1q_u8(up + slen - 16));
             w += slen;
           } else {
-            // Phase 72-M1: NEON 16B single-store for 9–16B strings (M1/M2/M3).
-            //   vld1q + vst1q = 2 ops vs scalar cascade 3–6 ops for slen 9–16.
-            //   Overlapping write: store 16B, advance w by slen.
-            //   Source safety: sp+16 ≤ src+source.size() checked explicitly.
-            //   No BEAST_LIKELY: twitter ~40% short keys (<9B) — neutral branch.
-            //   Scalar cascade is shared (single copy) to minimise I-cache footprint.
+            // Phase 75-M1: NEON 16B single-store for ALL slen 1–16 (M1/M2/M3).
+            //   Extends Phase 72-M1 (slen 9–16) to cover slen 1–8 as well.
+            //   Previously slen < 9 used scalar cascade → ~50% branch misprediction
+            //   on twitter.json (40–50% of strings are short keys: id, url, text).
+            //   Now: check only sp+16 safety (99%+ true for non-tail strings)
+            //   → near-perfect branch prediction + 2 fewer instructions (cmp+br).
+            //   Overwrite semantics (store 16B, advance w by slen): identical to
+            //   Phase 72-M1.  Positions w[slen..15] are overwritten by next node.
+            //   Source safety: sp+16 ≤ src+source.size() ensures vld1q in-bounds.
 #if BEAST_ARCH_APPLE_SILICON
-            if (slen >= 9 && sp + 16 <= src + (buf_cap - 16)) {
+            if (sp + 16 <= src + (buf_cap - 16)) {
               vst1q_u8(reinterpret_cast<uint8_t *>(w),
                        vld1q_u8(reinterpret_cast<const uint8_t *>(sp)));
               w += slen;
@@ -5452,9 +5455,9 @@ public:
             vst1q_u8(uw + slen - 16, vld1q_u8(up + slen - 16));
             w += slen;
           } else {
-            // Phase 72-M1: see dump() above for full rationale.
+            // Phase 75-M1: see dump() above for full rationale.
 #if BEAST_ARCH_APPLE_SILICON
-            if (slen >= 9 && sp + 16 <= src + (buf_cap - 16)) {
+            if (sp + 16 <= src + (buf_cap - 16)) {
               vst1q_u8(reinterpret_cast<uint8_t *>(w),
                        vld1q_u8(reinterpret_cast<const uint8_t *>(sp)));
               w += slen;
