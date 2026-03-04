@@ -7401,6 +7401,12 @@ class Parser {
               //
               // Pure NEON: vmaxvq_u32 → branch → scalar pinpoint (identical
               // pattern to scan_string_end NEON; proven safe on all AArch64).
+              //
+              // Phase 70-M1 FAILED: vgetq_lane_u64 + ctzll in exit path
+              // improved canada +8.8% but caused twitter +128% regression
+              // even with fresh profdata. Root cause: additional basic blocks
+              // in parse() change PGO+LTO code layout → twitter L1 I-cache
+              // pressure. Any new code in parse() is forbidden.
 #if BEAST_HAS_NEON
 #define BEAST_SKIP_DIGITS()                                                    \
   do {                                                                         \

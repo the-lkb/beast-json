@@ -78,25 +78,27 @@
 
 **상태**: gsoc만 1.2× 달성. parse 3파일 + citm serialize 미달.
 
-### 현재 성적 (Phase 59+64 + bugfix 적용, 1,000 iter)
+### 현재 성적 (Phase 66-M1 + PGO, 100 iter, build_pgo_use 기준)
 
 | 파일 | Beast parse | yyjson parse | vs yyjson | 1.2× 목표 | 달성 |
 |:---|---:|---:|:---:|---:|:---:|
-| twitter.json | 266 μs | 173 μs | yyjson **+54%** | ≤144 μs | ❌ |
-| canada.json | 1,681 μs | 1,464 μs | yyjson **+15%** | ≤1,220 μs | ❌ |
-| citm_catalog.json | 563 μs | 480 μs | yyjson **+17%** | ≤400 μs | ❌ |
-| gsoc-2018.json | **582 μs** | 981 μs | Beast **+69%** | ≤817 μs | ✅ |
+| twitter.json | **207 μs** | 173 μs | yyjson **+20%** | ≤144 μs | ❌ |
+| canada.json | **1,497 μs** | 1,427 μs | yyjson **+5%** | ≤1,189 μs | ❌ |
+| citm_catalog.json | **525 μs** | 468 μs | yyjson **+12%** | ≤390 μs | ❌ |
+| gsoc-2018.json | **565 μs** | 947 μs | Beast **+68%** | ≤789 μs | ✅ |
 
 | 파일 | Beast serialize | yyjson serialize | vs yyjson |
 |:---|---:|---:|:---:|
-| twitter.json | **112 μs** | 105 μs | yyjson 7% ≈동률 |
-| canada.json | **946 μs** | 2,219 μs | Beast **2.3×** ✅ |
-| citm_catalog.json | **287 μs** | 167 μs | yyjson **+72%** ❌ |
-| gsoc-2018.json | **267 μs** | 722 μs | Beast **2.7×** ✅ |
+| twitter.json | **111 μs** | 101 μs | yyjson 10% 빠름 |
+| canada.json | **934 μs** | 2,211 μs | Beast **2.4×** ✅ |
+| citm_catalog.json | **290 μs** | 163 μs | yyjson **+78%** ❌ |
+| gsoc-2018.json | **251 μs** | 701 μs | Beast **2.8×** ✅ |
 
-> **Phase 59 효과**: citm parse gap 34%→17% (Phase 57 대비). canada gap 34%→15%.
-> **twitter 회귀**: Phase 57 기준 245μs → Phase 59+64 후 266μs (+21μs). 원인 조사 필요.
-> **M1 특성**: M1 Pro 576-entry OoO 버퍼 + 23 cy/tok → yyjson에 유리. twitter 1.2×(≤144μs)는 최장기 목표.
+> **Phase 65-M1 효과**: citm +12%, canada +11% (KeyLenCache 32-key + NEON key scanner)
+> **Phase 66-M1 효과**: canada 1,681→1,497 μs, citm 563→525 μs (NEON 16B digit scanner)
+> **PGO 핵심**: 원본 profdata (build_pgo_gen, Mar-03) = 황금 표준. bench_all ONLY로 생성 필수.
+> **측정 주의**: 100 iter 이하 + 빌드 직후 5분 대기 (서멀 스로틀링 방지).
+> **M1 I-cache 제약**: parse() 함수에 어떤 코드 추가도 twitter PGO 레이아웃 파괴 → 금지.
 
 ### 완료된 M1 최적화
 
@@ -106,6 +108,8 @@
 | Phase 57 | AArch64 Global Pure NEON 통합 (모든 스칼라 게이트 제거) | twitter 260→**245μs** |
 | Phase 61 | NEON 오버랩 페어 dump() 문자열 복사 | dump −5.5% |
 | Phase 62 | NEON 32B inline value string 스캔 | twitter −5.7% |
+| **Phase 65-M1** | **KeyLenCache 32-key + 3×16B NEON key scanner** | **citm +12%, canada +11%** |
+| **Phase 66-M1** | **NEON 16B digit scanner (SWAR-8 대체)** | **canada 1,681→1,497μs, citm 563→525μs** |
 
 ### 실패 기록 (M1)
 
@@ -115,6 +119,10 @@
 | Phase 56-1~5 | LDP 32B WS, NEON 32B 문자열, vtbl1, 캐시라인 튜닝, NEON 키 스캐너 | 모두 ±1% 이하이거나 회귀 |
 | Phase 60-B | 단거리 키 스칼라 프리스캔 | 분기 의존성이 NEON 스페큘레이션 저해 → +5.6% |
 | Phase 63 | 32B 듀얼 체크 skip_to_action | VLD1Q+VCGTQ+VMAXVQ 오버헤드 > WS 절감 |
+| **Phase 67-M1** | **BEAST_SKIP_DIGITS에 cold+noinline vgetq_lane 헬퍼** | **PGO 코드 레이아웃 변경 → twitter +57% 회귀** |
+| **Phase 68-M1** | **BEAST_SKIP_DIGITS 전체 아웃라인 (cold+noinline)** | **canada 1,486→1,759μs (함수 호출 오버헤드 3M×4cy)** |
+| **Phase 69-M1** | **BEAST_PREFETCH_DISTANCE 512→128B 변경** | **stale profdata → twitter 499μs 파국적 회귀** |
+| **Phase 70-M1** | **BEAST_SKIP_DIGITS 탈출에 vgetq_lane_u64+ctzll 인라인** | **canada +8.8% ↔ twitter +50-128% 회귀 (I-cache 압박)** |
 
 ---
 
@@ -261,9 +269,28 @@ case TapeNodeType::Integer: ...
 
 ---
 
+### ~~Phase 67-M1~~ — BEAST_SKIP_DIGITS vgetq_lane 탈출 경로 ❌ **FAILED**
+
+**시도**: BEAST_SKIP_DIGITS 내 vmaxvq_u32 비영 감지 후 scalar walk 대신 vgetq_lane_u64+ctzll로 첫 비자리수 위치를 O(1) 계산.
+
+**Phase 67 (cold+noinline 헬퍼)**: twitter +57% 회귀 (stale profdata → PGO 코드 레이아웃 파괴).
+**Phase 68 (BEAST_SKIP_DIGITS 전체 아웃라인)**: canada 1,486→1,759μs (+18%) — 3M번 호출 × ~4cy 함수 오버헤드 ≈ 270ms 추가.
+**Phase 70 (인라인 vgetq_lane)**: canada 1,497→1,365μs (+8.8%) **BUT** twitter +50-128% 회귀 (서멀 스로틀링 포함), fresh profdata로도 해소 불가.
+
+**근본 제약**:
+- parse() 함수에 ANY 코드 추가 → 기본 블록 구조 변경 → PGO+LTO 코드 레이아웃 재배치 → twitter L1 I-cache 압박
+- vgetq_lane은 GPR-SIMD 전송 레이턴시(~3-5cy) 추가. canada에선 이득이지만 twitter I-cache 비용이 더 큼
+- **교훈**: parse() 내 코드 추가는 절대 금지. REPLACING(교체)는 허용(Phase 62 성공), ADDING(추가)은 금지.
+- scan_string_end의 vgetq_lane도 같은 이유로 Frozen (Phase 67 문서화됨)
+
+---
+
 ### Phase 68 — M1 twitter parse 회귀 조사 (단기 🔴)
 
-**목표**: M1 twitter 266μs → 245μs 이하 (Phase 57 수준 회복)
+**목표**: M1 twitter 207μs → ≤144μs (Phase 66-M1 이후 개선)
+
+> **업데이트 (2026-03-04)**: Phase 66-M1 이후 현재 207μs로 Phase 57(245μs)보다 훨씬 개선됨.
+> 회귀 목표 자체는 해소. 그러나 144μs 1.2× 목표는 여전히 미달.
 
 **현상**: Phase 57에서 245μs이던 M1 twitter가 Phase 59+64 적용 후 266μs (+21μs) 회귀.
 
@@ -419,3 +446,9 @@ yyjson: 1,464μs → Beast 1,681μs. Gap 15%, 27% 개선 필요.
 - **x86_64 Stage 1+2 경로**: ≤2MB 파일만 (twitter 617KB, citm 1.65MB). canada/gsoc는 단일 패스.
 - **Phase 65 리스크**: `s[cl-1]` 가드 제거 시, 값이 `":"` 형태인 JSON에서 false-positive 발생 가능. 표준 4개 벤치마크 파일 안전 확인됨. 실 서비스 적용 전 도큐멘테이션 필수.
 - **매 Phase는 별도 브랜치로 진행** → PR 후 merge
+- **M1 PGO 황금 규칙** (2026-03-04 확립):
+  1. 황금 profdata = `build_pgo_gen/benchmarks/pgo.profdata` (2026-03-03 생성). 절대 삭제/재생성 금지.
+  2. 코드 변경 시 반드시 `build_pgo_gen` 베이스로 새 gen/use 디렉토리 생성 (기존 오염 방지).
+  3. 프로파일링은 `bench_all --all --iter 30` **ONLY** (bench_quick 혼합 금지 — twitter 573μs 파국적 결과 확인).
+  4. 측정은 빌드 완료 후 **5분 대기** 후 실시 (M1 서멀 스로틀링 — 빌드 직후 측정 시 3× 오차 발생).
+  5. parse() 함수에 코드 ADDING 절대 금지. REPLACING(교체)는 허용 (Phase 62 ✅ vs Phase 70-M1 ❌).
