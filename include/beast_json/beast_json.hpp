@@ -5214,8 +5214,19 @@ public:
       // Root cause: same PGO/LTO cross-contamination pattern as Phase 66/66-B.
       // The serialize loop and parse code share one LTO unit — any structural
       // change to the serialize switch affects parse I-cache layout.
+      // Phase 79-M1: branchless sep write — table lookup + conditional advance.
+      // sep=0 writes '\0' harmlessly; switch case always overwrites it.
+      // Saves 2 instructions + eliminates 1 branch vs conditional write.
+#if BEAST_ARCH_APPLE_SILICON
+      {
+        static constexpr char kSepChars[3] = {'\0', ',', ':'};
+        *w = kSepChars[sep];
+        w += static_cast<size_t>(sep != 0);
+      }
+#else
       if (sep)
         *w++ = (sep == 0x02u) ? ':' : ',';
+#endif
 
       switch (type) {
 
@@ -5434,8 +5445,16 @@ public:
       const auto type = static_cast<TapeNodeType>((meta >> 24) & 0xFF);
       const uint8_t sep = (meta >> 16) & 0xFFu;
 
+#if BEAST_ARCH_APPLE_SILICON
+      {
+        static constexpr char kSepChars[3] = {'\0', ',', ':'};
+        *w = kSepChars[sep];
+        w += static_cast<size_t>(sep != 0);
+      }
+#else
       if (sep)
         *w++ = (sep == 0x02u) ? ':' : ',';
+#endif
 
       switch (type) {
 
