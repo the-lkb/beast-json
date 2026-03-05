@@ -1,6 +1,6 @@
 # Architecture Optimization Failure Log
 
-> **마지막 업데이트**: 2026-03-01 (Phase 49/51/52 x86_64 회귀 사례 추가)
+> **마지막 업데이트**: 2026-03-05 (M1 Phase 72-81 회귀 사례 추가 — serialize LTO/I-cache 황금 규칙 완성)
 > 이 문서는 Beast JSON 라이브러리 개발 중 각 아키텍처(x86_64, aarch64 등)별로 시도되었으나 실패(성능 회귀, Regression)한 최적화 사례와 그 원인을 면밀히 분석한 자료입니다.
 > 에이전트는 새로운 SIMD 최적화를 시도하기 전에 **반드시 이 문서를 숙지**하여 동일한 실수를 반복하지 않도록 해야 합니다.
 
@@ -276,6 +276,128 @@ Termux나 Apple Silicon 환경에서 작업할 차기 에이전트는 아래 수
   4. Pure NEON 패러다임 원칙: 단거리 WS가 지배하는 파일에서 추가 벡터 연산 비용이 오히려 증가.
 
 * **결론**: skip_to_action의 32B 확장은 "긴 연속 WS"가 지배하는 파일에서만 유리하며, 실제 JSON 파일의 WS 패턴(대부분 1-3바이트)에서는 순수 회귀. 16B NEON 루프가 최적.
+
+---
+
+---
+
+## M1 Phase 72-81: Apple Silicon serialize LTO/I-cache 황금 규칙 확립 과정
+
+> **배경**: Phase 72-M1부터 serialize 최적화를 본격 시작. Phase 80-M1로 완성. 이 과정에서 M1 PGO+LTO 환경 특유의 극단적 민감성을 발견하고 황금 규칙을 확립.
+
+### ❌ Phase 73-M1: vshrn+ctz SWAR 대체 시도
+
+**목표**: `scan_string_end()` 내 scalar `while` 루프를 `vshrn_n_u16` + `__builtin_ctzll`로 교체하여 NEON 16B 단위로 첫 특수문자 위치를 O(1) 계산.
+
+**실패 원인**: M1의 scalar while 루프는 분기 예측기+OoO 실행으로 이미 최적. `vshrn` 기반 movemask 에뮬레이션(6+ instructions) + GPR-SIMD 전송 레이턴시가 scalar loop보다 더 느림.
+
+**교훈**: M1에서 "NEON movemask 없음" 문제는 x86의 bsf/tzcnt와 달리 에뮬레이션 비용이 scalar보다 높다. scalar `while`을 NEON CTZ로 교체하려는 시도 금지.
+
+---
+
+### ❌ Phase 74-M1 / 74B-M1: serialize 코드 추가 (uint64 변환 NEON화)
+
+**Phase 74-M1**: value string 3×16B 스캐너 + serialize의 uint64/int64 변환 NEON화
+**Phase 74B-M1**: serialize uint64/uint32만 단독으로 NEON화 (parse 변경 제외)
+
+**실패 결과**:
+- canada serialize: +11% 회귀
+- citm serialize: +11% 회귀
+
+**근본 원인**: serialize 함수에 **코드 추가** → 전체 함수 크기 증가 → I-cache 압력 증가 → PGO+LTO가 현재 레이아웃을 깨고 재배치 → 회귀.
+
+**핵심 발견**: serialize 코드 추가는 parse 코드와 무관해도 serialize 자체에 회귀를 유발한다. I-cache 압력이 LTO 재배치와 독립적으로 직접 영향.
+
+**교훈**: M1 serialize 함수에 코드 추가 = 절대 금지. Phase 74B로 parse 변경을 제거해도 동일 회귀 → serialize 코드 크기 자체가 문제.
+
+---
+
+### ❌ Phase 76(1차)-M1: parse 코드 제거 (key scanner fallback 제거)
+
+**시도**: `scan_key_colon_next()` 내 2×16B NEON fallback 경로 제거 (dead code 정리 목적)
+
+**실패 결과**:
+- citm serialize: +6μs 회귀
+
+**근본 원인**: parse 함수의 코드 **제거** → 기본 블록 구조 변경 → PGO+LTO 코드 레이아웃 재배치 → serialize 함수 배치 영향.
+
+**핵심 발견**: parse와 serialize는 동일 LTO 단위에 있어, parse의 어떤 변경도 serialize 레이아웃에 영향. 코드 제거도 추가만큼 위험.
+
+**교훈**: parse 코드 제거 = LTO 교란 → serialize 회귀. Phase 77B, 78에서 동일 패턴 재확인.
+
+---
+
+### ❌ Phase 77-M1: serialize 코드 추가 (32-48B NEON inline)
+
+**시도**: StringRaw case에서 slen 32-48B 범위에 3×16B NEON overlapping triple 추가
+
+**실패 결과**:
+- citm serialize: 174μs → 213μs (+22% 회귀)
+- canada serialize: 716μs → 839μs (+17% 회귀)
+
+**근본 원인**: serialize 함수에 코드 추가 → I-cache footprint 증가 → citm의 26,604 string 노드 처리 시 L1 I-cache miss 증가.
+
+**수치 분석**: citm 95.1%가 slen 1-16B (fast path). 32-48B 최적화는 4.9% 케이스에만 적용되나, 추가된 코드가 fast path의 I-cache 효율을 저하. 코드 추가의 비용이 이득을 초과.
+
+**교훈**: serialize 코드 추가는 실제로 사용되는 코드라도 I-cache 압력으로 회귀. "사용하지 않는 코드만 위험하다"는 가정 틀림.
+
+---
+
+### ❌ Phase 77B-M1: parse 코드 제거 (parse_number single-digit 최적화 제거)
+
+**시도**: `parse_number()` 내 single-digit 빠른 경로 조건 분기 제거 (코드 정리)
+
+**실패 결과**:
+- twitter serialize: 67μs → 101μs (+50% 파국적 회귀)
+
+**근본 원인**: parse 코드 제거 → LTO 재배치 → serialize 레이아웃 교란. Phase 76(1차)와 동일 패턴.
+
+**교훈**: parse 코드 제거가 serialize에 +50%를 유발. LTO 단위 내에서 함수 배치 의존성이 얼마나 취약한지 확인. parse와 serialize 분리 없이는 어떤 parse 변경도 serialize를 위협한다.
+
+---
+
+### ❌ Phase 78-M1: parse 코드 추가 (scan_string_end 32B outer loop)
+
+**시도**: `scan_string_end()` 내 16B inner loop 바깥에 32B/iteration outer loop 추가
+
+**실패 결과**:
+- twitter serialize: 99.87μs (Phase 80 이전 상태, 67μs 대비 +50% 회귀)
+
+**근본 원인**: parse 코드 추가 → LTO 교란 → serialize 레이아웃 변경. Phase 74, 77 serialize 추가와 동일 패턴이지만 parse 쪽 추가임.
+
+**교훈**: parse 코드 추가 = LTO 교란 → serialize 회귀. 양방향 모두 위험 확인.
+
+---
+
+### ❌ Phase 81-M1: StringRaw early-continue before switch
+
+**시도**: serialize 루프 내 `for` 문에서 switch 이전에 StringRaw 조건 분기 + `continue` 추가:
+```cpp
+// Phase 81 시도 (원복됨)
+if (BEAST_LIKELY(type == TapeNodeType::StringRaw)) {
+    // ... StringRaw fast path ...
+    continue;  // ← 이 continue가 문제
+}
+switch (type) {
+    // StringRaw case는 #if !BEAST_ARCH_APPLE_SILICON로 제거
+    ...
+}
+```
+
+**실패 결과** (fresh PGO pgo_67777.profraw 기준):
+- citm serialize: 166μs → 196μs (+19% 회귀)
+- canada serialize: 701μs → 916μs (+31% 회귀)
+
+**근본 원인**: `continue` 문이 `for` 루프에 두 번째 back-edge를 생성:
+- 변경 전: 루프 back-edge 1개 (switch 끝 → 루프 선두)
+- 변경 후: 루프 back-edge 2개 (continue 분기 + switch 끝 → 루프 선두)
+- LTO 컴파일러가 multiple back-edge를 다르게 해석 → 루프 최적화 전략 변경 → 코드 레이아웃 교란 → 회귀
+
+**이론 vs 현실**: StringRaw가 95%+ citm 노드이므로 indirect jump(switch) → direct branch(if) 교체는 이론적으로 유리. 그러나 loop 구조 변경이 LTO의 inlining/layout 결정을 바꾼다.
+
+**교훈**: 루프 내 `continue`/`break` 추가로 새 back-edge를 만드는 모든 변경 = LTO 교란. 새 황금 규칙으로 등록.
+
+**복구**: `git checkout include/beast_json/beast_json.hpp` + `xcrun llvm-profdata merge pgo_65861.profraw -o pgo.profdata`
 
 ---
 
