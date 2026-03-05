@@ -61,6 +61,7 @@
 #include <optional>
 #include <set>
 #include <sstream>
+#include <unordered_set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -428,6 +429,14 @@ public:
   // !mutations_.empty() which is guarded by BEAST_UNLIKELY.
   std::unordered_map<uint32_t, MutationEntry> mutations_;
 
+  // Structural modification state — empty for read-only documents.
+  // deleted_   : tape indices of deleted object-keys or array-elements.
+  //              Cascade: deleting an object key also implicitly drops its value subtree.
+  // additions_ : keyed by parent ObjectStart/ArrayStart tape index.
+  //              Each entry is {key_string (empty for arrays), pre-serialized JSON value}.
+  std::unordered_set<uint32_t>                                          deleted_;
+  std::unordered_map<uint32_t, std::vector<std::pair<std::string,std::string>>> additions_;
+
   DocumentView() = default;
   explicit DocumentView(std::string_view json) : source(json) {}
 
@@ -498,6 +507,16 @@ concept JsonWritable =
     JsonInteger<T>                  ||
     JsonFloat<T>                    ||
     std::convertible_to<T, std::string_view>;
+
+/// Scalar-only subset of JsonWritable: excludes string-like types.
+/// Used for insert<T>/push_back<T> templates to prevent ambiguity with
+/// the insert(key, string_view) overload that would cause infinite recursion.
+template<typename T>
+concept JsonScalarOnly =
+    std::same_as<T, std::nullptr_t> ||
+    std::same_as<T, bool>           ||
+    JsonInteger<T>                  ||
+    JsonFloat<T>;
 
 // ─────────────────────────────────────────────────────────────
 // Forward declarations
@@ -702,52 +721,59 @@ public:
     return (*this)[std::string_view(key)];
   }
 
-  Value operator[](std::string_view key) const {
-    if (!is_object())
-      throw std::runtime_error("beast::Value: not an object");
+  // operator[] — non-throwing: returns invalid Value{} (doc_=nullptr) when
+  // the key or index is missing instead of throwing.  This enables safe chains:
+  //   auto v = root["a"]["b"]["c"];   // never throws; check with if(v)
+  //   int x  = root["a"]["b"].value_or(0); // via SafeValue chain
+  Value operator[](std::string_view key) const noexcept {
+    if (!is_object()) return {};
     uint32_t i = idx_ + 1;
     const size_t ntape = doc_->tape.size();
     while (i < ntape) {
       const auto t = doc_->tape[i].type();
-      if (t == TapeNodeType::ObjectEnd)
-        throw std::out_of_range("beast::Value: key not found: " +
-                                std::string(key));
-      // i = key (StringRaw), i+1 = value
+      if (t == TapeNodeType::ObjectEnd) return {};
+      // Skip deleted keys transparently
+      if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
+        i = skip_value_(i + 1); continue;
+      }
       const TapeNode &kn = doc_->tape[i];
       const char *kdata = doc_->source.data() + kn.offset;
       const size_t klen = kn.length();
       if (klen == key.size() && std::memcmp(kdata, key.data(), klen) == 0)
         return Value(doc_, i + 1);
-      i = skip_value_(i + 1); // skip value, land on next key
+      i = skip_value_(i + 1);
     }
-    throw std::out_of_range("beast::Value: key not found: " +
-                            std::string(key));
+    return {};
   }
 
   // int overload — prevents implicit conversion of int literals through
   // arithmetic operator T() to ambiguous built-in subscript.
-  Value operator[](int index) const {
+  Value operator[](int index) const noexcept {
+    if (index < 0) return {};
     return (*this)[static_cast<size_t>(index)];
   }
 
-  Value operator[](size_t index) const {
-    if (!is_array())
-      throw std::runtime_error("beast::Value: not an array");
+  Value operator[](size_t index) const noexcept {
+    if (!is_array()) return {};
     uint32_t i = idx_ + 1;
     const size_t ntape = doc_->tape.size();
     size_t count = 0;
     while (i < ntape) {
       const auto t = doc_->tape[i].type();
-      if (t == TapeNodeType::ArrayEnd)
-        throw std::out_of_range("beast::Value: array index out of range");
+      if (t == TapeNodeType::ArrayEnd) return {};
+      // Skip deleted elements transparently
+      if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
+        i = skip_value_(i); continue;
+      }
       if (count == index)
         return Value(doc_, i);
       i = skip_value_(i);
       ++count;
     }
-    throw std::out_of_range("beast::Value: array index out of range");
+    return {};
   }
 
+  // find() — returns optional<Value>; respects deleted keys.
   std::optional<Value> find(std::string_view key) const noexcept {
     if (!is_object()) return std::nullopt;
     uint32_t i = idx_ + 1;
@@ -755,6 +781,9 @@ public:
     while (i < ntape) {
       const auto t = doc_->tape[i].type();
       if (t == TapeNodeType::ObjectEnd) return std::nullopt;
+      if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
+        i = skip_value_(i + 1); continue;
+      }
       const TapeNode &kn = doc_->tape[i];
       const char *kdata = doc_->source.data() + kn.offset;
       const size_t klen = kn.length();
@@ -765,28 +794,41 @@ public:
     return std::nullopt;
   }
 
-  // ── Size ─────────────────────────────────────────────────────────────────────
+  // ── Size (respects deletions + additions) ──────────────────────────────────
 
   size_t size() const noexcept {
     if (!doc_) return 0;
     const auto t = doc_->tape[idx_].type();
+    const size_t ntape = doc_->tape.size();
     if (t == TapeNodeType::ArrayStart) {
       uint32_t i = idx_ + 1;
-      const size_t ntape = doc_->tape.size();
       size_t count = 0;
       while (i < ntape && doc_->tape[i].type() != TapeNodeType::ArrayEnd) {
-        i = skip_value_(i);
-        ++count;
+        if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
+          i = skip_value_(i);
+        } else {
+          i = skip_value_(i); ++count;
+        }
+      }
+      if (!doc_->additions_.empty()) {
+        auto ait = doc_->additions_.find(idx_);
+        if (ait != doc_->additions_.end()) count += ait->second.size();
       }
       return count;
     }
     if (t == TapeNodeType::ObjectStart) {
       uint32_t i = idx_ + 1;
-      const size_t ntape = doc_->tape.size();
       size_t count = 0;
       while (i < ntape && doc_->tape[i].type() != TapeNodeType::ObjectEnd) {
-        i = skip_value_(i + 1); // skip key then value
-        ++count;
+        if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
+          i = skip_value_(i + 1);  // skip deleted key+value
+        } else {
+          i = skip_value_(i + 1); ++count;
+        }
+      }
+      if (!doc_->additions_.empty()) {
+        auto ait = doc_->additions_.find(idx_);
+        if (ait != doc_->additions_.end()) count += ait->second.size();
       }
       return count;
     }
@@ -937,10 +979,11 @@ public:
     return doc_ != nullptr;
   }
 
-  // ── Zero-copy serialization: context stack tracks object/array nesting.
-  // Object: even elem_idx = key (emit ',' before all except first key)
-  //         odd  elem_idx = value (emit ':' after key)
-  // Array:  emit ',' before every element except the first
+  // ── Serialization ─────────────────────────────────────────────────────────
+  //
+  // dump()           — compact JSON string for this value (subtree only)
+  // dump(string&)    — buffer-reuse variant
+  // dump(int indent) — pretty-printed with 'indent' spaces per level
   //
   // Phase Serialize: flat-buffer rewrite.
   // Instead of 3 × std::string::append per token (with bounds-check +
@@ -958,15 +1001,21 @@ public:
   std::string dump() const {
     if (!doc_ || doc_->tape.size() == 0)
       return "null";
+    // Delegate to structural dump when deletions/additions are present
+    if (BEAST_UNLIKELY(!doc_->deleted_.empty() || !doc_->additions_.empty()))
+      return dump_changes_();
     const char *src = doc_->source.data();
     const size_t ntape = doc_->tape.size();
 
     // Phase E: separators pre-computed by parser into meta bits 23-16.
-    // dump() simply reads the flag and writes the separator — no bit-stacks,
-    // no emit_sep() overhead, no top/top_mask/obj_bits/key_bits/sep_bits.
     //   sep == 0x00 → no separator (root or first element)
     //   sep == 0x01 → comma
     //   sep == 0x02 → colon
+    // Subtree-aware: iterate [idx_, end) only; suppress sep for first node.
+    const uint32_t start_i = idx_;
+    const uint32_t end_i   = (idx_ == 0)
+        ? static_cast<uint32_t>(ntape) : skip_value_(idx_);
+
     size_t mutation_extra = 0;
     for (const auto &[k, m] : doc_->mutations_)
       mutation_extra += m.data.size() + 16;
@@ -976,11 +1025,13 @@ public:
     char *w = out.data();
     char *w0 = w;
 
-    for (size_t i = 0; i < ntape; ++i) {
+    for (uint32_t i = start_i; i < end_i; ++i) {
       const TapeNode &nd = doc_->tape[i];
       const uint32_t meta = nd.meta;
       const auto type = static_cast<TapeNodeType>((meta >> 24) & 0xFF);
-      const uint8_t sep = (meta >> 16) & 0xFFu;
+      // Suppress separator for the subtree root (it belongs to parent context)
+      const uint8_t sep = (i == start_i)
+          ? 0u : static_cast<uint8_t>((meta >> 16) & 0xFFu);
 
       // Write pre-computed separator (branch-free for common case)
       // Phase 67 attempt (sep-per-case + StringRaw batch write) REVERTED:
@@ -1218,6 +1269,9 @@ public:
       out.assign("null", 4);
       return;
     }
+    if (BEAST_UNLIKELY(!doc_->deleted_.empty() || !doc_->additions_.empty())) {
+      out = dump_changes_(); return;
+    }
     const char *src = doc_->source.data();
     const size_t ntape = doc_->tape.size();
     size_t mutation_extra2 = 0;
@@ -1225,19 +1279,21 @@ public:
       mutation_extra2 += m.data.size() + 16;
     const size_t buf_cap = doc_->source.size() + 16 + mutation_extra2;
 
-    // Use cached exact size if available; fall back to buf_cap on first call.
-    // Invalidated (reset to 0) by set(), so mutations always get fresh sizing.
+    const uint32_t start_i2 = idx_;
+    const uint32_t end_i2   = (idx_ == 0)
+        ? static_cast<uint32_t>(ntape) : skip_value_(idx_);
     const size_t target =
         (doc_->last_dump_size_ > 0) ? doc_->last_dump_size_ : buf_cap;
     out.resize(target);
     char *w = out.data();
     char *w0 = w;
 
-    for (size_t i = 0; i < ntape; ++i) {
+    for (uint32_t i = start_i2; i < end_i2; ++i) {
       const TapeNode &nd = doc_->tape[i];
       const uint32_t meta = nd.meta;
       const auto type = static_cast<TapeNodeType>((meta >> 24) & 0xFF);
-      const uint8_t sep = (meta >> 16) & 0xFFu;
+      const uint8_t sep = (i == start_i2)
+          ? 0u : static_cast<uint8_t>((meta >> 16) & 0xFFu);
 
 #if BEAST_ARCH_APPLE_SILICON
       {
@@ -1401,6 +1457,509 @@ public:
     const size_t actual = static_cast<size_t>(w - w0);
     out.resize(actual);
     doc_->last_dump_size_ = actual; // cache for zero-fill-free resize next call
+  }
+
+  // ── Pretty-print ──────────────────────────────────────────────────────────
+  //
+  // dump(indent) — human-readable JSON with 'indent' spaces per level.
+  // Uses std::string::append internally (not ultra-fast, but pretty-print
+  // is rarely on the hot path).
+  std::string dump(int indent) const {
+    if (!doc_) return "null";
+    std::string out;
+    out.reserve(doc_->source.size() * 2 + 64);
+    dump_pretty_(out, indent, 0);
+    return out;
+  }
+
+  // ── Structural modification ───────────────────────────────────────────────
+  //
+  // erase(key)       — delete an object key + its entire value subtree
+  // erase(idx)       — delete an array element
+  // insert(key, val) — add a key-value pair to an object
+  // push_back(val)   — append an element to an array
+  //
+  // All operations are reflected immediately by dump(), operator[], find(),
+  // size(), items(), and elements().
+
+  void erase(std::string_view key) {
+    if (!is_object()) return;
+    uint32_t i = idx_ + 1;
+    const size_t ntape = doc_->tape.size();
+    while (i < ntape) {
+      const auto t = doc_->tape[i].type();
+      if (t == TapeNodeType::ObjectEnd) return;
+      const TapeNode &kn = doc_->tape[i];
+      const char *kdata = doc_->source.data() + kn.offset;
+      if (kn.length() == key.size() &&
+          std::memcmp(kdata, key.data(), key.size()) == 0) {
+        doc_->deleted_.insert(i);   // mark key deleted (cascade: dump skips value)
+        doc_->last_dump_size_ = 0;
+        return;
+      }
+      i = skip_value_(i + 1);
+    }
+  }
+  void erase(const char *key) { erase(std::string_view(key)); }
+
+  void erase(size_t idx) {
+    if (!is_array()) return;
+    uint32_t i = idx_ + 1;
+    const size_t ntape = doc_->tape.size();
+    size_t count = 0;
+    while (i < ntape) {
+      const auto t = doc_->tape[i].type();
+      if (t == TapeNodeType::ArrayEnd) return;
+      if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
+        i = skip_value_(i); continue;
+      }
+      if (count == idx) {
+        doc_->deleted_.insert(i);
+        doc_->last_dump_size_ = 0;
+        return;
+      }
+      i = skip_value_(i); ++count;
+    }
+  }
+  void erase(int idx) { if (idx >= 0) erase(static_cast<size_t>(idx)); }
+
+  // ── Structural insert API ────────────────────────────────────────────────
+  //
+  // insert(key, T)       — type-safe: strings are quoted, scalars serialized
+  // insert_json(key, sv) — raw JSON (use for nested objects/arrays)
+  // push_back(T)         — array append (type-safe)
+  // push_back_json(sv)   — raw JSON append
+
+  // insert_json: store a pre-serialized JSON value (raw, no quoting)
+  void insert_json(std::string_view key, std::string_view raw_json) {
+    if (!is_object()) return;
+    doc_->additions_[idx_].emplace_back(std::string(key), std::string(raw_json));
+    doc_->last_dump_size_ = 0;
+  }
+  // insert(key, string) — inserts a JSON string (auto-quoted)
+  void insert(std::string_view key, std::string_view str_val) {
+    insert_json(key, scalar_to_json_(str_val));
+  }
+  void insert(std::string_view key, const std::string &str_val) {
+    insert(key, std::string_view(str_val));
+  }
+  void insert(std::string_view key, const char *str_val) {
+    insert(key, std::string_view(str_val));
+  }
+  // insert(key, nullptr/bool) — explicit overloads
+  void insert(std::string_view key, std::nullptr_t)   { insert_json(key, "null"); }
+  void insert(std::string_view key, bool b)            { insert_json(key, b ? "true" : "false"); }
+  // insert(key, numeric) — numeric scalars
+  template<JsonInteger T>
+  void insert(std::string_view key, T val) { insert_json(key, scalar_to_json_(val)); }
+  template<JsonFloat T>
+  void insert(std::string_view key, T val) { insert_json(key, scalar_to_json_(val)); }
+  // insert(key, Value) — serializes the value subtree
+  void insert(std::string_view key, const Value &v) { insert_json(key, v.dump()); }
+
+  // push_back_json: raw JSON append
+  void push_back_json(std::string_view raw_json) {
+    if (!is_array()) return;
+    doc_->additions_[idx_].emplace_back(std::string(), std::string(raw_json));
+    doc_->last_dump_size_ = 0;
+  }
+  // push_back(string) — auto-quoted
+  void push_back(std::string_view str_val)     { push_back_json(scalar_to_json_(str_val)); }
+  void push_back(const std::string &str_val)   { push_back(std::string_view(str_val)); }
+  void push_back(const char *str_val)          { push_back(std::string_view(str_val)); }
+  void push_back(std::nullptr_t)               { push_back_json("null"); }
+  void push_back(bool b)                       { push_back_json(b ? "true" : "false"); }
+  template<JsonInteger T>
+  void push_back(T val)                        { push_back_json(scalar_to_json_(val)); }
+  template<JsonFloat T>
+  void push_back(T val)                        { push_back_json(scalar_to_json_(val)); }
+  void push_back(const Value &v)               { push_back_json(v.dump()); }
+
+  // ── Iteration ─────────────────────────────────────────────────────────────
+  //
+  // items()    — forward-iterable view over {key, value} pairs of an object.
+  //              Skips deleted keys and includes additions.
+  // elements() — forward-iterable view over elements of an array.
+  //              Skips deleted elements.
+  //
+  // Usage:
+  //   for (auto [k, v] : root["obj"].items())
+  //       std::cout << k << " = " << v.dump() << "\n";
+  //
+  //   for (auto elem : root["arr"].elements())
+  //       std::cout << elem.as<int>() << "\n";
+
+  // Shared skip helper — used by iterators (avoids duplicating logic)
+  static uint32_t skip_val_s_(const DocumentView *doc, uint32_t i) noexcept {
+    const auto t = doc->tape[i].type();
+    if (t == TapeNodeType::ObjectStart || t == TapeNodeType::ArrayStart) {
+      int depth = 1; ++i;
+      while (depth > 0) {
+        const auto nt = doc->tape[i].type();
+        if (nt == TapeNodeType::ObjectStart || nt == TapeNodeType::ArrayStart) ++depth;
+        else if (nt == TapeNodeType::ObjectEnd || nt == TapeNodeType::ArrayEnd) --depth;
+        ++i;
+      }
+      return i;
+    }
+    return i + 1;
+  }
+
+  // Forward iterator over object key-value pairs.
+  // Yields std::pair<std::string_view, Value> — structured bindings work:
+  //   for (auto [key, val] : root["obj"].items()) { ... }
+  class ObjectIterator {
+    const DocumentView *doc_;
+    uint32_t key_idx_;  // UINT32_MAX = end sentinel
+    void skip_deleted_() noexcept {
+      while (key_idx_ != UINT32_MAX) {
+        const auto t = doc_->tape[key_idx_].type();
+        if (t == TapeNodeType::ObjectEnd) { key_idx_ = UINT32_MAX; return; }
+        if (doc_->deleted_.empty() || !doc_->deleted_.count(key_idx_)) return;
+        key_idx_ = skip_val_s_(doc_, key_idx_ + 1);  // skip deleted key+value
+      }
+    }
+  public:
+    // value_type uses pair to avoid incomplete-type issue with Value inside Value
+    using difference_type   = std::ptrdiff_t;
+    using value_type        = std::pair<std::string_view, Value>;
+    using iterator_category = std::forward_iterator_tag;
+
+    ObjectIterator() noexcept : doc_(nullptr), key_idx_(UINT32_MAX) {}
+    ObjectIterator(const DocumentView *doc, uint32_t key_idx) noexcept
+        : doc_(doc), key_idx_(key_idx) { skip_deleted_(); }
+
+    // Returns {key_string_view, Value} — Value is constructed on demand
+    std::pair<std::string_view, Value> operator*() const noexcept {
+      const TapeNode &kn = doc_->tape[key_idx_];
+      return { std::string_view(doc_->source.data() + kn.offset, kn.length()),
+               Value(const_cast<DocumentView*>(doc_), key_idx_ + 1) };
+    }
+    ObjectIterator &operator++() noexcept {
+      key_idx_ = skip_val_s_(doc_, key_idx_ + 1);  // skip value
+      skip_deleted_();
+      return *this;
+    }
+    ObjectIterator operator++(int) noexcept { auto t = *this; ++(*this); return t; }
+    bool operator==(const ObjectIterator &o) const noexcept { return key_idx_ == o.key_idx_; }
+    bool operator!=(const ObjectIterator &o) const noexcept { return key_idx_ != o.key_idx_; }
+  };
+
+  // Range-compatible proxy for object iteration (also includes additions)
+  class ObjectRange {
+    const DocumentView *doc_;
+    uint32_t obj_idx_;  // ObjectStart tape index
+    // Additions appended as synthetic entries after tape traversal
+    const std::vector<std::pair<std::string,std::string>> *adds_ = nullptr;
+  public:
+    ObjectRange(const DocumentView *doc, uint32_t idx) noexcept : doc_(doc), obj_idx_(idx) {
+      if (doc_ && !doc_->additions_.empty()) {
+        auto it = doc_->additions_.find(idx);
+        if (it != doc_->additions_.end()) adds_ = &it->second;
+      }
+    }
+    ObjectIterator begin() const noexcept { return {doc_, obj_idx_ + 1}; }
+    ObjectIterator end()   const noexcept { return {}; }
+    // additions are accessed separately via added_items()
+    // (they have no tape index; expose as string pairs)
+    const std::vector<std::pair<std::string,std::string>> *added_items() const noexcept {
+      return adds_;
+    }
+  };
+
+  // Forward iterator over array elements
+  class ArrayIterator {
+    const DocumentView *doc_;
+    uint32_t elem_idx_;  // UINT32_MAX = end
+    void skip_deleted_() noexcept {
+      while (elem_idx_ != UINT32_MAX) {
+        const auto t = doc_->tape[elem_idx_].type();
+        if (t == TapeNodeType::ArrayEnd) { elem_idx_ = UINT32_MAX; return; }
+        if (doc_->deleted_.empty() || !doc_->deleted_.count(elem_idx_)) return;
+        elem_idx_ = skip_val_s_(doc_, elem_idx_);
+      }
+    }
+  public:
+    using difference_type   = std::ptrdiff_t;
+    using value_type        = Value;
+    using iterator_category = std::forward_iterator_tag;
+
+    ArrayIterator() noexcept : doc_(nullptr), elem_idx_(UINT32_MAX) {}
+    ArrayIterator(const DocumentView *doc, uint32_t elem_idx) noexcept
+        : doc_(doc), elem_idx_(elem_idx) { skip_deleted_(); }
+
+    Value operator*() const noexcept {
+      return Value(const_cast<DocumentView*>(doc_), elem_idx_);
+    }
+    ArrayIterator &operator++() noexcept {
+      elem_idx_ = skip_val_s_(doc_, elem_idx_);
+      skip_deleted_();
+      return *this;
+    }
+    ArrayIterator operator++(int) noexcept { auto t = *this; ++(*this); return t; }
+    bool operator==(const ArrayIterator &o) const noexcept { return elem_idx_ == o.elem_idx_; }
+    bool operator!=(const ArrayIterator &o) const noexcept { return elem_idx_ != o.elem_idx_; }
+  };
+
+  class ArrayRange {
+    const DocumentView *doc_;
+    uint32_t arr_idx_;
+  public:
+    ArrayRange(const DocumentView *doc, uint32_t idx) noexcept : doc_(doc), arr_idx_(idx) {}
+    ArrayIterator begin() const noexcept { return {doc_, arr_idx_ + 1}; }
+    ArrayIterator end()   const noexcept { return {}; }
+  };
+
+  // items() — object iteration
+  ObjectRange items() const noexcept {
+    if (!doc_ || !is_object()) return {nullptr, 0};
+    return {doc_, idx_};
+  }
+  // elements() — array iteration
+  ArrayRange elements() const noexcept {
+    if (!doc_ || !is_array()) return {nullptr, 0};
+    return {doc_, idx_};
+  }
+
+private:
+  // ── Private helpers ────────────────────────────────────────────────────────
+
+  // Serialize a scalar to its JSON representation.
+  static std::string scalar_to_json_(std::nullptr_t)     { return "null"; }
+  static std::string scalar_to_json_(bool b)             { return b ? "true" : "false"; }
+  template<JsonInteger T> static std::string scalar_to_json_(T v) {
+    char buf[32]; auto [p, ec] = std::to_chars(buf, buf+sizeof(buf), static_cast<int64_t>(v));
+    return std::string(buf, p);
+  }
+  template<JsonFloat T> static std::string scalar_to_json_(T v) {
+    char buf[64];
+    int n = std::snprintf(buf, sizeof(buf), "%.17g", static_cast<double>(v));
+    return std::string(buf, static_cast<size_t>(n > 0 ? n : 0));
+  }
+  static std::string scalar_to_json_(std::string_view s) {
+    std::string r; r.reserve(s.size()+2);
+    r += '"'; r.append(s.data(), s.size()); r += '"'; return r;
+  }
+  static std::string scalar_to_json_(const std::string &s) { return scalar_to_json_(std::string_view(s)); }
+  static std::string scalar_to_json_(const char *s)         { return scalar_to_json_(std::string_view(s)); }
+
+  // Write a single mutation entry into a std::string
+  static void write_mutation_(std::string &out, const MutationEntry &m) {
+    switch (m.type) {
+    case TapeNodeType::Null:         out += "null";  break;
+    case TapeNodeType::BooleanTrue:  out += "true";  break;
+    case TapeNodeType::BooleanFalse: out += "false"; break;
+    case TapeNodeType::StringRaw:
+      out += '"'; out.append(m.data); out += '"'; break;
+    default:  // Integer, Double
+      out.append(m.data); break;
+    }
+  }
+
+  // Full structural dump — used when deleted_ or additions_ are non-empty.
+  // Uses a stack-based separator approach (not pre-computed sep bits, which
+  // are invalidated by structural changes).
+  std::string dump_changes_() const {
+    const char *src = doc_->source.data();
+    const size_t ntape = doc_->tape.size();
+
+    // Compute subtree range
+    const uint32_t start_c = idx_;
+    const uint32_t end_c   = (idx_ == 0)
+        ? static_cast<uint32_t>(ntape) : skip_value_(idx_);
+
+    std::string out;
+    out.reserve(doc_->source.size() + doc_->additions_.size() * 64 + 64);
+
+    // Stack-based separator state (max 64 nesting levels)
+    struct Frame { bool is_obj; bool has_prev; bool next_val; uint32_t start_idx; };
+    Frame stk[64]; int top = -1;
+
+    // Separator helper: update frame after writing one complete element
+    auto done_elem = [](Frame &f) {
+      if (f.is_obj) { f.next_val = !f.next_val; if (!f.next_val) f.has_prev = true; }
+      else          { f.has_prev = true; }
+    };
+    // Write separator before a non-closing node
+    auto write_sep = [&](Frame &f) {
+      if (f.is_obj) { if (f.next_val) out += ':'; else if (f.has_prev) out += ','; }
+      else          { if (f.has_prev) out += ','; }
+    };
+    // Inject additions before a closing brace/bracket
+    auto inject_adds = [&](uint32_t parent_idx, Frame &f) {
+      if (doc_->additions_.empty()) return;
+      auto ait = doc_->additions_.find(parent_idx);
+      if (ait == doc_->additions_.end()) return;
+      for (const auto &[k, v] : ait->second) {
+        if (f.has_prev) out += ',';
+        if (f.is_obj) { out += '"'; out += k; out += "\":"; }
+        out += v;
+        f.has_prev = true;
+      }
+    };
+
+    uint32_t i = start_c;
+    while (i < end_c) {
+      const TapeNode &nd = doc_->tape[i];
+      const TapeNodeType type = static_cast<TapeNodeType>((nd.meta >> 24) & 0xFF);
+
+      // At key position: check if deleted (object member)
+      if (top >= 0 && stk[top].is_obj && !stk[top].next_val &&
+          type != TapeNodeType::ObjectEnd) {
+        if (!doc_->deleted_.empty() && doc_->deleted_.count(i)) {
+          i = skip_value_(i + 1);  // skip deleted key + value
+          continue;
+        }
+      }
+      // At array element: check if deleted
+      if (top >= 0 && !stk[top].is_obj &&
+          type != TapeNodeType::ArrayEnd) {
+        if (!doc_->deleted_.empty() && doc_->deleted_.count(i)) {
+          i = skip_value_(i);  // skip deleted element
+          continue;
+        }
+      }
+
+      // Write separator (for non-closing nodes, non-root)
+      const bool is_close = (type == TapeNodeType::ObjectEnd || type == TapeNodeType::ArrayEnd);
+      if (top >= 0 && !is_close && !(i == start_c))
+        write_sep(stk[top]);
+
+      // Mutation overlay
+      if (BEAST_UNLIKELY(!doc_->mutations_.empty())) {
+        auto mit = doc_->mutations_.find(i);
+        if (mit != doc_->mutations_.end()) {
+          write_mutation_(out, mit->second);
+          if (top >= 0) done_elem(stk[top]);
+          ++i; continue;
+        }
+      }
+
+      switch (type) {
+      case TapeNodeType::ObjectStart:
+        out += '{';
+        if (top >= 0 && !(i == start_c)) {}  // sep already written
+        ++top;
+        stk[top] = {true, false, false, i};
+        break;
+      case TapeNodeType::ArrayStart:
+        out += '[';
+        ++top;
+        stk[top] = {false, false, false, i};
+        break;
+      case TapeNodeType::ObjectEnd:
+        inject_adds(stk[top].start_idx, stk[top]);
+        out += '}';
+        --top;
+        if (top >= 0) done_elem(stk[top]);
+        break;
+      case TapeNodeType::ArrayEnd:
+        inject_adds(stk[top].start_idx, stk[top]);
+        out += ']';
+        --top;
+        if (top >= 0) done_elem(stk[top]);
+        break;
+      case TapeNodeType::StringRaw: {
+        const uint16_t slen = static_cast<uint16_t>(nd.meta & 0xFFFFu);
+        out += '"'; out.append(src + nd.offset, slen); out += '"';
+        if (top >= 0) done_elem(stk[top]);
+        break;
+      }
+      case TapeNodeType::Integer:
+      case TapeNodeType::NumberRaw:
+      case TapeNodeType::Double: {
+        const uint16_t nlen = static_cast<uint16_t>(nd.meta & 0xFFFFu);
+        out.append(src + nd.offset, nlen);
+        if (top >= 0) done_elem(stk[top]);
+        break;
+      }
+      case TapeNodeType::BooleanTrue:  out += "true";  if (top >= 0) done_elem(stk[top]); break;
+      case TapeNodeType::BooleanFalse: out += "false"; if (top >= 0) done_elem(stk[top]); break;
+      case TapeNodeType::Null:         out += "null";  if (top >= 0) done_elem(stk[top]); break;
+      default: break;
+      }
+      ++i;
+    }
+    return out;
+  }
+
+  // Pretty-print recursive helper
+  void dump_pretty_(std::string &out, int indent_size, int depth) const {
+    if (!doc_) { out += "null"; return; }
+    const TapeNodeType root_type = doc_->tape[idx_].type();
+
+    if (root_type == TapeNodeType::ObjectStart) {
+      out += '{';
+      bool first = true;
+      std::string pad(static_cast<size_t>((depth+1)*indent_size), ' ');
+      std::string close_pad(static_cast<size_t>(depth*indent_size), ' ');
+      // tape entries
+      uint32_t i = idx_ + 1;
+      const size_t ntape = doc_->tape.size();
+      while (i < ntape && doc_->tape[i].type() != TapeNodeType::ObjectEnd) {
+        if (!doc_->deleted_.empty() && doc_->deleted_.count(i)) {
+          i = skip_value_(i+1); continue;
+        }
+        if (!first) out += ',';
+        out += '\n'; out += pad;
+        // key
+        const TapeNode &kn = doc_->tape[i];
+        out += '"'; out.append(doc_->source.data()+kn.offset, kn.length()); out += '"';
+        out += ": ";
+        Value val_v(doc_, i+1);
+        val_v.dump_pretty_(out, indent_size, depth+1);
+        first = false;
+        i = skip_value_(i+1);
+      }
+      // additions
+      if (!doc_->additions_.empty()) {
+        auto ait = doc_->additions_.find(idx_);
+        if (ait != doc_->additions_.end()) {
+          for (const auto &[k,v] : ait->second) {
+            if (!first) out += ',';
+            out += '\n'; out += pad;
+            out += '"'; out += k; out += "\": "; out += v;
+            first = false;
+          }
+        }
+      }
+      if (!first) { out += '\n'; out += close_pad; }
+      out += '}';
+    } else if (root_type == TapeNodeType::ArrayStart) {
+      out += '[';
+      bool first = true;
+      std::string pad(static_cast<size_t>((depth+1)*indent_size), ' ');
+      std::string close_pad(static_cast<size_t>(depth*indent_size), ' ');
+      uint32_t i = idx_ + 1;
+      const size_t ntape = doc_->tape.size();
+      while (i < ntape && doc_->tape[i].type() != TapeNodeType::ArrayEnd) {
+        if (!doc_->deleted_.empty() && doc_->deleted_.count(i)) {
+          i = skip_value_(i); continue;
+        }
+        if (!first) out += ',';
+        out += '\n'; out += pad;
+        Value elem_v(doc_, i);
+        elem_v.dump_pretty_(out, indent_size, depth+1);
+        first = false;
+        i = skip_value_(i);
+      }
+      // additions
+      if (!doc_->additions_.empty()) {
+        auto ait = doc_->additions_.find(idx_);
+        if (ait != doc_->additions_.end()) {
+          for (const auto &[k,v] : ait->second) {
+            if (!first) out += ',';
+            out += '\n'; out += pad; out += v;
+            first = false;
+          }
+        }
+      }
+      if (!first) { out += '\n'; out += close_pad; }
+      out += ']';
+    } else {
+      // scalar — just use fast dump()
+      out += dump();
+    }
   }
 };
 

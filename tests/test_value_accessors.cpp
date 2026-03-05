@@ -1,8 +1,10 @@
 #include <beast_json/beast_json.hpp>
 #include <gtest/gtest.h>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 using namespace beast;
 
@@ -148,16 +150,19 @@ TEST(ValueAccessors, ObjectSubscript) {
   EXPECT_EQ(root["name"].as<std::string>(), "Alice");
 }
 
-TEST(ValueAccessors, ObjectSubscriptMissingKeyThrows) {
+TEST(ValueAccessors, ObjectSubscriptMissingKeyReturnsInvalid) {
   Document doc;
   auto root = parse_root(doc, R"({"x": 1})");
-  EXPECT_THROW(root["missing"], std::out_of_range);
+  // Non-throwing: missing key returns invalid Value (operator bool == false)
+  Value v = root["missing"];
+  EXPECT_FALSE(static_cast<bool>(v));
 }
 
-TEST(ValueAccessors, ObjectSubscriptOnNonObjectThrows) {
+TEST(ValueAccessors, ObjectSubscriptOnNonObjectReturnsInvalid) {
   Document doc;
   auto root = parse_root(doc, "[1, 2]");
-  EXPECT_THROW(root["key"], std::runtime_error);
+  Value v = root["key"];
+  EXPECT_FALSE(static_cast<bool>(v));
 }
 
 // ── operator[](idx): array access ─────────────────────────────────────────────
@@ -170,16 +175,18 @@ TEST(ValueAccessors, ArraySubscript) {
   EXPECT_EQ(root[2].as<int>(), 30);
 }
 
-TEST(ValueAccessors, ArraySubscriptOutOfRangeThrows) {
+TEST(ValueAccessors, ArraySubscriptOutOfRangeReturnsInvalid) {
   Document doc;
   auto root = parse_root(doc, "[1, 2]");
-  EXPECT_THROW(root[5], std::out_of_range);
+  Value v = root[5];
+  EXPECT_FALSE(static_cast<bool>(v));
 }
 
-TEST(ValueAccessors, ArraySubscriptOnNonArrayThrows) {
+TEST(ValueAccessors, ArraySubscriptOnNonArrayReturnsInvalid) {
   Document doc;
   auto root = parse_root(doc, R"({"a": 1})");
-  EXPECT_THROW(root[0], std::runtime_error);
+  Value v = root[0];
+  EXPECT_FALSE(static_cast<bool>(v));
 }
 
 // ── find(): safe object lookup ────────────────────────────────────────────────
@@ -721,11 +728,10 @@ TEST(SafeValue, GetOnNonObject) {
 }
 
 TEST(SafeValue, DumpPresent) {
-  // SafeValue::dump() delegates to val_.dump() which serializes the whole
-  // document (dump() always iterates from tape[0]).
+  // dump() is now subtree-aware: returns only the selected value
   Document doc;
   auto root = parse_root(doc, R"({"x": 1})");
-  EXPECT_EQ(root.get("x").dump(), R"({"x":1})");
+  EXPECT_EQ(root.get("x").dump(), "1");
 }
 
 TEST(SafeValue, DumpAbsent) {
@@ -884,4 +890,281 @@ TEST(Concepts, JsonWritableConcept) {
   static_assert(beast::json::lazy::JsonWritable<std::string_view>);
   static_assert(beast::json::lazy::JsonWritable<std::nullptr_t>);
   SUCCEED();
+}
+
+// ── Structural mutation ───────────────────────────────────────────────────────
+
+TEST(StructuralMutation, EraseKey) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":1,"b":2,"c":3})");
+  root.erase("b");
+  EXPECT_EQ(root.dump(), R"({"a":1,"c":3})");
+}
+
+TEST(StructuralMutation, EraseCascade) {
+  Document doc;
+  auto root = parse_root(doc, R"({"user":{"name":"kim","age":30},"tag":"x"})");
+  root.erase("user");  // cascade: entire subtree removed
+  EXPECT_EQ(root.dump(), R"({"tag":"x"})");
+}
+
+TEST(StructuralMutation, EraseAllKeys) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":1,"b":2})");
+  root.erase("a");
+  root.erase("b");
+  EXPECT_EQ(root.dump(), "{}");
+}
+
+TEST(StructuralMutation, EraseArrayElement) {
+  Document doc;
+  auto root = parse_root(doc, "[10,20,30]");
+  root.erase(static_cast<size_t>(1));
+  EXPECT_EQ(root.dump(), "[10,30]");
+}
+
+TEST(StructuralMutation, EraseFirstArrayElement) {
+  Document doc;
+  auto root = parse_root(doc, "[1,2,3]");
+  root.erase(static_cast<size_t>(0));
+  EXPECT_EQ(root.dump(), "[2,3]");
+}
+
+TEST(StructuralMutation, InsertKey) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":1})");
+  root.insert("b", 2);
+  std::string s = root.dump();
+  EXPECT_NE(s.find("\"b\":2"), std::string::npos);
+  EXPECT_NE(s.find("\"a\":1"), std::string::npos);
+}
+
+TEST(StructuralMutation, InsertStringVal) {
+  Document doc;
+  auto root = parse_root(doc, R"({"x":1})");
+  root.insert("name", std::string_view("beast"));
+  std::string s = root.dump();
+  EXPECT_NE(s.find("\"name\":\"beast\""), std::string::npos);
+}
+
+TEST(StructuralMutation, InsertNestedObject) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":1})");
+  root.insert_json("nested", R"({"k":99})");
+  std::string s = root.dump();
+  EXPECT_NE(s.find("\"nested\":{\"k\":99}"), std::string::npos);
+}
+
+TEST(StructuralMutation, PushBack) {
+  Document doc;
+  auto root = parse_root(doc, "[1,2]");
+  root.push_back(3);
+  EXPECT_EQ(root.dump(), "[1,2,3]");
+}
+
+TEST(StructuralMutation, PushBackString) {
+  Document doc;
+  auto root = parse_root(doc, R"(["a"])");
+  root.push_back(std::string_view("b"));
+  EXPECT_EQ(root.dump(), R"(["a","b"])");
+}
+
+TEST(StructuralMutation, SizeAfterErase) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":1,"b":2,"c":3})");
+  EXPECT_EQ(root.size(), 3u);
+  root.erase("b");
+  EXPECT_EQ(root.size(), 2u);
+}
+
+TEST(StructuralMutation, SizeAfterInsert) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":1})");
+  root.insert("b", 2);
+  EXPECT_EQ(root.size(), 2u);
+}
+
+TEST(StructuralMutation, SubscriptAfterErase) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":1,"b":2})");
+  root.erase("a");
+  EXPECT_FALSE(static_cast<bool>(root["a"]));
+  EXPECT_EQ(root["b"].as<int>(), 2);
+}
+
+TEST(StructuralMutation, EraseAndMutationCombo) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":1,"b":2})");
+  root.erase("a");
+  root["b"] = 99;
+  EXPECT_EQ(root.dump(), R"({"b":99})");
+}
+
+// ── Iteration ─────────────────────────────────────────────────────────────────
+
+TEST(Iteration, ItemsBasic) {
+  Document doc;
+  auto root = parse_root(doc, R"({"x":1,"y":2})");
+  std::map<std::string, int> got;
+  for (auto [k, v] : root.items())
+    got[std::string(k)] = v.as<int>();
+  EXPECT_EQ(got["x"], 1);
+  EXPECT_EQ(got["y"], 2);
+  EXPECT_EQ(got.size(), 2u);
+}
+
+TEST(Iteration, ItemsSkipsDeleted) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":1,"b":2,"c":3})");
+  root.erase("b");
+  std::vector<std::string> keys;
+  for (auto [k, v] : root.items())
+    keys.push_back(std::string(k));
+  ASSERT_EQ(keys.size(), 2u);
+  EXPECT_EQ(keys[0], "a");
+  EXPECT_EQ(keys[1], "c");
+}
+
+TEST(Iteration, ItemsEmpty) {
+  Document doc;
+  auto root = parse_root(doc, "{}");
+  int count = 0;
+  for (auto [k, v] : root.items()) { (void)k; (void)v; ++count; }
+  EXPECT_EQ(count, 0);
+}
+
+TEST(Iteration, ElementsBasic) {
+  Document doc;
+  auto root = parse_root(doc, "[10,20,30]");
+  std::vector<int> got;
+  for (auto v : root.elements())
+    got.push_back(v.as<int>());
+  ASSERT_EQ(got.size(), 3u);
+  EXPECT_EQ(got[0], 10);
+  EXPECT_EQ(got[1], 20);
+  EXPECT_EQ(got[2], 30);
+}
+
+TEST(Iteration, ElementsSkipsDeleted) {
+  Document doc;
+  auto root = parse_root(doc, "[1,2,3,4]");
+  root.erase(static_cast<size_t>(1));
+  std::vector<int> got;
+  for (auto v : root.elements())
+    got.push_back(v.as<int>());
+  ASSERT_EQ(got.size(), 3u);
+  EXPECT_EQ(got[0], 1);
+  EXPECT_EQ(got[1], 3);
+  EXPECT_EQ(got[2], 4);
+}
+
+TEST(Iteration, ElementsNestedObjects) {
+  Document doc;
+  auto root = parse_root(doc, R"([{"id":1},{"id":2}])");
+  std::vector<int> ids;
+  for (auto v : root.elements())
+    ids.push_back(v["id"].as<int>());
+  ASSERT_EQ(ids.size(), 2u);
+  EXPECT_EQ(ids[0], 1);
+  EXPECT_EQ(ids[1], 2);
+}
+
+// ── Subtree dump ──────────────────────────────────────────────────────────────
+
+TEST(SubtreeDump, ObjectSubvalue) {
+  Document doc;
+  auto root = parse_root(doc, R"({"user":{"name":"kim"},"tag":"x"})");
+  EXPECT_EQ(root["user"].dump(), R"({"name":"kim"})");
+}
+
+TEST(SubtreeDump, ArraySubvalue) {
+  Document doc;
+  auto root = parse_root(doc, R"({"arr":[1,2,3]})");
+  EXPECT_EQ(root["arr"].dump(), "[1,2,3]");
+}
+
+TEST(SubtreeDump, ScalarSubvalue) {
+  Document doc;
+  auto root = parse_root(doc, R"({"n":42})");
+  EXPECT_EQ(root["n"].dump(), "42");
+}
+
+TEST(SubtreeDump, ChainedSubvalue) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":{"b":{"c":99}}})");
+  EXPECT_EQ(root["a"]["b"]["c"].dump(), "99");
+}
+
+// ── Pretty-print ──────────────────────────────────────────────────────────────
+
+TEST(PrettyPrint, SimpleObject) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":1,"b":2})");
+  std::string p = root.dump(2);
+  EXPECT_NE(p.find("  \"a\": 1"), std::string::npos);
+  EXPECT_NE(p.find("  \"b\": 2"), std::string::npos);
+  EXPECT_EQ(p.front(), '{');
+  EXPECT_EQ(p.back(), '}');
+}
+
+TEST(PrettyPrint, NestedObject) {
+  Document doc;
+  auto root = parse_root(doc, R"({"x":{"y":1}})");
+  std::string p = root.dump(4);
+  EXPECT_NE(p.find("    \"y\": 1"), std::string::npos);
+}
+
+TEST(PrettyPrint, SimpleArray) {
+  Document doc;
+  auto root = parse_root(doc, "[1,2,3]");
+  std::string p = root.dump(2);
+  EXPECT_NE(p.find("  1"), std::string::npos);
+  EXPECT_EQ(p.front(), '[');
+  EXPECT_EQ(p.back(), ']');
+}
+
+TEST(PrettyPrint, EmptyObject) {
+  Document doc;
+  auto root = parse_root(doc, "{}");
+  EXPECT_EQ(root.dump(2), "{}");
+}
+
+TEST(PrettyPrint, EmptyArray) {
+  Document doc;
+  auto root = parse_root(doc, "[]");
+  EXPECT_EQ(root.dump(2), "[]");
+}
+
+// ── Auto-chain (non-throwing operator[]) ─────────────────────────────────────
+
+TEST(AutoChain, SafeChainNoThrow) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":{"b":{"c":42}}})");
+  // Deep chain, all present
+  Value v = root["a"]["b"]["c"];
+  ASSERT_TRUE(static_cast<bool>(v));
+  EXPECT_EQ(v.as<int>(), 42);
+}
+
+TEST(AutoChain, SafeChainMissingMid) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":{"b":1}})");
+  // "x" is missing — should return invalid Value without throwing
+  Value v = root["a"]["x"]["c"];
+  EXPECT_FALSE(static_cast<bool>(v));
+}
+
+TEST(AutoChain, SafeChainMissingRoot) {
+  Document doc;
+  auto root = parse_root(doc, R"({"z":1})");
+  Value v = root["a"]["b"]["c"];
+  EXPECT_FALSE(static_cast<bool>(v));
+}
+
+TEST(AutoChain, TypeMismatch) {
+  Document doc;
+  auto root = parse_root(doc, R"({"a":42})");
+  // "a" is int, not object — further chaining returns invalid
+  Value v = root["a"]["sub"];
+  EXPECT_FALSE(static_cast<bool>(v));
 }
