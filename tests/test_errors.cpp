@@ -2,13 +2,13 @@
 #include <gtest/gtest.h>
 #include <string>
 
-using namespace beast::json;
+using namespace beast;
 
 // Helper: attempt lazy parse, return true on success
 static bool lazy_ok(std::string_view j) {
   try {
-    lazy::DocumentView doc;
-    lazy::parse_reuse(doc, j);
+    Document doc;
+    parse(doc, j);
     return true;
   } catch (const std::runtime_error &) {
     return false;

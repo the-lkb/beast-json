@@ -411,8 +411,8 @@ kc_.lens[depth_][key_idx] = static_cast<uint16_t>(e - s);
 
 **핵심 목표 (v1.0):**
 - [x] **Core Engine**: x86_64 / Snapdragon 8 Gen 2 / M1 Pro 전 플랫폼 최적화 완료.
-- [ ] **Legacy DOM 제거**: `beast::json::Value`, `Parser`, `Object`, `Array` 삭제.
-- [ ] **3-Tier 아키텍처**: `beast::core` · `beast::utils` · `beast` 퍼사드 분리.
+- [x] **Legacy DOM 제거**: `beast::json::Value`, `Parser`, `Object`, `Array`, `rtsm::Parser` 삭제 완료.
+- [x] **3-Tier 아키텍처**: `beast::core` · `beast::utils` · `beast` 퍼사드 분리 완료.
 - [ ] **암시적 변환** (nlohmann 스타일): `int age = doc["age"];`
 - [ ] **1줄 역직렬화** (Glaze 스타일): `auto user = beast::read<User>(json_str);`
 - [ ] **Pipe Fallback `|`**: `int age = doc["users"][0]["age"] | 18;` (모나드 스타일)
@@ -429,18 +429,11 @@ kc_.lens[depth_][key_idx] = static_cast<uint16_t>(e - s);
 #include <beast_json/beast_json.hpp>
 #include <iostream>
 
-using namespace beast::json;
-
 int main() {
     std::string_view json = R"({"name":"Beast","speed":340,"tags":["fast","zero-copy"]})";
 
-    lazy::DocumentView doc(json);
-    lazy::Value root = lazy::parse_reuse(doc, json);
-
-    if (doc.error_code != lazy::Error::Ok) {
-        std::cerr << "Parse failed\n";
-        return 1;
-    }
+    beast::Document doc;
+    beast::Value root = beast::parse(doc, json);
 
     // Zero-copy key lookup
     std::cout << root.find("name").get_string()  << "\n";  // Beast

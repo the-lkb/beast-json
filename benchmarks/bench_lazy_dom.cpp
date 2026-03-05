@@ -23,18 +23,18 @@ int main(int argc, char **argv) {
     // Pre-allocate a persistent DocumentView (tape buffer reused across
     // iterations)
     std::string_view sv{json_content};
-    beast::json::lazy::DocumentView ctx{sv};
+    beast::Document ctx{sv};
     // Warm-up: parse once to size the tape
-    beast::json::lazy::parse_reuse(ctx, json_content);
+    beast::parse(ctx, json_content);
 
     bench::Timer pt, st;
     pt.start();
     for (size_t i = 0; i < N; ++i) {
-      beast::json::lazy::parse_reuse(ctx, json_content);
+      beast::parse(ctx, json_content);
     }
     double p_ns = pt.elapsed_ns() / N;
 
-    auto doc = beast::json::lazy::parse_reuse(ctx, json_content);
+    auto doc = beast::parse(ctx, json_content);
     st.start();
     for (size_t i = 0; i < N; ++i) {
       (void)doc.dump();

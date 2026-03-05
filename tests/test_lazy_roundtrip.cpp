@@ -3,12 +3,12 @@
 #include <string>
 #include <vector>
 
-using namespace beast::json;
+using namespace beast;
 
 // Helper: parse + dump in one step
 static std::string roundtrip(std::string_view json) {
-  lazy::DocumentView doc;
-  return lazy::parse_reuse(doc, json).dump();
+  Document doc;
+  return parse(doc, json).dump();
 }
 
 TEST(LazyRoundTrip, Scalars) {
@@ -89,7 +89,7 @@ TEST(LazyRoundTrip, AllPrimitiveTypes) {
 }
 
 TEST(LazyRoundTrip, StressMultipleParsesOnSameDoc) {
-  lazy::DocumentView doc;
+  Document doc;
   const std::vector<std::string> cases = {
       "null",
       "[1,2,3]",
@@ -98,7 +98,7 @@ TEST(LazyRoundTrip, StressMultipleParsesOnSameDoc) {
       R"([null,false,0,"x"])",
   };
   for (const auto &json : cases) {
-    auto v = lazy::parse_reuse(doc, json);
+    auto v = parse(doc, json);
     EXPECT_EQ(v.dump(), json) << "Roundtrip failed for: " << json;
   }
 }

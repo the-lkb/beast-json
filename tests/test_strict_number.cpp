@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <string_view>
 
-using namespace beast::json;
+using namespace beast;
 
 // NOTE: lazy::Parser uses a lenient digit scanner: any sequence starting
 // with '-' or '0'-'9' is accepted as a number. Leading zeros, trailing
@@ -11,8 +11,8 @@ using namespace beast::json;
 
 static bool lazy_ok(std::string_view j) {
   try {
-    lazy::DocumentView doc;
-    lazy::parse_reuse(doc, j);
+    Document doc;
+    parse(doc, j);
     return true;
   } catch (const std::runtime_error &) {
     return false;

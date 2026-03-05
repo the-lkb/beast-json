@@ -2,35 +2,35 @@
 #include <gtest/gtest.h>
 #include <string_view>
 
-using namespace beast::json;
+using namespace beast;
 
-// lazy::parse_reuse accepts trailing commas
+// parse accepts trailing commas
 TEST(TrailingCommas, ArrayTrailingCommaAccepted) {
-  lazy::DocumentView doc;
-  EXPECT_NO_THROW(lazy::parse_reuse(doc, "[1, 2, 3, ]"));
-  EXPECT_NO_THROW(lazy::parse_reuse(doc, "[\"a\", ]"));
-  EXPECT_NO_THROW(lazy::parse_reuse(doc, "[[], ]"));
+  Document doc;
+  EXPECT_NO_THROW(parse(doc, "[1, 2, 3, ]"));
+  EXPECT_NO_THROW(parse(doc, "[\"a\", ]"));
+  EXPECT_NO_THROW(parse(doc, "[[], ]"));
 }
 
 TEST(TrailingCommas, ObjectTrailingCommaAccepted) {
-  lazy::DocumentView doc;
-  EXPECT_NO_THROW(lazy::parse_reuse(doc, "{\"a\": 1, }"));
-  EXPECT_NO_THROW(lazy::parse_reuse(doc, "{\"a\": {\"b\": 1, }, }"));
+  Document doc;
+  EXPECT_NO_THROW(parse(doc, "{\"a\": 1, }"));
+  EXPECT_NO_THROW(parse(doc, "{\"a\": {\"b\": 1, }, }"));
 }
 
 TEST(TrailingCommas, LazyParserAcceptsTrailingComma) {
   std::string arr = "[1, 2, ]";
-  lazy::DocumentView doc;
-  EXPECT_NO_THROW(lazy::parse_reuse(doc, arr));
+  Document doc;
+  EXPECT_NO_THROW(parse(doc, arr));
 
   std::string obj = "{\"k\": 1, }";
-  EXPECT_NO_THROW(lazy::parse_reuse(doc, obj));
+  EXPECT_NO_THROW(parse(doc, obj));
 }
 
 // Round-trip: dump() emits compact JSON without trailing commas
 TEST(TrailingCommas, RoundTripPreservesStructure) {
-  lazy::DocumentView doc;
-  auto v = lazy::parse_reuse(doc, "[1,2,]");
+  Document doc;
+  auto v = parse(doc, "[1,2,]");
   std::string out = v.dump();
   EXPECT_EQ(out, "[1,2]");
 }

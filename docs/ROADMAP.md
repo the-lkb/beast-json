@@ -99,10 +99,10 @@
 ### API 계층 재구성
 
 - [x] **Legacy DOM 제거**: `beast::json::Value`, `Parser`, `Object`, `Array`, `rtsm::Parser` 삭제 완료 (7,880→3,187 lines, ctest 81/81 PASS)
-- [ ] **3-Tier 아키텍처 분리**:
-  - `beast::core` — 파싱 엔진 (tape, scanner, SIMD)
-  - `beast::utils` — 매크로 / 유틸리티
-  - `beast` — 공개 퍼사드 (사용자 API)
+- [x] **3-Tier 아키텍처 분리** 완료 (ctest 81/81 PASS):
+  - `beast::core` — 파싱 엔진 내부 타입 (TapeNode, TapeArena, Stage1Index, Parser)
+  - `beast::utils` — 플랫폼 매크로 (BEAST_INLINE, BEAST_HAS_*, BEAST_ARCH_*)
+  - `beast` — 공개 퍼사드: `beast::Document`, `beast::Value`, `beast::parse()`
 
 ### 타입 변환 · 역직렬화
 

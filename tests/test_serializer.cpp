@@ -2,12 +2,12 @@
 #include <gtest/gtest.h>
 #include <string>
 
-using namespace beast::json;
+using namespace beast;
 
 TEST(Serializer, BasicTypes) {
   std::string json = "[null,true,false,123,-456,3.14,\"hello\"]";
-    lazy::DocumentView parser(json);
-  lazy::Value root = lazy::parse_reuse(parser, json);
+    Document parser(json);
+  Value root = parse(parser, json);
 
   std::string out;
   
@@ -18,8 +18,8 @@ TEST(Serializer, BasicTypes) {
 
 TEST(Serializer, Nested) {
   std::string json = "{\"a\":[1,2],\"b\":{\"c\":3}}";
-    lazy::DocumentView parser(json);
-  lazy::Value root = lazy::parse_reuse(parser, json);
+    Document parser(json);
+  Value root = parse(parser, json);
 
   std::string out;
   
@@ -37,8 +37,8 @@ TEST(Serializer, DeepNesting) {
   for (int i = 0; i < depth; i++)
     json += "}";
 
-    lazy::DocumentView parser(json);
-  lazy::Value root = lazy::parse_reuse(parser, json);
+    Document parser(json);
+  Value root = parse(parser, json);
 
   std::string out;
   

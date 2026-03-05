@@ -3184,4 +3184,52 @@ class Parser {
 } // namespace json
 } // namespace beast
 
+// ============================================================================
+// 3-Tier Public API
+// ============================================================================
+//
+//  Tier 1 — beast::core  : internal engine types (tape, scanner, SIMD)
+//  Tier 2 — beast::utils : compile-time macros (BEAST_INLINE, BEAST_HAS_*, …)
+//  Tier 3 — beast::      : public facade — the only namespace users touch
+//
+// beast::json::lazy remains as the canonical implementation namespace.
+// beast:: aliases provide a stable, version-safe public surface.
+// ============================================================================
+
+namespace beast {
+
+// ---------------------------------------------------------------------------
+// Tier 1 — beast::core
+// Internal implementation types. Users should not depend on these directly;
+// they may change between minor versions.
+// ---------------------------------------------------------------------------
+namespace core {
+  using TapeNodeType = beast::json::lazy::TapeNodeType;
+  using TapeNode     = beast::json::lazy::TapeNode;
+  using TapeArena    = beast::json::lazy::TapeArena;
+  using Stage1Index  = beast::json::lazy::Stage1Index;
+  using Parser       = beast::json::lazy::Parser;
+} // namespace core
+
+// ---------------------------------------------------------------------------
+// Tier 3 — beast:: public facade
+// ---------------------------------------------------------------------------
+
+/// Shared document state: tape arena + source reference.
+/// Create one per logical JSON document; reuse across re-parses.
+using Document = beast::json::lazy::DocumentView;
+
+/// Zero-copy lazy value: a (Document*, tape_index) pair.
+/// Lifetime tied to the originating Document.
+using Value = beast::json::lazy::Value;
+
+/// Parse \p json into \p doc and return the root Value.
+/// \p doc is reused across calls — tape memory is recycled automatically.
+/// Throws std::runtime_error on malformed input.
+inline Value parse(Document &doc, std::string_view json) {
+  return beast::json::lazy::parse_reuse(doc, json);
+}
+
+} // namespace beast
+
 #endif // BEAST_JSON_HPP

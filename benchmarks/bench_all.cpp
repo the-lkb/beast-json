@@ -39,19 +39,19 @@ static void run_file(const std::string &filename, size_t N, bool parse_only) {
 
   // ── 1. beast::json::lazy (production path) ──────────────────────────────
   {
-    beast::json::lazy::DocumentView ctx;
+    beast::Document ctx;
     // Warm-up: size the tape
-    beast::json::lazy::parse_reuse(ctx, content);
+    beast::parse(ctx, content);
 
     bench::Timer pt, st;
     pt.start();
     for (size_t i = 0; i < N; ++i)
-      beast::json::lazy::parse_reuse(ctx, content);
+      beast::parse(ctx, content);
     double p_ns = pt.elapsed_ns() / N;
 
     double s_ns = 0.0;
     bool ok = true;
-    auto doc = beast::json::lazy::parse_reuse(ctx, content);
+    auto doc = beast::parse(ctx, content);
 
     if (!parse_only) {
       // Phase 73: use buffer-reuse dump(string&) — amortises malloc+memset.

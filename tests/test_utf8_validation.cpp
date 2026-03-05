@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-using namespace beast::json;
+using namespace beast;
 
 // NOTE: Neither rtsm::Parser nor lazy::Parser validates UTF-8 byte sequences.
 // scan_string_swar / scan_string_end only scan for '"' and '\'.
@@ -14,8 +14,8 @@ class Utf8Validation : public ::testing::TestWithParam<
 protected:
   bool check_parse(std::string_view json) {
     try {
-      lazy::DocumentView doc;
-      lazy::parse_reuse(doc, json);
+      Document doc;
+      parse(doc, json);
       return true;
     } catch (const std::runtime_error &) {
       return false;

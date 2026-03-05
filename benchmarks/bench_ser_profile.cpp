@@ -31,8 +31,8 @@ int main(int argc, char **argv) {
           file, src.size() / 1024.0, N);
 
   // Parse once — outside the hot loop
-  beast::json::lazy::DocumentView ctx;
-  auto doc = beast::json::lazy::parse_reuse(ctx, src);
+  beast::Document ctx;
+  auto doc = beast::parse(ctx, src);
 
   // Baseline: alloc-every-iter (old behaviour)
   using clock = std::chrono::high_resolution_clock;

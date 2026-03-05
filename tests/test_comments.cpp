@@ -2,15 +2,15 @@
 #include <gtest/gtest.h>
 #include <string_view>
 
-using namespace beast::json;
+using namespace beast;
 
 // NOTE: lazy::Parser does not support C-style comments.
 // '/' is not a recognized JSON token; any JSON with comment syntax fails.
 
 static bool lazy_ok(std::string_view json) {
   try {
-    lazy::DocumentView doc;
-    lazy::parse_reuse(doc, json);
+    Document doc;
+    parse(doc, json);
     return true;
   } catch (const std::runtime_error &) {
     return false;

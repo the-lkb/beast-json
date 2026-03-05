@@ -23,21 +23,21 @@ static std::string read_file(const char *path) {
     return ss.str();
 }
 
-static double measure_parse(beast::json::lazy::DocumentView &ctx,
+static double measure_parse(beast::Document &ctx,
                              const std::string &content, int N) {
     for (int i = 0; i < 20; ++i)
-        beast::json::lazy::parse_reuse(ctx, content);
+        beast::parse(ctx, content);
     auto t0 = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < N; ++i)
-        beast::json::lazy::parse_reuse(ctx, content);
+        beast::parse(ctx, content);
     auto t1 = std::chrono::high_resolution_clock::now();
     return std::chrono::duration<double, std::micro>(t1 - t0).count() / N;
 }
 
-static double measure_dump(beast::json::lazy::DocumentView &ctx,
+static double measure_dump(beast::Document &ctx,
                             const std::string &content, int N) {
-    beast::json::lazy::parse_reuse(ctx, content);
-    auto root = beast::json::lazy::parse_reuse(ctx, content);
+    beast::parse(ctx, content);
+    auto root = beast::parse(ctx, content);
     // Phase 73: buffer-reuse overload — pre-allocate once, skip malloc+memset.
     std::string out;
     out.reserve(content.size() + 16);
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
             std::cerr << "Skip " << f << " (not found)\n";
             continue;
         }
-        beast::json::lazy::DocumentView ctx;
+        beast::Document ctx;
         double p = measure_parse(ctx, content, N);
         double d = measure_dump(ctx, content, N);
         printf("%-30s %10.1f %10.1f\n", f, p, d);

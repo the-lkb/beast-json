@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <string_view>
 
-using namespace beast::json;
+using namespace beast;
 
 // NOTE: Neither rtsm::Parser nor lazy::Parser validates control characters
 // in strings. scan_string_swar / scan_string_end only stop at '"' and '\'.
@@ -10,8 +10,8 @@ using namespace beast::json;
 
 static bool lazy_ok(std::string_view json) {
   try {
-    lazy::DocumentView doc;
-    lazy::parse_reuse(doc, json);
+    Document doc;
+    parse(doc, json);
     return true;
   } catch (const std::runtime_error &) {
     return false;
@@ -41,7 +41,7 @@ TEST(ControlChar, LiteralTabAccepted) {
 // Use compact JSON: dump() outputs no whitespace around ':' or ','.
 TEST(ControlChar, EscapeSequenceRoundTrip) {
   std::string json = R"({"key":"line1\nline2"})";
-  lazy::DocumentView doc;
-  auto v = lazy::parse_reuse(doc, json);
+  Document doc;
+  auto v = parse(doc, json);
   EXPECT_EQ(v.dump(), json);
 }
