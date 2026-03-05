@@ -1,7 +1,7 @@
 # Beast JSON — Roadmap
 
 > **최종 업데이트**: 2026-03-05
-> 최적화 3종 플랫폼 완료 · **Legacy DOM 제거 완료** (7,880→3,187 lines) → 다음 목표: **3-Tier 아키텍처 + The Ultimate API (v1.0)**
+> 최적화 3종 플랫폼 완료 · **Legacy DOM 제거 완료** (7,880→3,187 lines) · **The Ultimate API 1단계 완료** (ctest 223/223 PASS) → 다음 목표: **1줄 역직렬화 + RFC 8259 완전 준수 (v1.0)**
 
 ---
 
@@ -153,6 +153,77 @@
   root["user"]["id"].unset();
   ```
 
+- [x] **1등 사용성 — 전면 API 개선** (ctest 213/213 PASS, 2026-03-05):
+  - **`operator[]` non-throwing** — 누락 키/범위 초과 시 예외 대신 invalid `Value{}` 반환; `operator bool()`로 유효성 확인
+  - **`dump()` 서브트리 직렬화** — `root["user"].dump()` → `{"name":"..."}` (전체 문서 아님)
+  - **구조적 뮤테이션 API** — 원본 tape 불변, overlay 방식:
+    - `erase(key)` / `erase(idx)` — 키·배열 요소 삭제
+    - `insert(key, T)` / `insert_json(key, raw)` — 객체에 키-값 추가
+    - `push_back(T)` / `push_back_json(raw)` — 배열에 요소 추가
+    - `dump()` / `size()` / `find()` / `operator[]` / 이터레이션 즉시 반영
+  - **이터레이션 API**:
+    - `items()` — 객체 키-값 쌍 range-for: `for (auto [k, v] : root.items())`
+    - `elements()` — 배열 요소 range-for: `for (auto v : root["arr"].elements())`
+    - 삭제된 항목 자동 skip
+  - **Pretty-print** — `dump(int indent)`: `root.dump(2)` / `root.dump(4)`
+
+  ```cpp
+  beast::Document doc;
+  auto root = beast::parse(doc, R"({"users":[{"id":1},{"id":2}],"tags":["a","b"]})");
+
+  // AutoChain — 절대 throw 없음 (missing key → invalid Value{})
+  if (root["missing"]["deep"])  // false, no exception
+      std::cout << root["missing"]["deep"].as<int>() << "\n";
+
+  // Subtree dump
+  std::cout << root["users"].dump() << "\n";  // [{"id":1},{"id":2}]
+
+  // Structural mutation
+  root["users"].push_back_json(R"({"id":3})");
+  root["tags"].erase(0);          // "a" removed
+  root.insert("version", 1);
+
+  // Iteration
+  for (auto [key, val] : root.items())
+      std::cout << key << ": " << val.dump() << "\n";
+  for (auto elem : root["tags"].elements())
+      std::cout << elem.as<std::string>() << "\n";  // b
+
+  // Pretty-print
+  std::cout << root.dump(2) << "\n";
+  ```
+
+- [x] **C++20 Ranges/STL 완전 호환 + Concepts** (ctest 223/223 PASS, 2026-03-05):
+  - **`borrowed_range`** — `enable_borrowed_range<ObjectRange> = true` / `enable_borrowed_range<ArrayRange> = true`
+    - `std::ranges::find_if`, `count_if`, `max_element`, `transform`, `distance` 정상 동작
+    - `| std::views::filter(f)` / `| std::views::transform(f)` 파이프 문법 지원
+  - **`Value::ObjectItem`** 공개 타입 별칭 — `using ObjectItem = std::pair<string_view, Value>`; generic lambda에서 explicit 타입 명시 가능
+  - **C++20 Concepts** — 템플릿 인자 제약으로 컴파일 타임 타입 안전성 보장
+
+  ```cpp
+  beast::Document doc;
+  auto root = beast::parse(doc, R"({"scores":[3,1,4,1,5,9],"meta":{"v":2}})");
+
+  // std::ranges 알고리즘
+  auto arr = root["scores"].elements();
+  auto max_it = std::ranges::max_element(arr, [](auto a, auto b){
+      return a.as<int>() < b.as<int>();
+  });
+  std::cout << max_it->as<int>() << "\n";  // 9
+
+  // Views 파이프라인
+  auto big = root["scores"].elements()
+      | std::views::filter([](auto v){ return v.as<int>() > 3; });
+  for (auto v : big)
+      std::cout << v.as<int>() << " ";  // 4 5 9
+
+  // items() + filter
+  auto found = root.items()
+      | std::views::filter([](Value::ObjectItem kv){ return kv.first == "meta"; });
+  for (auto [k, v] : found)
+      std::cout << k << ": " << v.dump() << "\n";  // meta: {"v":2}
+  ```
+
 - [ ] **1줄 메타 역직렬화** (독자적 방식): Beast 고유 설계, Glaze/nlohmann과 차별화
 - [ ] **Zero-Allocation Typed Views**: `for (int id : doc["ids"].as_array<int>())`
 
@@ -216,7 +287,7 @@
 
 ## 불변 원칙
 
-- **모든 변경은 `ctest 81/81 PASS` 후 커밋** — 예외 없음
+- **모든 변경은 `ctest PASS` 후 커밋** — 예외 없음 (현재 223개)
 - **회귀 즉시 revert** — 원인 분석 선행
 - **Phase 65 리스크**: `s[cl+1]==':'` 단독 가드는 값이 `":"` 형태인 JSON에서 false-positive 가능. 표준 4종 벤치마크 파일 안전 확인됨.
 - **SVE 절대 금기** (Snapdragon): Android 커널 비활성화 → SIGILL.
