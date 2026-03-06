@@ -692,11 +692,13 @@ public:
 
 private:
   uint32_t skip_value_(uint32_t idx) const noexcept {
+    const uint32_t tsz = static_cast<uint32_t>(doc_->tape.size());
+    if (BEAST_UNLIKELY(idx >= tsz)) return idx;
     const auto t = doc_->tape[idx].type();
     if (t == TapeNodeType::ObjectStart || t == TapeNodeType::ArrayStart) {
       int depth = 1;
       ++idx;
-      while (depth > 0) {
+      while (depth > 0 && BEAST_LIKELY(idx < tsz)) {
         const auto nt = doc_->tape[idx].type();
         if (nt == TapeNodeType::ObjectStart || nt == TapeNodeType::ArrayStart)
           ++depth;
@@ -1596,6 +1598,7 @@ public:
   // Shared skip helper — delegates to the canonical skip_value_() instance method.
   // Static so iterator classes (defined before their parent Value closes) can call it.
   static uint32_t skip_val_s_(const DocumentView *doc, uint32_t i) noexcept {
+    if (BEAST_UNLIKELY(i >= static_cast<uint32_t>(doc->tape.size()))) return i;
     Value tmp(const_cast<DocumentView *>(doc), i);
     return tmp.skip_value_(i);
   }
@@ -1607,7 +1610,10 @@ public:
     const DocumentView *doc_;
     uint32_t key_idx_;  // UINT32_MAX = end sentinel
     void skip_deleted_() noexcept {
+      const size_t tape_sz = doc_->tape.size();
       while (key_idx_ != UINT32_MAX) {
+        // Bounds guard: malformed tape may lack an ObjectEnd sentinel.
+        if (BEAST_UNLIKELY(key_idx_ >= tape_sz)) { key_idx_ = UINT32_MAX; return; }
         const auto t = doc_->tape[key_idx_].type();
         if (t == TapeNodeType::ObjectEnd) { key_idx_ = UINT32_MAX; return; }
         if (doc_->deleted_.empty() || !doc_->deleted_.count(key_idx_)) return;
@@ -1667,7 +1673,10 @@ public:
     const DocumentView *doc_;
     uint32_t elem_idx_;  // UINT32_MAX = end
     void skip_deleted_() noexcept {
+      const size_t tape_sz = doc_->tape.size();
       while (elem_idx_ != UINT32_MAX) {
+        // Bounds guard: malformed tape may lack an ArrayEnd sentinel.
+        if (BEAST_UNLIKELY(elem_idx_ >= tape_sz)) { elem_idx_ = UINT32_MAX; return; }
         const auto t = doc_->tape[elem_idx_].type();
         if (t == TapeNodeType::ArrayEnd) { elem_idx_ = UINT32_MAX; return; }
         if (doc_->deleted_.empty() || !doc_->deleted_.count(elem_idx_)) return;
@@ -2094,13 +2103,19 @@ private:
       case TapeNodeType::ArrayEnd:    *w++ = ']'; break;
       case TapeNodeType::StringRaw: {
         const uint16_t slen = static_cast<uint16_t>(meta & 0xFFFFu);
+        const size_t src_sz = doc_->source.size();
+        const size_t safe_slen = (nd.offset < src_sz)
+            ? std::min<size_t>(slen, src_sz - nd.offset) : 0;
         *w++ = '"';
-        std::memcpy(w, src + nd.offset, slen); w += slen;
+        std::memcpy(w, src + nd.offset, safe_slen); w += safe_slen;
         *w++ = '"'; break;
       }
       case TapeNodeType::Integer: case TapeNodeType::NumberRaw: case TapeNodeType::Double: {
         const uint16_t nlen = static_cast<uint16_t>(meta & 0xFFFFu);
-        std::memcpy(w, src + nd.offset, nlen); w += nlen; break;
+        const size_t src_sz = doc_->source.size();
+        const size_t safe_nlen = (nd.offset < src_sz)
+            ? std::min<size_t>(nlen, src_sz - nd.offset) : 0;
+        std::memcpy(w, src + nd.offset, safe_nlen); w += safe_nlen; break;
       }
       case TapeNodeType::BooleanTrue:  std::memcpy(w,"true",4);  w+=4; break;
       case TapeNodeType::BooleanFalse: std::memcpy(w,"false",5); w+=5; break;
@@ -2217,12 +2232,14 @@ private:
         stk[top] = {false, false, false, i};
         break;
       case TapeNodeType::ObjectEnd:
+        if (BEAST_UNLIKELY(top < 0)) { out += '}'; break; }
         inject_adds(stk[top].start_idx, stk[top]);
         out += '}';
         --top;
         if (top >= 0) done_elem(stk[top]);
         break;
       case TapeNodeType::ArrayEnd:
+        if (BEAST_UNLIKELY(top < 0)) { out += ']'; break; }
         inject_adds(stk[top].start_idx, stk[top]);
         out += ']';
         --top;
@@ -2230,7 +2247,10 @@ private:
         break;
       case TapeNodeType::StringRaw: {
         const uint16_t slen = static_cast<uint16_t>(nd.meta & 0xFFFFu);
-        out += '"'; out.append(src + nd.offset, slen); out += '"';
+        const size_t src_sz = doc_->source.size();
+        const size_t safe_slen = (nd.offset < src_sz)
+            ? std::min<size_t>(slen, src_sz - nd.offset) : 0;
+        out += '"'; out.append(src + nd.offset, safe_slen); out += '"';
         if (top >= 0) done_elem(stk[top]);
         break;
       }
@@ -2238,7 +2258,10 @@ private:
       case TapeNodeType::NumberRaw:
       case TapeNodeType::Double: {
         const uint16_t nlen = static_cast<uint16_t>(nd.meta & 0xFFFFu);
-        out.append(src + nd.offset, nlen);
+        const size_t src_sz = doc_->source.size();
+        const size_t safe_nlen = (nd.offset < src_sz)
+            ? std::min<size_t>(nlen, src_sz - nd.offset) : 0;
+        out.append(src + nd.offset, safe_nlen);
         if (top >= 0) done_elem(stk[top]);
         break;
       }
@@ -2898,7 +2921,10 @@ class Parser {
   // vld1q_u8 overhead exceeds the gain vs SWAR-8. NEON accelerates bulk
   // whitespace (>16 consecutive bytes), which is rare here.
   BEAST_INLINE char skip_to_action() noexcept {
-    // Fast path: already on action byte
+    // Fast path: already on action byte.
+    // Guard p_ < end_ before dereferencing: callers may reach here with
+    // p_ == end_ (e.g. unterminated array/object like "[").
+    if (BEAST_UNLIKELY(p_ >= end_)) return 0;
     unsigned char c = static_cast<unsigned char>(*p_);
     if (BEAST_LIKELY(c > 0x20))
       return static_cast<char>(c);
@@ -3744,6 +3770,8 @@ class Parser {
           switch (static_cast<ActionId>(kActionLut[static_cast<uint8_t>(c)])) {
 
           case kActObjOpen: {
+            // Nested objects/arrays are not valid object keys (RFC 8259 §4).
+            if (BEAST_UNLIKELY(cur_state_ & 0b001u)) goto fail;
             push(TapeNodeType::ObjectStart, 0,
                  static_cast<uint32_t>(p_ - data_));
             // Phase 60-A: save parent state, init new object context.
@@ -3765,6 +3793,7 @@ class Parser {
             break;
           }
           case kActArrOpen: {
+            if (BEAST_UNLIKELY(cur_state_ & 0b001u)) goto fail;
             push(TapeNodeType::ArrayStart, 0,
                  static_cast<uint32_t>(p_ - data_));
             // Phase 60-A: save parent state, init new array context.
@@ -4066,6 +4095,8 @@ class Parser {
             break;
           }
           case kActTrue:
+            // Non-string values are illegal as object keys (RFC 8259 §4).
+            if (BEAST_UNLIKELY(cur_state_ & 0b001u)) goto fail;
             if (BEAST_LIKELY(p_ + 4 <= end_ && !std::memcmp(p_, "true", 4))) {
               push(TapeNodeType::BooleanTrue, 4,
                    static_cast<uint32_t>(p_ - data_));
@@ -4074,6 +4105,7 @@ class Parser {
               goto fail;
             goto bool_null_done;
           case kActFalse:
+            if (BEAST_UNLIKELY(cur_state_ & 0b001u)) goto fail;
             if (BEAST_LIKELY(p_ + 5 <= end_ && !std::memcmp(p_, "false", 5))) {
               push(TapeNodeType::BooleanFalse, 5,
                    static_cast<uint32_t>(p_ - data_));
@@ -4082,6 +4114,7 @@ class Parser {
               goto fail;
             goto bool_null_done;
           case kActNull:
+            if (BEAST_UNLIKELY(cur_state_ & 0b001u)) goto fail;
             if (BEAST_LIKELY(p_ + 4 <= end_ && !std::memcmp(p_, "null", 4))) {
               push(TapeNodeType::Null, 4, static_cast<uint32_t>(p_ - data_));
               p_ += 4;
@@ -4153,6 +4186,8 @@ class Parser {
             break;
           // Numbers: SWAR-8 digit scanner
           case kActNumber: {
+            // Numbers are not valid object keys (RFC 8259 §4).
+            if (BEAST_UNLIKELY(cur_state_ & 0b001u)) goto fail;
             const char *s = p_;
             if (*p_ == '-')
               ++p_;
@@ -4371,7 +4406,12 @@ class Parser {
 
       done:
         doc_->tape.head = tape_head_; // sync local head back to arena
-        return depth_ == 0;
+        // depth_==0: all containers closed.
+        // tape_head_ > base: at least one value node was written.
+        // Without the second guard, bare commas/colons (e.g. ",") satisfy
+        // depth_==0 but leave the tape empty, causing tape[0] reads from
+        // uninitialised malloc memory → heap-buffer-overflow.
+        return depth_ == 0 && tape_head_ > doc_->tape.base;
 
       fail:
         doc_->tape.head = tape_head_;
@@ -4579,7 +4619,8 @@ class Parser {
         }
 
         doc_->tape.head = tape_head_;
-        return depth_ == 0;
+        // Same empty-tape guard as parse(): require at least one value node.
+        return depth_ == 0 && tape_head_ > doc_->tape.base;
 
       s2_fail:
         doc_->tape.head = tape_head_;
@@ -4594,6 +4635,12 @@ class Parser {
 
     inline Value parse_reuse(DocumentView & doc, std::string_view json) {
       doc.source = json;
+      // Clear mutation / deletion / addition overlays from any prior parse.
+      // These maps reference tape indices that are invalidated when the tape is
+      // reset; stale entries would corrupt dump_changes_() on the next call.
+      doc.mutations_.clear();
+      doc.deleted_.clear();
+      doc.additions_.clear();
       // Worst-case tape nodes == json.size() (e.g. "[[[...]]]" produces one
       // node per character). Use json.size() + 64 as a guaranteed upper bound.
       const size_t needed = json.size() + 64;

@@ -15,8 +15,9 @@
 #   cmake --build build-fuzz
 #
 #   # Run indefinitely (Ctrl-C to stop; crashes saved as crash-*)
-#   ./build-fuzz/fuzz/fuzz_parse  fuzz/corpus/ -max_len=65536
-#   ./build-fuzz/fuzz/fuzz_lazy   fuzz/corpus/ -max_len=65536
+#   ./build-fuzz/fuzz/fuzz_parse    fuzz/corpus/ -max_len=65536
+#   ./build-fuzz/fuzz/fuzz_lazy     fuzz/corpus/ -max_len=65536
+#   ./build-fuzz/fuzz/fuzz_rfc8259  fuzz/corpus/ -max_len=65536
 #
 #   # Reproduce a specific crash
 #   ./build-fuzz/fuzz/fuzz_parse  <crash-file>
@@ -48,5 +49,6 @@ function(add_fuzz_target name)
 endfunction()
 
 # ── Fuzz targets ──────────────────────────────────────────────────────────────
-add_fuzz_target(fuzz_parse)   # High-level beast::json::parse()
-add_fuzz_target(fuzz_lazy)    # Lazy tape parser: beast::json::lazy::parse_reuse()
+add_fuzz_target(fuzz_parse)    # High-level beast::parse() + full accessor surface
+add_fuzz_target(fuzz_lazy)     # Lazy tape parser: beast::json::lazy::parse_reuse()
+add_fuzz_target(fuzz_rfc8259)  # parse_reuse consistency: tape-reuse vs fresh allocation

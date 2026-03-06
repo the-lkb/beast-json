@@ -1,13 +1,9 @@
-// fuzz_lazy.cpp – libFuzzer target for beast::json::lazy::parse_reuse().
+// fuzz_lazy.cpp – libFuzzer target for beast::json::lazy internals.
 //
-// Exercises the zero-copy, tape-based lazy parser introduced in Phase 19+.
+// Directly exercises the tape-based zero-copy lazy parser (parse_reuse),
+// plus the full Value accessor / mutation / serializer surface.
 // A single static DocumentView is reused across invocations so that the
-// hot-path (tape.reset()) and the cold-path (tape.reserve()) are both hit.
-//
-// Three passes per input:
-//   1. parse_reuse()          – hot path (tape already allocated)
-//   2. dump()                 – re-serialize from tape (covers Value traversal)
-//   3. is_object() / is_array() – cover simple accessor paths
+// hot-path (tape.reset()) and cold-path (tape.reserve()) are both hit.
 //
 // Build / run: see fuzz_parse.cpp header comment; swap target name to fuzz_lazy.
 
@@ -19,32 +15,76 @@
 
 using namespace beast::json::lazy;
 
-// One DocumentView per fuzzing process. The tape buffer grows to fit the
-// largest input seen and is then reused (head = base) for every subsequent
-// invocation — zero allocation overhead on the hot path.
-// libFuzzer is single-threaded by default, so static storage is safe.
+// One DocumentView per fuzzing process.
 static DocumentView g_doc;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     const std::string_view input(reinterpret_cast<const char *>(data), size);
 
-    // ── 1. Parse ─────────────────────────────────────────────────────────────
-    // parse_reuse() stores a string_view into `data`; all accesses to source
-    // happen within this function call, so the pointer remains valid.
     try {
         Value root = parse_reuse(g_doc, input);
 
-        // ── 2. Serialise (dump) ───────────────────────────────────────────────
-        // Walks the tape and reconstructs JSON from raw source offsets.
+        // Serialise
         (void)root.dump();
+        (void)root.dump(2);
 
-        // ── 3. Type accessors ────────────────────────────────────────────────
+        // Type accessors
         (void)root.is_object();
         (void)root.is_array();
+        (void)root.is_string();
+        (void)root.is_number();
+        (void)root.is_null();
+        (void)root.is_bool();
+        (void)root.is_valid();
 
-    } catch (const std::runtime_error &) {
-        // parse_reuse() throws std::runtime_error on invalid JSON – expected.
-    }
+        // Container access
+        (void)root.size();
+        (void)root.empty();
+
+        // Scalar extraction (type-guarded)
+        if (root.is_string())      { auto s = root.as<std::string_view>(); (void)s; }
+        else if (root.is_bool())   { (void)root.as<bool>(); }
+        else if (root.is_int())    { (void)root.as<int64_t>(); }
+        else if (root.is_double()) { (void)root.as<double>(); }
+
+        // Object iteration + mutation
+        if (root.is_object()) {
+            for (auto [k, v] : root.items()) {
+                (void)k;
+                (void)v.is_valid();
+                (void)v.dump();
+            }
+            (void)root.find("__fuzz__");
+            (void)root.contains("__fuzz__");
+            root.insert("__z__", 1);
+            (void)root.dump();
+            root.erase("__z__");
+        }
+
+        // Array iteration + mutation
+        if (root.is_array()) {
+            for (auto elem : root.elements()) { (void)elem.dump(); }
+            root.push_back(nullptr);
+            (void)root.dump();
+            if (root.size() > 0) root.erase(root.size() - 1);
+        }
+
+        // SafeValue chain
+        auto sv = root.get("__x__")["y"]["z"];
+        (void)sv.value_or(-1);
+
+        // JSON Pointer
+        (void)root.at("/0");
+        (void)root.at("/a/b");
+
+        // Pipe fallback
+        int fallback = root["__missing__"] | 99;
+        (void)fallback;
+
+        // type_name
+        (void)root.type_name();
+
+    } catch (const std::runtime_error &) {}
 
     return 0;
 }

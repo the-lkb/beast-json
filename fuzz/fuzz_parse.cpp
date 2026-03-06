@@ -1,9 +1,7 @@
-// fuzz_parse.cpp – libFuzzer target for the beast::json high-level parse() API.
+// fuzz_parse.cpp – libFuzzer target for the beast high-level parse() API.
 //
-// Tests the public-facing parse() function with arbitrary byte sequences.
-// Exercises strict (default) and relaxed ParseOptions.
-// AddressSanitizer + UBSanitizer catch memory errors and undefined behaviour
-// at compile time (injected by fuzz/CMakeLists.txt).
+// Tests beast::parse(), Value accessors, iteration, and dump() with arbitrary
+// byte inputs. AddressSanitizer + UBSanitizer catch memory errors and UB.
 //
 // Build:
 //   cmake -B build-fuzz \
@@ -25,38 +23,62 @@
 #include <stdexcept>
 #include <string_view>
 
-using namespace beast::json;
+// One Document per fuzzing process — reuse across invocations.
+static beast::Document g_doc;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     const std::string_view input(reinterpret_cast<const char *>(data), size);
 
-    // ── 1. Default options ───────────────────────────────────────────────────
-    // parse() throws std::runtime_error on failure (ParseError ⊂ runtime_error)
     try {
-        Value v = parse(input);
-        (void)v;
-    } catch (const std::runtime_error &) {
-        // Expected for malformed input.
+        beast::Value root = beast::parse(g_doc, input);
+
+        // Type accessors
+        (void)root.is_object();
+        (void)root.is_array();
+        (void)root.is_string();
+        (void)root.is_number();
+        (void)root.is_null();
+        (void)root.is_bool();
+        (void)root.is_valid();
+
+        // Dump (compact and pretty)
+        (void)root.dump();
+        (void)root.dump(2);
+
+        // Container size
+        (void)root.size();
+        (void)root.empty();
+
+        // Object iteration
+        if (root.is_object()) {
+            for (auto [k, v] : root.items()) {
+                (void)k;
+                (void)v.is_valid();
+                (void)v.dump();
+            }
+        }
+
+        // Array iteration
+        if (root.is_array()) {
+            for (auto elem : root.elements()) {
+                (void)elem.dump();
+            }
+        }
+
+        // SafeValue chain (never throws)
+        (void)root.get("__fuzz__")["x"].value_or(0);
+
+        // JSON Pointer (runtime path — exercises bounds checks)
+        (void)root.at("/0");
+        (void)root.at("/a/b");
+
+        // Pipe fallback operator
+        int fb = root["__missing__"] | 99;
+        (void)fb;
+
+    } catch (const std::exception &) {
+        // Parse errors and type errors are expected.
     }
-
-    // ── 2. Relaxed: single-quotes + unquoted keys ────────────────────────────
-    try {
-        ParseOptions opts;
-        opts.allow_single_quotes = true;
-        opts.allow_unquoted_keys = true;
-        Value v = parse(input, {}, opts);
-        (void)v;
-    } catch (const std::runtime_error &) {}
-
-    // ── 3. Strict: duplicates / trailing-commas / comments all forbidden ─────
-    try {
-        ParseOptions opts;
-        opts.allow_trailing_commas = false;
-        opts.allow_comments       = false;
-        opts.allow_duplicate_keys = false;
-        Value v = parse(input, {}, opts);
-        (void)v;
-    } catch (const std::runtime_error &) {}
 
     return 0;
 }
