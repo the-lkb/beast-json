@@ -405,7 +405,7 @@ kc_.lens[depth_][key_idx] = static_cast<uint16_t>(e - s);
 
 ## 🗺️ Roadmap to 1.0 (The Ultimate API)
 
-> 3종 플랫폼 최적화 완료 (x86_64 Phase 75 · Snapdragon Gen 2 Phase 73 · M1 Pro Phase 80-M1) · **The Ultimate API 완성** (ctest 272/272 PASS). 다음 목표: **RFC 8259 완전 준수 + Foreign Language Bindings (v1.0)**.
+> 3종 플랫폼 최적화 완료 (x86_64 Phase 75 · Snapdragon Gen 2 Phase 73 · M1 Pro Phase 80-M1) · **The Ultimate API 완성** · **Zero-Effort 자동 직렬화 엔진 완성** (ctest 312/312 PASS). 다음 목표: **RFC 8259 완전 준수 + Foreign Language Bindings (v1.0)**.
 
 자세한 계획 및 진행 현황은 **[docs/ROADMAP.md](docs/ROADMAP.md)** 를 참조하세요.
 
@@ -429,7 +429,8 @@ kc_.lens[depth_][key_idx] = static_cast<uint16_t>(e - s);
 - [x] **`type_name()`**: `"null"/"bool"/"int"/"double"/"string"/"array"/"object"`.
 - [x] **`keys()` / `values()` 범위**: 객체 키·값 lazy 범위 (`std::views::transform` 기반).
 - [x] **`merge()` / `merge_patch(json)`**: RFC 7396 JSON Merge Patch.
-- [x] **`beast::read<T>()` / `beast::write()`**: ADL 기반 구조체 역직렬화.
+- [x] **`beast::read<T>()` / `beast::write()`**: 자동 직렬화 엔진 (STL 전체 + 매크로 구조체).
+- [x] **`BEAST_JSON_FIELDS(Type, ...)`**: 한 줄 매크로로 커스텀 구조체 읽기+쓰기 완전 자동화.
 - [ ] **RFC 8259 완전 준수**: JSON Test Suite 전체 통과.
 - [ ] **Foreign Language Bindings**: Python (`pybind11`/`ctypes`) · Node.js (`N-API`).
 
@@ -534,6 +535,69 @@ int main() {
 
 ---
 
+## 🔄 Automatic Serialization
+
+Zero user effort for all standard C++ types. One macro line for custom structs.
+
+```cpp
+#include <beast_json/beast_json.hpp>
+
+// ── Tier 1: STL types — zero effort ──────────────────────────────────────────
+auto v  = beast::read<std::vector<int>>("[1,2,3]");          // → {1,2,3}
+auto m  = beast::read<std::map<std::string,double>>(R"({"pi":3.14})");
+auto t  = beast::read<std::tuple<int,std::string,bool>>("[42,\"ok\",true]");
+auto op = beast::read<std::optional<int>>("null");            // → nullopt
+
+std::string j1 = beast::write(std::pair{3, "hello"s});       // [3,"hello"]
+std::string j2 = beast::write(std::array<int,3>{1,2,3});     // [1,2,3]
+std::string j3 = beast::write(std::optional<int>{});         // null
+
+// ── Tier 2: custom structs — one macro line ───────────────────────────────────
+struct Address { std::string city; std::string country; };
+BEAST_JSON_FIELDS(Address, city, country)   // ← done!
+
+struct User {
+    std::string              name;
+    int                      age   = 0;
+    Address                  addr;                   // nested struct → auto
+    std::vector<std::string> tags;                   // STL container → auto
+    std::optional<double>    score;                  // optional → auto
+};
+BEAST_JSON_FIELDS(User, name, age, addr, tags, score)  // ← done!
+
+auto user = beast::read<User>(R"({
+    "name": "Alice", "age": 30,
+    "addr": {"city": "Seoul", "country": "KR"},
+    "tags": ["admin", "user"], "score": 99.5
+})");
+
+std::string json = beast::write(user);  // full round-trip
+
+// vector of structs, map of structs — all automatic
+auto users  = beast::read<std::vector<User>>(json_array);
+auto places = beast::read<std::map<std::string, Address>>(json_obj);
+```
+
+**Supported types out of the box:**
+
+| Category | Types |
+| :--- | :--- |
+| Primitives | `bool`, `int`, `long`, `double`, `float`, … |
+| Strings | `std::string`, `std::string_view`, `const char*` |
+| Optional | `std::optional<T>` ↔ `null` / T |
+| Sequence | `std::vector<T>`, `std::list<T>`, `std::deque<T>` |
+| Set | `std::set<T>`, `std::unordered_set<T>` |
+| Map | `std::map<std::string,V>`, `std::unordered_map<std::string,V>` |
+| Fixed array | `std::array<T,N>` |
+| Tuple/Pair | `std::tuple<Ts…>`, `std::pair<A,B>` |
+| Custom struct | `BEAST_JSON_FIELDS(Type, field…)` one-liner |
+| Manual ADL | `from_beast_json()` / `to_beast_json()` |
+
+```
+```
+
+---
+
 ## Build
 
 ### Requirements
@@ -599,4 +663,7 @@ Since beast-json is a single header library, you can also simply copy `include/b
 | Merge | 2 | ✅ PASS |
 | MergePatch | 4 | ✅ PASS |
 | StructBinding | 4 | ✅ PASS |
-| **Total** | **272** | **100% PASS** |
+| IsValid | 3 | ✅ PASS |
+| AutoSerial | 21 | ✅ PASS |
+| MacroFields | 12 | ✅ PASS |
+| **Total** | **312** | **100% PASS** |

@@ -1706,3 +1706,438 @@ TEST(StructBinding, RoundTrip) {
   EXPECT_EQ(restored.age, 42);
   EXPECT_FALSE(restored.active);
 }
+
+// ============================================================================
+// Automatic Serialization — Tier 1: built-in STL types
+// ============================================================================
+
+// ── is_valid() ────────────────────────────────────────────────────────────────
+
+TEST(IsValid, DefaultValue) {
+  beast::Value v;
+  EXPECT_FALSE(v.is_valid());
+}
+
+TEST(IsValid, ParsedValue) {
+  Document doc;
+  auto root = parse(doc, R"({"x":1})");
+  EXPECT_TRUE(root.is_valid());
+  EXPECT_TRUE(root["x"].is_valid());
+}
+
+TEST(IsValid, MissingKey) {
+  Document doc;
+  auto root = parse(doc, R"({"x":1})");
+  // find() returns optional; operator[] on object may return invalid Value
+  auto opt = root.find("y");
+  EXPECT_FALSE(opt.has_value());
+}
+
+// ── Primitives ────────────────────────────────────────────────────────────────
+
+TEST(AutoSerial, Bool) {
+  EXPECT_EQ(beast::write(true),  "true");
+  EXPECT_EQ(beast::write(false), "false");
+  EXPECT_EQ(beast::read<bool>("true"),  true);
+  EXPECT_EQ(beast::read<bool>("false"), false);
+}
+
+TEST(AutoSerial, Int) {
+  EXPECT_EQ(beast::write(42),   "42");
+  EXPECT_EQ(beast::write(-7),   "-7");
+  EXPECT_EQ(beast::read<int>("42"),  42);
+  EXPECT_EQ(beast::read<int>("-99"), -99);
+}
+
+TEST(AutoSerial, Double) {
+  double v = beast::read<double>("3.14");
+  EXPECT_NEAR(v, 3.14, 1e-9);
+  std::string s = beast::write(1.5);
+  EXPECT_FALSE(s.empty());
+  // NaN / Inf → null
+  EXPECT_EQ(beast::write(std::numeric_limits<double>::infinity()), "null");
+  EXPECT_EQ(beast::write(std::numeric_limits<double>::quiet_NaN()), "null");
+}
+
+TEST(AutoSerial, String) {
+  EXPECT_EQ(beast::write(std::string("hello")), R"("hello")");
+  EXPECT_EQ(beast::write(std::string_view("world")), R"("world")");
+  EXPECT_EQ(beast::read<std::string>(R"("beast")"), "beast");
+}
+
+TEST(AutoSerial, StringEscape) {
+  // Verify that to_json_str produces correct JSON escape sequences
+  std::string s = "a\tb\nc\"d\\e";
+  std::string json = beast::write(s);
+  EXPECT_NE(json.find("\\t"),  std::string::npos);
+  EXPECT_NE(json.find("\\n"),  std::string::npos);
+  EXPECT_NE(json.find("\\\""), std::string::npos);
+  EXPECT_NE(json.find("\\\\"), std::string::npos);
+  // Note: beast uses zero-copy architecture — as<string>() returns raw source
+  // bytes without unescaping. Round-trip works for strings with no escapes:
+  EXPECT_EQ(beast::read<std::string>(R"("hello world")"), "hello world");
+}
+
+TEST(AutoSerial, Nullptr) {
+  EXPECT_EQ(beast::write(nullptr), "null");
+}
+
+// ── std::optional ─────────────────────────────────────────────────────────────
+
+TEST(AutoSerial, OptionalPresent) {
+  std::optional<int> v = 42;
+  EXPECT_EQ(beast::write(v), "42");
+  auto r = beast::read<std::optional<int>>("42");
+  ASSERT_TRUE(r.has_value());
+  EXPECT_EQ(*r, 42);
+}
+
+TEST(AutoSerial, OptionalNull) {
+  std::optional<int> v = std::nullopt;
+  EXPECT_EQ(beast::write(v), "null");
+  auto r = beast::read<std::optional<int>>("null");
+  EXPECT_FALSE(r.has_value());
+}
+
+TEST(AutoSerial, OptionalString) {
+  auto r = beast::read<std::optional<std::string>>(R"("hi")");
+  ASSERT_TRUE(r.has_value());
+  EXPECT_EQ(*r, "hi");
+}
+
+// ── std::vector ───────────────────────────────────────────────────────────────
+
+TEST(AutoSerial, VectorInt) {
+  std::vector<int> v = {1, 2, 3};
+  EXPECT_EQ(beast::write(v), "[1,2,3]");
+  auto r = beast::read<std::vector<int>>("[10,20,30]");
+  ASSERT_EQ(r.size(), 3u);
+  EXPECT_EQ(r[1], 20);
+}
+
+TEST(AutoSerial, VectorString) {
+  std::vector<std::string> v = {"a", "b"};
+  std::string json = beast::write(v);
+  auto r = beast::read<std::vector<std::string>>(json);
+  ASSERT_EQ(r.size(), 2u);
+  EXPECT_EQ(r[0], "a");
+  EXPECT_EQ(r[1], "b");
+}
+
+TEST(AutoSerial, VectorNested) {
+  std::vector<std::vector<int>> v = {{1,2},{3,4}};
+  std::string json = beast::write(v);
+  auto r = beast::read<std::vector<std::vector<int>>>(json);
+  ASSERT_EQ(r.size(), 2u);
+  EXPECT_EQ(r[0][1], 2);
+  EXPECT_EQ(r[1][0], 3);
+}
+
+TEST(AutoSerial, VectorOptional) {
+  std::vector<std::optional<int>> v = {1, std::nullopt, 3};
+  std::string json = beast::write(v);
+  EXPECT_EQ(json, "[1,null,3]");
+  auto r = beast::read<std::vector<std::optional<int>>>(json);
+  ASSERT_EQ(r.size(), 3u);
+  EXPECT_TRUE(r[0].has_value());
+  EXPECT_FALSE(r[1].has_value());
+  EXPECT_EQ(*r[2], 3);
+}
+
+// ── std::set / std::unordered_set ─────────────────────────────────────────────
+
+TEST(AutoSerial, SetInt) {
+  std::set<int> s = {3, 1, 2};
+  std::string json = beast::write(s);  // sorted: [1,2,3]
+  auto r = beast::read<std::set<int>>(json);
+  EXPECT_EQ(r, s);
+}
+
+TEST(AutoSerial, UnorderedSet) {
+  std::unordered_set<std::string> s = {"x", "y"};
+  std::string json = beast::write(s);
+  auto r = beast::read<std::unordered_set<std::string>>(json);
+  EXPECT_EQ(r, s);
+}
+
+// ── std::map / std::unordered_map ─────────────────────────────────────────────
+
+TEST(AutoSerial, MapStringInt) {
+  std::map<std::string, int> m = {{"a",1}, {"b",2}};
+  std::string json = beast::write(m);
+  auto r = beast::read<std::map<std::string, int>>(json);
+  EXPECT_EQ(r["a"], 1);
+  EXPECT_EQ(r["b"], 2);
+}
+
+TEST(AutoSerial, MapStringVector) {
+  std::map<std::string, std::vector<int>> m = {{"evens",{2,4,6}},{"odds",{1,3,5}}};
+  std::string json = beast::write(m);
+  auto r = beast::read<std::map<std::string, std::vector<int>>>(json);
+  ASSERT_EQ(r["evens"].size(), 3u);
+  EXPECT_EQ(r["evens"][1], 4);
+}
+
+TEST(AutoSerial, UnorderedMapRoundTrip) {
+  std::unordered_map<std::string, double> m = {{"pi",3.14},{"e",2.72}};
+  std::string json = beast::write(m);
+  auto r = beast::read<std::unordered_map<std::string, double>>(json);
+  EXPECT_NEAR(r["pi"], 3.14, 1e-9);
+}
+
+// ── std::array ────────────────────────────────────────────────────────────────
+
+TEST(AutoSerial, FixedArray) {
+  std::array<int, 4> a = {10, 20, 30, 40};
+  EXPECT_EQ(beast::write(a), "[10,20,30,40]");
+  auto r = beast::read<std::array<int, 4>>("[1,2,3,4]");
+  EXPECT_EQ(r[2], 3);
+}
+
+TEST(AutoSerial, FixedArrayPartialInput) {
+  // JSON array shorter than std::array — remaining elements keep default
+  auto r = beast::read<std::array<int, 3>>("[7,8]");
+  EXPECT_EQ(r[0], 7);
+  EXPECT_EQ(r[1], 8);
+  EXPECT_EQ(r[2], 0);  // default-constructed
+}
+
+// ── std::pair / std::tuple ────────────────────────────────────────────────────
+
+TEST(AutoSerial, Pair) {
+  std::pair<int, std::string> p = {5, "five"};
+  std::string json = beast::write(p);  // [5,"five"]
+  auto r = beast::read<std::pair<int, std::string>>(json);
+  EXPECT_EQ(r.first,  5);
+  EXPECT_EQ(r.second, "five");
+}
+
+TEST(AutoSerial, Tuple) {
+  std::tuple<int, std::string, bool> t = {42, "hello", true};
+  std::string json = beast::write(t);
+  auto r = beast::read<std::tuple<int, std::string, bool>>(json);
+  EXPECT_EQ(std::get<0>(r), 42);
+  EXPECT_EQ(std::get<1>(r), "hello");
+  EXPECT_TRUE(std::get<2>(r));
+}
+
+// ── Direct helpers ────────────────────────────────────────────────────────────
+
+TEST(AutoSerial, FromJsonHelper) {
+  Document doc;
+  auto root = parse(doc, R"([1,2,3])");
+  std::vector<int> v;
+  beast::from_json(root, v);
+  ASSERT_EQ(v.size(), 3u);
+  EXPECT_EQ(v[1], 2);
+}
+
+TEST(AutoSerial, ToJsonStrHelper) {
+  std::vector<bool> v = {true, false, true};
+  EXPECT_EQ(beast::to_json_str(v), "[true,false,true]");
+}
+
+// ============================================================================
+// BEAST_JSON_FIELDS — Tier 2: macro-based struct binding
+// ============================================================================
+
+// ── Simple struct ─────────────────────────────────────────────────────────────
+
+struct MacroPoint { int x = 0; int y = 0; };
+BEAST_JSON_FIELDS(MacroPoint, x, y)
+
+TEST(MacroFields, Simple) {
+  MacroPoint p = beast::read<MacroPoint>(R"({"x":3,"y":7})");
+  EXPECT_EQ(p.x, 3);
+  EXPECT_EQ(p.y, 7);
+}
+
+TEST(MacroFields, SimpleWrite) {
+  MacroPoint p{10, 20};
+  std::string json = beast::write(p);
+  auto r = beast::read<MacroPoint>(json);
+  EXPECT_EQ(r.x, 10);
+  EXPECT_EQ(r.y, 20);
+}
+
+TEST(MacroFields, MissingFieldsUseDefault) {
+  MacroPoint p = beast::read<MacroPoint>(R"({"x":5})");
+  EXPECT_EQ(p.x, 5);
+  EXPECT_EQ(p.y, 0);  // default
+}
+
+// ── Nested struct ─────────────────────────────────────────────────────────────
+
+struct MacroAddress { std::string city; std::string country; };
+BEAST_JSON_FIELDS(MacroAddress, city, country)
+
+struct MacroPerson {
+  std::string              name;
+  int                      age    = 0;
+  MacroAddress             addr;
+  std::vector<std::string> hobbies;
+};
+BEAST_JSON_FIELDS(MacroPerson, name, age, addr, hobbies)
+
+TEST(MacroFields, NestedStruct) {
+  constexpr auto JSON = R"({
+    "name": "Alice",
+    "age": 30,
+    "addr": {"city": "Seoul", "country": "KR"},
+    "hobbies": ["coding", "reading"]
+  })";
+  auto p = beast::read<MacroPerson>(JSON);
+  EXPECT_EQ(p.name,         "Alice");
+  EXPECT_EQ(p.age,          30);
+  EXPECT_EQ(p.addr.city,    "Seoul");
+  EXPECT_EQ(p.addr.country, "KR");
+  ASSERT_EQ(p.hobbies.size(), 2u);
+  EXPECT_EQ(p.hobbies[0],   "coding");
+}
+
+TEST(MacroFields, NestedRoundTrip) {
+  MacroPerson original{"Bob", 25, {"Busan","KR"}, {"hiking","gaming","cooking"}};
+  std::string json = beast::write(original);
+  auto restored = beast::read<MacroPerson>(json);
+  EXPECT_EQ(restored.name,         original.name);
+  EXPECT_EQ(restored.age,          original.age);
+  EXPECT_EQ(restored.addr.city,    original.addr.city);
+  EXPECT_EQ(restored.addr.country, original.addr.country);
+  EXPECT_EQ(restored.hobbies,      original.hobbies);
+}
+
+// ── Optional fields ───────────────────────────────────────────────────────────
+
+struct MacroWithOpt {
+  std::string              name;
+  std::optional<int>       score;
+  std::optional<MacroPoint> pos;
+};
+BEAST_JSON_FIELDS(MacroWithOpt, name, score, pos)
+
+TEST(MacroFields, OptionalAbsent) {
+  auto r = beast::read<MacroWithOpt>(R"({"name":"test"})");
+  EXPECT_EQ(r.name, "test");
+  EXPECT_FALSE(r.score.has_value());
+  EXPECT_FALSE(r.pos.has_value());
+}
+
+TEST(MacroFields, OptionalPresent) {
+  auto r = beast::read<MacroWithOpt>(R"({"name":"ok","score":99,"pos":{"x":1,"y":2}})");
+  ASSERT_TRUE(r.score.has_value());
+  EXPECT_EQ(*r.score, 99);
+  ASSERT_TRUE(r.pos.has_value());
+  EXPECT_EQ(r.pos->x, 1);
+  EXPECT_EQ(r.pos->y, 2);
+}
+
+TEST(MacroFields, OptionalRoundTrip) {
+  MacroWithOpt original{"hello", 77, MacroPoint{3, 4}};
+  std::string json = beast::write(original);
+  auto r = beast::read<MacroWithOpt>(json);
+  ASSERT_TRUE(r.score.has_value());
+  EXPECT_EQ(*r.score, 77);
+  ASSERT_TRUE(r.pos.has_value());
+  EXPECT_EQ(r.pos->x, 3);
+}
+
+// ── All types in one struct ───────────────────────────────────────────────────
+
+struct MacroAllTypes {
+  bool                          flag    = false;
+  int                           count   = 0;
+  double                        ratio   = 0.0;
+  std::string                   label;
+  std::optional<std::string>    note;
+  std::vector<int>              nums;
+  std::map<std::string, int>    props;
+  std::array<int, 3>            rgb     = {};
+};
+BEAST_JSON_FIELDS(MacroAllTypes, flag, count, ratio, label, note, nums, props, rgb)
+
+TEST(MacroFields, AllTypesRoundTrip) {
+  MacroAllTypes original;
+  original.flag  = true;
+  original.count = 42;
+  original.ratio = 3.14;
+  original.label = "test";
+  original.note  = "optional note";
+  original.nums  = {10, 20, 30};
+  original.props = {{"a", 1}, {"b", 2}};
+  original.rgb   = {255, 128, 0};
+
+  std::string json = beast::write(original);
+  auto r = beast::read<MacroAllTypes>(json);
+
+  EXPECT_TRUE(r.flag);
+  EXPECT_EQ(r.count, 42);
+  EXPECT_NEAR(r.ratio, 3.14, 1e-9);
+  EXPECT_EQ(r.label, "test");
+  ASSERT_TRUE(r.note.has_value());
+  EXPECT_EQ(*r.note, "optional note");
+  ASSERT_EQ(r.nums.size(), 3u);
+  EXPECT_EQ(r.nums[1], 20);
+  EXPECT_EQ(r.props.at("b"), 2);
+  EXPECT_EQ(r.rgb[0], 255);
+  EXPECT_EQ(r.rgb[2], 0);
+}
+
+// ── Deep nesting ──────────────────────────────────────────────────────────────
+
+struct MacroConfig {
+  std::string                           version;
+  std::map<std::string, std::vector<int>> datasets;
+  std::optional<MacroPerson>            owner;
+};
+BEAST_JSON_FIELDS(MacroConfig, version, datasets, owner)
+
+TEST(MacroFields, DeepNested) {
+  constexpr auto JSON = R"({
+    "version": "1.0",
+    "datasets": {"train":[1,2,3],"test":[4,5]},
+    "owner": {"name":"Carol","age":35,"addr":{"city":"Jeju","country":"KR"},"hobbies":[]}
+  })";
+  auto cfg = beast::read<MacroConfig>(JSON);
+  EXPECT_EQ(cfg.version, "1.0");
+  EXPECT_EQ(cfg.datasets.at("train").size(), 3u);
+  EXPECT_EQ(cfg.datasets.at("test")[1], 5);
+  ASSERT_TRUE(cfg.owner.has_value());
+  EXPECT_EQ(cfg.owner->name, "Carol");
+  EXPECT_EQ(cfg.owner->addr.city, "Jeju");
+}
+
+TEST(MacroFields, DeepNestedRoundTrip) {
+  MacroConfig original;
+  original.version  = "2.0";
+  original.datasets = {{"x", {1,2}}, {"y", {3}}};
+  original.owner    = MacroPerson{"Dave", 40, {"Incheon","KR"}, {"music"}};
+
+  std::string json = beast::write(original);
+  auto r = beast::read<MacroConfig>(json);
+
+  EXPECT_EQ(r.version, "2.0");
+  EXPECT_EQ(r.datasets.at("x")[0], 1);
+  ASSERT_TRUE(r.owner.has_value());
+  EXPECT_EQ(r.owner->name, "Dave");
+  EXPECT_EQ(r.owner->hobbies[0], "music");
+}
+
+// ── vector of structs ─────────────────────────────────────────────────────────
+
+TEST(MacroFields, VectorOfStructs) {
+  std::vector<MacroPoint> pts = {{1,2},{3,4},{5,6}};
+  std::string json = beast::write(pts);
+  auto r = beast::read<std::vector<MacroPoint>>(json);
+  ASSERT_EQ(r.size(), 3u);
+  EXPECT_EQ(r[1].x, 3);
+  EXPECT_EQ(r[2].y, 6);
+}
+
+// ── map of structs ────────────────────────────────────────────────────────────
+
+TEST(MacroFields, MapOfStructs) {
+  std::map<std::string, MacroPoint> m = {{"origin",{0,0}},{"end",{10,10}}};
+  std::string json = beast::write(m);
+  auto r = beast::read<std::map<std::string, MacroPoint>>(json);
+  EXPECT_EQ(r.at("end").x, 10);
+}

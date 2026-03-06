@@ -1,7 +1,7 @@
 # Beast JSON — Roadmap
 
 > **최종 업데이트**: 2026-03-05
-> 최적화 3종 플랫폼 완료 · **Legacy DOM 제거 완료** (7,880→3,187 lines) · **The Ultimate API 완성** (ctest 272/272 PASS) → 다음 목표: **RFC 8259 완전 준수 + Foreign Language Bindings (v1.0)**
+> 최적화 3종 플랫폼 완료 · **Legacy DOM 제거 완료** (7,880→3,187 lines) · **The Ultimate API 완성** · **Zero-Effort 자동 직렬화 엔진 완성** (ctest 312/312 PASS) → 다음 목표: **RFC 8259 완전 준수 + Foreign Language Bindings (v1.0)**
 
 ---
 
@@ -285,13 +285,98 @@
   auto cfg = beast::read<Config>(R"({"timeout":10000,"mode":"fast"})");
   ```
 
-- [ ] **1줄 메타 역직렬화** — 리플렉션 기반 자동 바인딩 (현재 ADL 방식과 별개로 연구 중)
-- [ ] **Zero-Allocation Typed Views** (현재 `as_array<T>()`로 커버, views 최적화 연구 중)
+- [x] **Zero-Effort 자동 직렬화 엔진** (ctest 312/312 PASS, 2026-03-05):
+
+  **3-Tier 아키텍처** — 복잡도에 따라 자동 선택:
+
+  | 티어 | 방법 | 코드 필요량 |
+  |:---|:---|:---:|
+  | Tier 1 | built-in STL 전체 자동 | 0줄 |
+  | Tier 2 | `BEAST_JSON_FIELDS()` 매크로 | 1줄 |
+  | Tier 3 | ADL 수동 `from_beast_json`/`to_beast_json` | 자유 |
+
+  **Tier 1 — 내장 지원 타입** (완전 자동):
+  - 기본 타입: `bool`, `int`, `double`, `float` 등 모든 산술 타입
+  - 문자열: `std::string`, `std::string_view`, `const char*`
+  - Optional: `std::optional<T>` → JSON null / T 자동 처리
+  - Sequence: `std::vector<T>`, `std::list<T>`, `std::deque<T>` → JSON array
+  - Set: `std::set<T>`, `std::unordered_set<T>` → JSON array
+  - Map: `std::map<std::string, V>`, `std::unordered_map<std::string, V>` → JSON object
+  - Fixed Array: `std::array<T, N>` → JSON array (크기 고정)
+  - Tuple/Pair: `std::tuple<Ts...>`, `std::pair<A, B>` → JSON array
+  - Null: `std::nullptr_t` → `null`
+
+  **Tier 2 — `BEAST_JSON_FIELDS` 매크로** (커스텀 구조체):
+  - 한 줄 매크로로 읽기 + 쓰기 동시 등록
+  - 중첩 구조체, STL 컨테이너, `std::optional` 필드 — 모두 자동 재귀
+  - 최대 32 필드 지원 (`BEAST_FOR_EACH` 프리프로세서 엔진)
+  - JSON에 없는 필드 → 기본값 유지 (no crash)
+  - JSON null on non-optional field → skip (no crash)
+
+  **`beast::detail` 자동화 엔진** (내부):
+  - Concept 기반 dispatch: 컴파일 타임에 정확한 분기 선택 (zero overhead)
+  - `HasFromBeastJson<T>` / `HasToBeastJson<T>` — ADL 감지 concept
+  - `is_valid()` — Value 유효성 공개 API
+  - 타입 미지원 시 `static_assert`로 즉각 컴파일 에러 + 명확한 메시지
+  - `Inf`/`NaN` → JSON `null` 자동 변환
+
+  **공개 API** (`beast::` 네임스페이스):
+  - `beast::read<T>(json)` — JSON 문자열 → T (모든 타입)
+  - `beast::write(obj)` — T → JSON 문자열 (모든 타입)
+  - `beast::from_json(value, out)` — 부분 역직렬화 helper
+  - `beast::to_json_str(val)` — 부분 직렬화 helper
+
+  ```cpp
+  // ── Tier 1: STL 타입 — 코드 한 줄도 필요 없음 ──────────────────────────────
+  std::vector<int>                  v = beast::read<std::vector<int>>("[1,2,3]");
+  std::map<std::string,double>      m = beast::read<decltype(m)>(R"({"a":1.5})");
+  std::optional<std::string>        s = beast::read<decltype(s)>(R"("hi")");
+  std::tuple<int,std::string,bool>  t = beast::read<decltype(t)>("[42,\"ok\",true]");
+
+  std::string j1 = beast::write(std::pair{3, "hello"s});     // [3,"hello"]
+  std::string j2 = beast::write(std::array<int,3>{1,2,3});   // [1,2,3]
+  std::string j3 = beast::write(std::optional<int>{});       // null
+
+  // ── Tier 2: 구조체 — 매크로 한 줄 ────────────────────────────────────────────
+  struct Address { std::string city; std::string country; };
+  BEAST_JSON_FIELDS(Address, city, country)   // ← 이게 전부
+
+  struct User {
+      std::string              name;
+      int                      age    = 0;
+      Address                  addr;                    // 중첩 struct
+      std::vector<std::string> tags;                    // STL 컨테이너
+      std::optional<double>    score;                   // optional
+  };
+  BEAST_JSON_FIELDS(User, name, age, addr, tags, score)  // ← 이게 전부
+
+  // Read — 완전 자동
+  auto user = beast::read<User>(R"({
+      "name": "Alice", "age": 30,
+      "addr": {"city": "Seoul", "country": "KR"},
+      "tags": ["admin", "user"],
+      "score": 99.5
+  })");
+
+  // Write — 완전 자동
+  std::string json = beast::write(user);
+  // → {"name":"Alice","age":30,"addr":{"city":"Seoul","country":"KR"},
+  //    "tags":["admin","user"],"score":99.5}
+
+  // ── map of structs, vector of structs — 모두 자동 ─────────────────────────────
+  std::vector<User>              users = beast::read<decltype(users)>(json_array);
+  std::map<std::string, Address> places = beast::read<decltype(places)>(json_obj);
+  ```
+
+- [x] **Zero-Allocation Typed Views** (`as_array<T>()` 완성)
+- [x] **Pipe Operator Fallback `|`**: `int age = doc["users"][0]["age"] | 18;` ✅
+- [x] **Compile-Time JSON Pointer**: `doc.at<"/api/config/timeout">()` ✅
 
 ### 에러 처리 · 안전성
 
-- [ ] **Pipe Operator Fallback `|`**: `int age = doc["users"][0]["age"] | 18;` (예외 없음, 모나드 스타일)
-- [ ] **Compile-Time JSON Pointer**: `doc.at<"/api/config/timeout">()`
+- [x] **Pipe Operator Fallback `|`** — `int age = doc["users"][0]["age"] | 18;` (`Value` + `SafeValue` 모두 지원)
+- [x] **`as<T>()` null 가드** — invalid `Value{}` 접근 시 `std::runtime_error` (기존: UB/segfault)
+- [x] **`is_valid()`** — Value 유효성 공개 API (`doc_ != nullptr` 체크)
 
 ### 정합성 · 표준
 
