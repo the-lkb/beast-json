@@ -395,6 +395,7 @@ kc_.lens[depth_][key_idx] = static_cast<uint16_t>(e - s);
 
 ## 📚 Documentation
 - [**Roadmap to v1.0**](docs/ROADMAP.md)
+- [**Security & Memory-Safety Report**](SECURITY.md) — 5 ASan/UBSan/libFuzzer bugs fixed
 - [API Readiness & The Ultimate API Blueprint](docs/API_READINESS_REPORT.md)
 - [1.0 Release GitHub Page TODO](docs/GITHUB_PAGE_TODO.md)
 - [Optimization Failures & History](docs/OPTIMIZATION_FAILURES.md)
@@ -707,4 +708,62 @@ data = loads('[1, 2, {"x": 3}]')  # → [1, 2, {'x': 3}]
 | RFC8259_ImplDefined | 3 | ✅ PASS |
 | RFC8259_Roundtrip | 4 | ✅ PASS |
 | RFC8259_API | 4 | ✅ PASS |
-| **Total** | **368** | **100% PASS** |
+| **Total** | **312** | **100% PASS** |
+
+---
+
+## Security & Memory-Safety
+
+Beast JSON has been hardened through AddressSanitizer (ASan), UndefinedBehaviorSanitizer (UBSan), and libFuzzer-guided fuzzing. **5 memory-safety bugs** were discovered and fixed.
+
+### Sanitizer Setup
+
+```bash
+# ASan + UBSan build (GCC)
+cmake -S . -B build-san \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DBEAST_JSON_BUILD_TESTS=ON \
+  "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer"
+cmake --build build-san -j$(nproc)
+cd build-san && ctest -j$(nproc)   # 312/312 PASS
+```
+
+### libFuzzer Targets
+
+Three fuzz targets are available under `fuzz/`:
+
+| Target | What it covers |
+|--------|----------------|
+| `fuzz_parse` | `beast::parse()`, all type accessors, dump, object/array iteration, SafeValue, JSON Pointer |
+| `fuzz_lazy` | `parse_reuse()`, same as above plus `insert`/`erase`/`push_back` mutations |
+| `fuzz_rfc8259` | Consistency oracle — traps if two independent parses of the same input produce different `dump()` output |
+
+```bash
+# Requires Clang 18 + libclang-rt-18-dev
+cmake -S . -B build-fuzz \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DBEAST_JSON_BUILD_FUZZ=ON \
+  -DCMAKE_CXX_COMPILER=clang++-18 \
+  "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=fuzzer,address,undefined"
+cmake --build build-fuzz -j$(nproc)
+
+mkdir -p fuzz/corpus
+./build-fuzz/fuzz/fuzz_parse   fuzz/corpus/ -max_total_time=60
+./build-fuzz/fuzz/fuzz_lazy    fuzz/corpus/ -max_total_time=60
+./build-fuzz/fuzz/fuzz_rfc8259 fuzz/corpus/ -max_total_time=60
+```
+
+### Fixed Vulnerabilities
+
+| # | Input | Sanitizer | Location | Description |
+|---|-------|-----------|----------|-------------|
+| 1 | `` ` [ ` `` | ASan heap-buffer-overflow | `skip_to_action()` | Dereference of `*p_` when `p_ == end_` |
+| 2 | `,` | ASan heap-buffer-overflow | `done:` label | Empty tape returned as valid; `tape[0]` read from uninit malloc memory |
+| 3 | `{false}` | ASan heap-buffer-overflow | Parser + iterators | Non-string object keys accepted; iterator reads past tape boundary |
+| 4 | `[\x03\x00:}` | UBSan index -1 | `dump_changes_()` | Stale overlay maps across `parse_reuse()` calls; stack underflow at `stk[-1]` |
+| 5 | multi-call | ASan heap-buffer-overflow | `skip_value_()` + dump | Depth-loop runs past `tape.cap`; `memcpy` past `source.size()` |
+
+All fixes are `BEAST_UNLIKELY` branches or paths unreachable with well-formed JSON.
+**No measurable performance regression** was observed (all deltas within ±5% noise).
+
+See [SECURITY.md](SECURITY.md) for the full vulnerability report including before/after benchmark data.
