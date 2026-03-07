@@ -5,7 +5,7 @@
  * @date 2026-01-26
  * @author Kayden
  *
- * 🏆 Ultimate C++17 JSON Library - 100% Complete!
+ * 🏆 Ultimate C++20 JSON Library - 100% Complete!
  *
  * Performance (ALL Optimizations):
  * ✨ Parse:     1200-1400 MB/s (Russ Cox + SIMD)
@@ -17,7 +17,7 @@
  * ✅ Full SIMD: AVX2 + ARM NEON
  * ✅ Modern API: nlohmann/json style
  * ✅ Type-Safe: std::optional everywhere
- * ✅ Zero dependencies: C++17 STL only
+ * ✅ Zero dependencies: C++20 STL only
  *
  * Russ Cox Implementation:
  * - Unrounded scaling with 128-bit precision
@@ -25,7 +25,7 @@
  * - Fast number printing (20-30% faster)
  * - Single 64-bit multiplication (90%+ cases)
  *
- * License: MIT
+ * License: Apache License 2.0
  */
 
 #ifndef BEAST_JSON_HPP
