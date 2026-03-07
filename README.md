@@ -160,14 +160,14 @@ For an extensive dive into Beast's SIMD Two-Phase Pipeline and Key-Length Cachin
 
 ---
 
-## 🤖 Generative AI & LLM Ready
+## � Commitment to Open Source (OSI)
 
-In the era of Generative AI, LLM-generated JSON responses (like OpenAI structured outputs or function calling arguments) present unique challenges: variable payload sizes, unpredictable nesting, and strictly constrained latency windows. 
+Beast JSON is developed in strict alignment with the principles of the **Open Source Initiative (OSI)**. 
 
-Beast JSON is built as the ultimate backend primitive for AI application layers:
-* **Zero-Allocation DOM**: LLMs return variable-length arrays and strings. Beast's Tape DOM handles unpredictable schema expansion without causing heap fragmentation.
-* **Strict Yet Safe**: Safely parses slightly malformed or incomplete streaming JSON from LLM token streams using the `beast::SafeValue` Monadic Interface without throwing C++ exceptions.
-* **Cost-Efficient Serialization**: Formatting conversational logs back into compact JSON payloads using `dump()` is virtually instantaneous, minimizing compute costs on API gateways.
+We believe that foundational infrastructure libraries—especially those handling critical data formatting like JSON—must be openly accessible, transparently built, and collaboratively maintained.
+* **True Software Freedom**: Licensed under the permissive **Apache License 2.0**, allowing unrestricted commercial use, modification, and distribution without copyleft friction.
+* **Transparent Benchmarking**: We are committed to honest, reproducible performance metrics. All benchmark suites and data files are open and designed to be verified independently.
+* **Community-Driven**: Your contributions, critiques, and ideas are what drive this project forward. We warmly welcome developers to participate in making this the absolute fastest and most reliable JSON framework on the planet.
 
 ---
 
