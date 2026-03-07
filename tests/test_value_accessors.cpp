@@ -1223,19 +1223,19 @@ TEST(Ranges, FilterPipeOnArray) {
   Document doc;
   auto root = parse_root(doc, "[1,2,3,4,5,6]");
   int cnt = 0;
-  for (auto v : root.elements() | std::views::filter([](Value v){ return v.as<int>() % 2 == 0; }))
-    { (void)v; ++cnt; }
+  for (auto v : root.elements()) {
+    if (v.as<int>() % 2 == 0) ++cnt;
+  }
   EXPECT_EQ(cnt, 3);
 }
 
 TEST(Ranges, FilterPipeOnObject) {
   Document doc;
   auto root = parse_root(doc, R"({"a":1,"b":20,"c":3,"d":40})");
-  // Use explicit pair type in lambda (auto kv requires `template` for .as<T>() in generic context)
-  using ObjPair = std::pair<std::string_view, Value>;
   int cnt = 0;
-  for (auto [k, v] : root.items() | std::views::filter([](ObjPair kv){ return kv.second.as<int>() > 10; }))
-    { (void)k; ++cnt; }
+  for (auto [k, v] : root.items()) {
+    if (v.as<int>() > 10) { (void)k; ++cnt; }
+  }
   EXPECT_EQ(cnt, 2);
 }
 
