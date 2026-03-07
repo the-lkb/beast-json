@@ -216,8 +216,9 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
   if (lib_filter == "nlohmann") {
     bench::Timer pt, st;
     pt.start();
-    for (size_t i = 0; i < N; ++i)
-      (void)nlohmann::json::parse(content);
+    for (size_t i = 0; i < N; ++i) {
+      [[maybe_unused]] auto j = nlohmann::json::parse(content);
+    }
     double p_ns = pt.elapsed_ns() / N;
 
     double s_ns = 0.0;

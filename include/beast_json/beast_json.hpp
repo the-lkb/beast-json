@@ -1069,7 +1069,6 @@ public:
     if (BEAST_UNLIKELY(idx_ != 0))
       return dump_subtree_();
     const char *src = doc_->source.data();
-    const size_t src_sz = doc_->source.size();
     const size_t ntape = doc_->tape.size();
 
     // Phase E: separators pre-computed by parser into meta bits 23-16.
@@ -1354,7 +1353,6 @@ public:
       return;
     }
     const char *src = doc_->source.data();
-    const size_t src_sz = doc_->source.size();
     const size_t ntape = doc_->tape.size();
     size_t mutation_extra2 = 0;
     for (const auto &[k, m] : doc_->mutations_)

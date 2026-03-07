@@ -37,7 +37,7 @@ TEST(Serializer, DeepNesting) {
   for (int i = 0; i < depth; i++)
     json += "}";
 
-    Document parser(json);
+  Document parser(json);
   Value root = parse(parser, json);
 
   std::string out;
