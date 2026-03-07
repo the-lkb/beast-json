@@ -59,6 +59,7 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
                         std::to_string(N) + " --lib \"" + lib + "\"";
       if (parse_only)
         cmd += " --parse-only";
+      std::cout << std::flush;
       int ret = system(cmd.c_str());
       (void)ret;
     }
