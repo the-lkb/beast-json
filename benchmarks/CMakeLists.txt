@@ -149,6 +149,7 @@ target_link_libraries(bench_all PRIVATE
     beast_json::beast_json
     nlohmann_json::nlohmann_json
     yyjson
+    glaze::glaze
 )
 # Phase 73: serialize-only profiling benchmark (parse once, dump in tight loop).
 # Used to measure dump() vs dump(string&) buffer-reuse overhead.
@@ -162,7 +163,7 @@ target_link_libraries(bench_ser_profile PRIVATE beast_json::beast_json)
 add_executable(bench_quick bench_quick.cpp)
 target_link_libraries(bench_quick PRIVATE beast_json::beast_json)
 
-target_compile_features(bench_all PRIVATE cxx_std_20)
+target_compile_features(bench_all PRIVATE cxx_std_23)
 target_compile_features(bench_quick PRIVATE cxx_std_20)
 target_compile_features(bench_ser_profile PRIVATE cxx_std_20)
 

@@ -4,11 +4,14 @@
 //
 // Usage:
 //   ./bench_all [file.json]              # single file (default: twitter.json)
-//   ./bench_all --all                    # run all 4 standard files sequentially
+//   ./bench_all --all                    # run all 4 standard files
+//   sequentially
 //   ./bench_all --parse-only --all       # PGO GENERATE: parse paths only
 
 #include "utils.hpp"
 #include <beast_json/beast_json.hpp>
+#include <fstream>
+#include <glaze/glaze.hpp>
 #include <nlohmann/json.hpp>
 #include <yyjson.h>
 
@@ -69,8 +72,8 @@ static void run_file(const std::string &filename, size_t N, bool parse_only) {
         ok = false;
       }
       if (!ok)
-        std::cerr << "  beast::lazy verify FAIL (snippet: "
-                  << out.substr(0, 80) << "...)\n";
+        std::cerr << "  beast::lazy verify FAIL (snippet: " << out.substr(0, 80)
+                  << "...)\n";
     }
 
     bench::Result{"beast::lazy", p_ns, s_ns, ok}.print();
@@ -81,8 +84,7 @@ static void run_file(const std::string &filename, size_t N, bool parse_only) {
     bench::Timer pt, st;
     pt.start();
     for (size_t i = 0; i < N; ++i) {
-      yyjson_doc *d =
-          yyjson_read(content.c_str(), content.size(), 0);
+      yyjson_doc *d = yyjson_read(content.c_str(), content.size(), 0);
       yyjson_doc_free(d);
     }
     double p_ns = pt.elapsed_ns() / N;
@@ -101,6 +103,35 @@ static void run_file(const std::string &filename, size_t N, bool parse_only) {
     }
 
     bench::Result{"yyjson", p_ns, s_ns, true}.print();
+  }
+
+  // ── 3. Glaze (DOM glz::json_t) ───────────────────────────────────────────
+  {
+    bench::Timer pt, st;
+    pt.start();
+    for (size_t i = 0; i < N; ++i) {
+      glz::json_t d;
+      auto ec = glz::read_json(d, content);
+      if (ec) {
+        // just ignore errors for bench timing
+      }
+    }
+    double p_ns = pt.elapsed_ns() / N;
+
+    double s_ns = 0.0;
+    if (!parse_only) {
+      glz::json_t d;
+      glz::read_json(d, content);
+      std::string out;
+      st.start();
+      for (size_t i = 0; i < N; ++i) {
+        out.clear();
+        glz::write_json(d, out);
+      }
+      s_ns = st.elapsed_ns() / N;
+    }
+
+    bench::Result{"Glaze DOM", p_ns, s_ns, true}.print();
   }
 
   // ── 4. nlohmann/json (baseline) ──────────────────────────────────────────
@@ -155,12 +186,32 @@ int main(int argc, char **argv) {
   }
 
   if (run_all) {
-    const std::vector<std::string> files = {
-        "twitter.json", "canada.json", "citm_catalog.json", "gsoc-2018.json"};
+    // Generate a harsh environment JSON (heavy escapes, nesting, floats)
+    {
+      std::ifstream ifs("harsh.json");
+      if (!ifs.is_open()) {
+        std::ofstream ofs("harsh.json");
+        std::string s = "{\n";
+        for (int i = 0; i < 50000; ++i) {
+          s += "\"harsh_\\\"escaped\\\\_" + std::to_string(i) + "\": ";
+          s += "[ 12345.6789e-10, true, null, false, "
+               "\"nested\\n\\t\\rstring\", { \"deep\": [1,2,3,4,5] } ]";
+          if (i < 49999)
+            s += ",\n";
+        }
+        s += "\n}";
+        ofs << s;
+      }
+    }
+
+    const std::vector<std::string> files = {"twitter.json", "canada.json",
+                                            "citm_catalog.json",
+                                            "gsoc-2018.json", "harsh.json"};
     for (const auto &f : files)
       run_file(f, N, parse_only);
   } else {
-    const std::string filename = (file_arg >= 0) ? argv[file_arg] : "twitter.json";
+    const std::string filename =
+        (file_arg >= 0) ? argv[file_arg] : "twitter.json";
     run_file(filename, N, parse_only);
   }
   return 0;

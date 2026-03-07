@@ -69,8 +69,7 @@ if(NOT EXISTS ${BENCHMARK_DATA_DIR}/twitter.json)
     )
 endif()
 
-# Copy test data to build directory
-file(COPY ${PROJECT_SOURCE_DIR}/data/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+# Benchmark Executable
 
 # Benchmark Executable
 
