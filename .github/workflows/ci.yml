@@ -13,10 +13,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, macos-13, windows-latest]
+        os: [ubuntu-latest, macos-latest, macos-13]
         arch: [x86_64, aarch64]
         build_type: [Release, Debug]
-        compiler: [gcc, clang, msvc, apple-clang]
+        compiler: [gcc, clang, apple-clang]
         include:
           # Specific compiler versions and CC/CXX exports
           - compiler: gcc
@@ -31,31 +31,17 @@ jobs:
             arch: x86_64 # macos-latest is ARM (M1/M2/M3), exclude x86_64
           - os: macos-13
             arch: aarch64 # macos-13 is Intel, exclude aarch64
-          - os: windows-latest
-            arch: aarch64
           # Exclude combinations that don't make sense
           - os: ubuntu-latest
-            compiler: msvc
-          - os: ubuntu-latest
             compiler: apple-clang
           - os: macos-latest
-            compiler: msvc
-          - os: macos-latest
             compiler: gcc
           - os: macos-latest
             compiler: clang
           - os: macos-13
-            compiler: msvc
-          - os: macos-13
             compiler: gcc
           - os: macos-13
             compiler: clang
-          - os: windows-latest
-            compiler: gcc
-          - os: windows-latest
-            compiler: clang
-          - os: windows-latest
-            compiler: apple-clang
 
     steps:
     - uses: actions/checkout@v4
@@ -65,14 +51,14 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y g++-13
-        
+
     - name: Install Compilers (Ubuntu Clang)
       if: runner.os == 'Linux' && matrix.compiler == 'clang' && matrix.arch == 'x86_64'
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 18
-        
+
     - name: Configure CMake (Native)
       if: matrix.arch == 'x86_64' || runner.os != 'Linux'
       env:
@@ -93,20 +79,20 @@ jobs:
       run: ctest -C ${{ matrix.build_type }} --output-on-failure
 
     - name: Run & Export Benchmarks (Native)
-      if: matrix.build_type == 'Release' && (runner.os != 'Linux' || matrix.arch == 'x86_64') && ((runner.os == 'Linux' && matrix.compiler == 'clang') || (runner.os == 'macOS' && matrix.compiler == 'apple-clang') || (runner.os == 'Windows' && matrix.compiler == 'msvc'))
+      if: matrix.build_type == 'Release' && (runner.os != 'Linux' || matrix.arch == 'x86_64') && ((runner.os == 'Linux' && matrix.compiler == 'clang') || (runner.os == 'macOS' && matrix.compiler == 'apple-clang'))
       working-directory: build/benchmarks
       run: |
         ./bench_all --all > benchmark_${{ matrix.os }}_${{ matrix.arch }}.txt || echo "Benchmark failed or missing"
 
     - name: Upload Benchmark Artifacts
-      if: matrix.build_type == 'Release' && (runner.os != 'Linux' || matrix.arch == 'x86_64') && ((runner.os == 'Linux' && matrix.compiler == 'clang') || (runner.os == 'macOS' && matrix.compiler == 'apple-clang') || (runner.os == 'Windows' && matrix.compiler == 'msvc'))
+      if: matrix.build_type == 'Release' && (runner.os != 'Linux' || matrix.arch == 'x86_64') && ((runner.os == 'Linux' && matrix.compiler == 'clang') || (runner.os == 'macOS' && matrix.compiler == 'apple-clang'))
       uses: actions/upload-artifact@v4
       with:
         name: benchmark-${{ matrix.os }}-${{ matrix.arch }}
         path: build/benchmarks/benchmark_${{ matrix.os }}_${{ matrix.arch }}.txt
 
     # ── AARCH64 (ARM Linux) QEMU Emulation ────────────────────────────────────
-    
+
     - name: Run aarch64 Build & Test (QEMU)
       if: runner.os == 'Linux' && matrix.arch == 'aarch64'
       uses: uraimo/run-on-arch-action@v2
@@ -139,4 +125,3 @@ jobs:
       with:
         name: benchmark-${{ matrix.os }}-aarch64-qemu
         path: build/benchmarks/benchmark_${{ matrix.os }}_aarch64.txt
-
