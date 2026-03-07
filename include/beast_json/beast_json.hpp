@@ -1891,6 +1891,101 @@ public:
     ArrayIterator end() const noexcept { return {}; }
   };
 
+  // ── Iterator adapters for keys(), values(), as_array<T>(), try_as_array<T>()
+  //
+  // These avoid std::views::transform (which internally uses view_interface<D>)
+  // to work around a GCC 12 / libstdc++12 bug where view_interface<D> eagerly
+  // evaluates iterator_t<D> during class instantiation, creating a circular
+  // constraint dependency that GCC 12 cannot resolve.
+
+  struct KeyIterator {
+    ObjectIterator it_;
+    using value_type        = std::string_view;
+    using reference         = std::string_view;
+    using difference_type   = std::ptrdiff_t;
+    using iterator_category = std::forward_iterator_tag;
+    using iterator_concept  = std::forward_iterator_tag;
+    KeyIterator() noexcept = default;
+    explicit KeyIterator(ObjectIterator it) noexcept : it_(it) {}
+    std::string_view operator*() const noexcept { return (*it_).first; }
+    KeyIterator &operator++() noexcept { ++it_; return *this; }
+    KeyIterator  operator++(int) noexcept { auto t = *this; ++it_; return t; }
+    bool operator==(const KeyIterator &o) const noexcept { return it_ == o.it_; }
+  };
+  struct KeysRange {
+    ObjectRange r_;
+    explicit KeysRange(ObjectRange r) noexcept : r_(r) {}
+    KeyIterator begin() const noexcept { return KeyIterator{r_.begin()}; }
+    KeyIterator end()   const noexcept { return KeyIterator{r_.end()}; }
+  };
+
+  struct ObjectValueIterator {
+    ObjectIterator it_;
+    using value_type        = Value;
+    using reference         = Value;
+    using difference_type   = std::ptrdiff_t;
+    using iterator_category = std::forward_iterator_tag;
+    using iterator_concept  = std::forward_iterator_tag;
+    ObjectValueIterator() noexcept = default;
+    explicit ObjectValueIterator(ObjectIterator it) noexcept : it_(it) {}
+    Value operator*() const noexcept { return (*it_).second; }
+    ObjectValueIterator &operator++() noexcept { ++it_; return *this; }
+    ObjectValueIterator  operator++(int) noexcept { auto t = *this; ++it_; return t; }
+    bool operator==(const ObjectValueIterator &o) const noexcept { return it_ == o.it_; }
+  };
+  struct ValuesRange {
+    ObjectRange r_;
+    explicit ValuesRange(ObjectRange r) noexcept : r_(r) {}
+    ObjectValueIterator begin() const noexcept { return ObjectValueIterator{r_.begin()}; }
+    ObjectValueIterator end()   const noexcept { return ObjectValueIterator{r_.end()}; }
+  };
+
+  template <JsonReadable T>
+  struct TypedArrayIterator {
+    ArrayIterator it_;
+    using value_type        = T;
+    using reference         = T;
+    using difference_type   = std::ptrdiff_t;
+    using iterator_category = std::forward_iterator_tag;
+    using iterator_concept  = std::forward_iterator_tag;
+    TypedArrayIterator() noexcept = default;
+    explicit TypedArrayIterator(ArrayIterator it) noexcept : it_(it) {}
+    T operator*() const { return (*it_).template as<T>(); }
+    TypedArrayIterator &operator++() noexcept { ++it_; return *this; }
+    TypedArrayIterator  operator++(int) noexcept { auto t = *this; ++it_; return t; }
+    bool operator==(const TypedArrayIterator &o) const noexcept { return it_ == o.it_; }
+  };
+  template <JsonReadable T>
+  struct TypedArrayRange {
+    ArrayRange r_;
+    explicit TypedArrayRange(ArrayRange r) noexcept : r_(r) {}
+    TypedArrayIterator<T> begin() const noexcept { return TypedArrayIterator<T>{r_.begin()}; }
+    TypedArrayIterator<T> end()   const noexcept { return TypedArrayIterator<T>{r_.end()}; }
+  };
+
+  template <JsonReadable T>
+  struct OptionalArrayIterator {
+    ArrayIterator it_;
+    using value_type        = std::optional<T>;
+    using reference         = std::optional<T>;
+    using difference_type   = std::ptrdiff_t;
+    using iterator_category = std::forward_iterator_tag;
+    using iterator_concept  = std::forward_iterator_tag;
+    OptionalArrayIterator() noexcept = default;
+    explicit OptionalArrayIterator(ArrayIterator it) noexcept : it_(it) {}
+    std::optional<T> operator*() const noexcept { return (*it_).template try_as<T>(); }
+    OptionalArrayIterator &operator++() noexcept { ++it_; return *this; }
+    OptionalArrayIterator  operator++(int) noexcept { auto t = *this; ++it_; return t; }
+    bool operator==(const OptionalArrayIterator &o) const noexcept { return it_ == o.it_; }
+  };
+  template <JsonReadable T>
+  struct OptionalArrayRange {
+    ArrayRange r_;
+    explicit OptionalArrayRange(ArrayRange r) noexcept : r_(r) {}
+    OptionalArrayIterator<T> begin() const noexcept { return OptionalArrayIterator<T>{r_.begin()}; }
+    OptionalArrayIterator<T> end()   const noexcept { return OptionalArrayIterator<T>{r_.end()}; }
+  };
+
   // ── Public type aliases for use in lambdas ──────────────────────────────
   //
   // Avoids the `template` keyword in generic lambdas over items():
@@ -2040,18 +2135,8 @@ public:
   //   for (beast::Value     v : root.values()) { ... }
   //   auto first_key = *root.keys().begin();
 
-  auto keys() const noexcept {
-    return items() | std::views::transform(
-                         [](const ObjectItem &kv) noexcept -> std::string_view {
-                           return kv.first;
-                         });
-  }
-  auto values() const noexcept {
-    return items() |
-           std::views::transform([](const ObjectItem &kv) noexcept -> Value {
-             return kv.second;
-           });
-  }
+  KeysRange  keys()   const noexcept { return KeysRange{items()}; }
+  ValuesRange values() const noexcept { return ValuesRange{items()}; }
 
   // ── as_array<T>() / try_as_array<T>() — typed element views ──────────────
   //
@@ -2067,16 +2152,8 @@ public:
   //   for (auto maybe : doc["mixed"].try_as_array<int>())
   //       if (maybe) total += *maybe;
 
-  template <JsonReadable T> auto as_array() const {
-    return elements() |
-           std::views::transform([](const Value &v) -> T { return v.as<T>(); });
-  }
-  template <JsonReadable T> auto try_as_array() const noexcept {
-    return elements() | std::views::transform(
-                            [](const Value &v) noexcept -> std::optional<T> {
-                              return v.try_as<T>();
-                            });
-  }
+  template <JsonReadable T> TypedArrayRange<T>    as_array()     const { return TypedArrayRange<T>{elements()}; }
+  template <JsonReadable T> OptionalArrayRange<T> try_as_array() const noexcept { return OptionalArrayRange<T>{elements()}; }
 
   // ── at(path) — Runtime JSON Pointer (RFC 6901) ────────────────────────────
   //

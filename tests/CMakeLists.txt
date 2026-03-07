@@ -38,7 +38,7 @@ function(add_beast_gtest name)
         target_compile_options(${name} PRIVATE -O1 -g -Wall -Wextra)
     endif()
 
-    gtest_discover_tests(${name} DISCOVERY_TIMEOUT 60)
+    gtest_discover_tests(${name} DISCOVERY_TIMEOUT 60 DISCOVERY_MODE PRE_TEST)
 endfunction()
 
 # ── Core correctness tests ─────────────────────────────────────────────────
