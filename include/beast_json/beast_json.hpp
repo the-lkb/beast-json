@@ -1803,7 +1803,7 @@ public:
   };
 
   // Range-compatible proxy for object iteration (also includes additions)
-  class ObjectRange {
+  class ObjectRange : public std::ranges::view_base {
     const DocumentView *doc_;
     uint32_t obj_idx_; // ObjectStart tape index
     // Additions appended as synthetic entries after tape traversal
@@ -1880,7 +1880,7 @@ public:
     }
   };
 
-  class ArrayRange {
+  class ArrayRange : public std::ranges::view_base {
     const DocumentView *doc_;
     uint32_t arr_idx_;
 
@@ -5264,8 +5264,9 @@ inline SafeValue Value::get(int idx) const noexcept {
 //   • std::ranges::find_if / find to return a real iterator (not dangling)
 //   • pipe syntax:  root.items() | std::views::transform(f) | ...
 //
-// enable_view is intentionally NOT set — these are range proxies, not views
-// in the library sense (they are not cheaply copyable in O(1)).
+// enable_view is set via view_base inheritance — both types are lightweight
+// (pointer + index) and satisfy view semantics, avoiding the owning_view
+// circular constraint issue in GCC 12.
 template <>
 inline constexpr bool
     std::ranges::enable_borrowed_range<beast::json::lazy::Value::ObjectRange> =
