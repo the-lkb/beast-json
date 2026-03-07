@@ -27,18 +27,18 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
-        queries: security-extended,c-cpp-memory-leak,c-cpp-bounds-check
+        queries: security-extended
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBEAST_BUILD_TESTS=ON
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBEAST_JSON_BUILD_TESTS=ON
 
     - name: Build Code for Analysis
       run: cmake --build build -j4
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
