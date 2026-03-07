@@ -89,9 +89,14 @@ endforeach()
 # Optimization and PGO
 # Note: -fuse-ld=lld is incompatible with GCC LTO (GIMPLE IR).
 # Use the default linker (bfd/gold) which understands GCC LTO bitcode.
+option(BEAST_DISABLE_LTO "Disable LTO for low-memory environments" OFF)
+
 if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
-    add_compile_options(-O3 -flto)
-    add_link_options(-flto)
+    add_compile_options(-O3)
+    if(NOT BEAST_DISABLE_LTO)
+        add_compile_options(-flto)
+        add_link_options(-flto)
+    endif()
 endif()
 
 # Phase 47: Profile-Guided Optimization (PGO)

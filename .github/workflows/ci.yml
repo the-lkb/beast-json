@@ -135,6 +135,7 @@ jobs:
           cmake -B build \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DBEAST_JSON_BUILD_TESTS=ON \
+            -DBEAST_DISABLE_LTO=ON \
             -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=${{ github.workspace }}/.cmake-deps/googletest-src
           cmake --build build --config ${{ matrix.build_type }} -j1
           cd build && ctest -C ${{ matrix.build_type }} --output-on-failure
