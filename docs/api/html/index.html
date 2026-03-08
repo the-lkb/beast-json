@@ -18,6 +18,7 @@
 <script type="text/javascript" src="search/searchdata.js"></script>
 <script type="text/javascript" src="search/search.js"></script>
 <link href="doxygen.css" rel="stylesheet" type="text/css" />
+<link href="doxygen_custom.css" rel="stylesheet" type="text/css"/>
 </head>
 <body>
 <div id="top"><!-- do not remove this div, it is closed by doxygen! -->
@@ -96,15 +97,13 @@ $(function(){initNavTree('index.html','',''); });
 <blockquote class="doxtable">
 <p>This document is the unified technical reference for Beast JSON. It combines architecture details, performance data, the optimization roadmap, API reference, and lessons learned from optimization failures. </p>
 </blockquote>
-<hr  />
-<h1 class="doxsection"><a class="anchor" id="autotoc_md5"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md4"></a>
 1. Introduction</h1>
 <p>Beast JSON is a high-performance, header-only C++20 JSON parser and serializer. It operates on a <b>tape-based lazy DOM</b> and utilizes SIMD instructions (AVX-512, NEON) or SWAR (SIMD Within A Register) for peak performance. It is designed to be a drop-in single header library without dependencies.</p>
-<hr  />
-<h1 class="doxsection"><a class="anchor" id="autotoc_md7"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md5"></a>
 2. Performance Benchmarks</h1>
 <p>All measurements are taken on dedicated bare-metal hardware. <span class="tt">yyjson</span> is the primary benchmark target.</p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md8"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md6"></a>
 2.1 Linux x86_64 (GCC 13.3, AVX-512, PGO)</h2>
 <ul>
 <li><b>Parse</b>: Beats <span class="tt">yyjson</span> by +21% to +121% on all standard files (Phase 75).<ul>
@@ -114,7 +113,7 @@ $(function(){initNavTree('index.html','',''); });
 </li>
 <li><b>Serialize</b>: Up to 4.18× faster than <span class="tt">yyjson</span> on specific files (e.g., <span class="tt">canada.json</span> 789μs vs 3301μs).</li>
 </ul>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md9"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md7"></a>
 2.2 Linux AArch64 (GCC/Clang)</h2>
 <ul>
 <li><b>Parse &amp; Serialize</b>: Completely sweeps <span class="tt">yyjson</span> (Phase 73).<ul>
@@ -123,13 +122,13 @@ $(function(){initNavTree('index.html','',''); });
 </ul>
 </li>
 </ul>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md10"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md8"></a>
 2.3 Apple Silicon (macOS, Apple Clang, NEON, PGO)</h2>
 <ul>
 <li><b>Serialize</b>: Sweeps <span class="tt">yyjson</span> (Phase 80-M1). Up to 4.2× faster (<span class="tt">gsoc-2018.json</span>).</li>
 <li><b>Parse</b>: Trails <span class="tt">yyjson</span> slightly on 3/4 files due to architectural limits (Apple Silicon's extreme 576-entry ROB favors flat arrays over tape indirection).</li>
 </ul>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md11"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md9"></a>
 2.4 Sub-MegaByte Memory Efficiency</h2>
 <p>Beast JSON uses a compact 8-byte <span class="tt">TapeNode</span> and zero-copy string references to achieve the lowest memory overhead in the C++ ecosystem. Measured via MacOS <span class="tt">mach_task</span> Resident Set Size (RSS) parsing <span class="tt">twitter.json</span> (631.5 KB):</p><ul>
 <li><b>beast_json</b>: 2.76 MB Peak RSS (DOM Size: 236 KB / 0.37x overhead)</li>
@@ -137,7 +136,7 @@ $(function(){initNavTree('index.html','',''); });
 <li><b>yyjson</b>: 3.58 MB Peak RSS</li>
 <li><b>Glaze</b>: 4.29 MB Peak RSS</li>
 </ul>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md12"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md10"></a>
 2.5 Extreme Heavy-Load Benchmarks (Harsh Environment)</h2>
 <p>Performance under extreme stress: measuring a massive 5.5MB file containing 50,000 deeply nested objects, arrays, floats, and heavily escaped strings (containing <span class="tt">\n</span>, <span class="tt">\t</span>, <span class="tt">\r</span>, and escaped quotes). This tests the parser's absolute worst-case fallback performance.</p>
 <table class="markdownTable">
@@ -156,11 +155,10 @@ $(function(){initNavTree('index.html','',''); });
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyLeft"><span class="tt">nlohmann</span>  </td><td class="markdownTableBodyRight">58.94 ms  </td><td class="markdownTableBodyRight">14.93 ms  </td><td class="markdownTableBodyCenter">-  </td></tr>
 </table>
-<hr  />
-<h1 class="doxsection"><a class="anchor" id="autotoc_md14"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md11"></a>
 3. Architecture &amp; Internals</h1>
 <p>Beast JSON stores every JSON token as a flat <span class="tt">TapeNode</span> array (8 bytes/node) inside a pre-allocated <span class="tt">TapeArena</span>.</p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md15"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md12"></a>
 3.1 TapeNode Layout</h2>
 <div class="fragment"><div class="line">31      24 23     16 15            0</div>
 <div class="line">┌────────┬─────────┬───────────────┐</div>
@@ -173,22 +171,21 @@ $(function(){initNavTree('index.html','',''); });
 <li><b>Zero-Copy Strings</b>: <span class="tt">offset</span> points directly into the original input buffer.</li>
 <li><b>Pre-Flagged Separators</b>: The <span class="tt">sep</span> field stores the <span class="tt">,</span> or <span class="tt">:</span> separator at parse time, allowing the serializer to avoid state-machine tracking completely.</li>
 </ol>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md16"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md13"></a>
 3.2 Two-Phase Parser (x86_64 &lt;= 2MB)</h2>
 <ol type="1">
 <li><b>Stage 1 (AVX-512)</b>: Scans 64 bytes at a time, building an array of structural token positions.</li>
 <li><b>Stage 2 (Sequential)</b>: Iterates the positions array, skipping whitespace instantly and computing string lengths in O(1) time.</li>
 </ol>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md17"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md14"></a>
 3.3 SWAR String Scanning</h2>
 <p>For files &gt; 2MB or on AArch64, Beast uses a 64-bit GPR SWAR scan (8 bytes/cycle) to find quotes or escape characters without heavy SIMD overhead.</p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md18"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md15"></a>
 3.4 KeyLenCache</h2>
 <p>For repeated object schemas (e.g., <span class="tt">citm_catalog.json</span>), Beast caches the length of keys seen at specific depths. Once cached, scanning a key becomes a single-byte <span class="tt">O(1)</span> comparison.</p>
-<hr  />
-<h1 class="doxsection"><a class="anchor" id="autotoc_md20"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md16"></a>
 4. API Reference</h1>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md21"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md17"></a>
 4.1 <span class="tt">beast::Document</span> and <span class="tt">beast::Value</span></h2>
 <p><span class="tt"><a class="el" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a></span> owns the tape. <span class="tt"><a class="el" href="namespacebeast.html#abe9ce2ed4fb57c25aa6a7eed31343f11">beast::Value</a></span> is the 16-byte handle used for navigation. </p><div class="fragment"><div class="line"><a class="code hl_typedef" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a> doc;</div>
 <div class="line"><span class="keyword">auto</span> root = <a class="code hl_function" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a>(doc, R<span class="stringliteral">&quot;({&quot;score&quot;: 9.9})&quot;);</span></div>
@@ -203,21 +200,20 @@ $(function(){initNavTree('index.html','',''); });
 <div class="line"><span class="keywordtype">double</span> s3 = root[<span class="stringliteral">&quot;score&quot;</span>] | 0.0;</div>
 <div class="ttc" id="anamespacebeast_html_a935c88c55ef79ff1276d48580b6c7d49"><div class="ttname"><a href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a></div><div class="ttdeci">beast::json::lazy::DocumentView Document</div><div class="ttdef"><b>Definition</b> <a href="beast__json_8hpp_source.html#l05432">beast_json.hpp:5432</a></div></div>
 <div class="ttc" id="anamespacebeast_html_ae00ae23ff0f4fadca8b85b9870bcc0c8"><div class="ttname"><a href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a></div><div class="ttdeci">Value parse(Document &amp;doc, std::string_view json)</div><div class="ttdoc">Parses a JSON string into the provided Document.</div><div class="ttdef"><b>Definition</b> <a href="beast__json_8hpp_source.html#l05444">beast_json.hpp:5444</a></div></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md22"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md18"></a>
 4.2 Non-Destructive Mutations</h2>
 <p>Tape is immutable. Mutations use overlay maps. </p><div class="fragment"><div class="line">root[<span class="stringliteral">&quot;score&quot;</span>].set(10.0);           <span class="comment">// Scalar override</span></div>
 <div class="line">root.insert(<span class="stringliteral">&quot;active&quot;</span>, <span class="keyword">true</span>);       <span class="comment">// Structural addition</span></div>
 <div class="line">root.erase(<span class="stringliteral">&quot;old_key&quot;</span>);             <span class="comment">// Structural deletion</span></div>
 <div class="line">std::cout &lt;&lt; root.dump();          <span class="comment">// Reflects mutations</span></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md23"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md19"></a>
 4.3 Iteration and C++20 Ranges</h2>
 <div class="fragment"><div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> [key, val] : root.items()) { <span class="comment">/* object items */</span> }</div>
 <div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> elem : root[<span class="stringliteral">&quot;tags&quot;</span>].elements()) { <span class="comment">/* array items */</span> }</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// C++20 views</span></div>
 <div class="line"><span class="keyword">auto</span> big = root[<span class="stringliteral">&quot;scores&quot;</span>].elements() | std::views::filter([](<span class="keyword">auto</span> v){ <span class="keywordflow">return</span> v.as&lt;<span class="keywordtype">int</span>&gt;() &gt; 3; });</div>
-</div><!-- fragment --><hr  />
-<h1 class="doxsection"><a class="anchor" id="autotoc_md25"></a>
+</div><!-- fragment --><h1 class="doxsection"><a class="anchor" id="autotoc_md20"></a>
 5. Auto-Serialization Macro</h1>
 <p>Zero-boilerplate serialization utilizing C++20 Concepts. Built-in support for all STL containers.</p>
 <div class="fragment"><div class="line"><span class="keyword">struct </span>User {</div>
@@ -232,7 +228,7 @@ $(function(){initNavTree('index.html','',''); });
 <div class="ttc" id="abeast__json_8hpp_html_ae97b68b1fe33639fb05d4b3bce066ab8"><div class="ttname"><a href="beast__json_8hpp.html#ae97b68b1fe33639fb05d4b3bce066ab8">BEAST_JSON_FIELDS</a></div><div class="ttdeci">#define BEAST_JSON_FIELDS(Type,...)</div><div class="ttdoc">Register struct Type for automatic JSON serialization/deserialization.</div><div class="ttdef"><b>Definition</b> <a href="beast__json_8hpp_source.html#l06273">beast_json.hpp:6273</a></div></div>
 <div class="ttc" id="anamespacebeast_html_a1d986fdccbaeb468e178254cbd7c6a1f"><div class="ttname"><a href="namespacebeast.html#a1d986fdccbaeb468e178254cbd7c6a1f">beast::read</a></div><div class="ttdeci">T read(std::string_view json)</div><div class="ttdoc">Deserialize JSON string into a C++ object of type T.</div><div class="ttdef"><b>Definition</b> <a href="beast__json_8hpp_source.html#l06298">beast_json.hpp:6298</a></div></div>
 <div class="ttc" id="anamespacebeast_html_ad2948cb59234eecf06173a5ecf44031b"><div class="ttname"><a href="namespacebeast.html#ad2948cb59234eecf06173a5ecf44031b">beast::write</a></div><div class="ttdeci">std::string write(const T &amp;obj)</div><div class="ttdoc">Serialize a C++ object of type T to a JSON string.</div><div class="ttdef"><b>Definition</b> <a href="beast__json_8hpp_source.html#l06311">beast_json.hpp:6311</a></div></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md26"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md21"></a>
 5.1 Custom Third-Party Types via ADL</h2>
 <p>If a type cannot be modified to use <span class="tt"><a class="el" href="beast__json_8hpp.html#ae97b68b1fe33639fb05d4b3bce066ab8" title="Register struct Type for automatic JSON serialization/deserialization.">BEAST_JSON_FIELDS</a></span> (e.g., a third-party struct like <span class="tt">glm::vec3</span>), you can opt into auto-serialization by defining two Argument-Dependent Lookup (ADL) functions in the same namespace as the type:</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;glm/vec3.hpp&gt;</span></div>
@@ -256,46 +252,42 @@ $(function(){initNavTree('index.html','',''); });
 <div class="line">    }</div>
 <div class="line">}</div>
 </div><!-- fragment --><p> <span class="tt"><a class="el" href="namespacebeast.html#a1d986fdccbaeb468e178254cbd7c6a1f" title="Deserialize JSON string into a C++ object of type T.">beast::read</a>&lt;T&gt;</span> and <span class="tt">beast::write(T)</span> natively search for these ADL hooks during compile-time resolution.</p>
-<hr  />
-<h1 class="doxsection"><a class="anchor" id="autotoc_md28"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md22"></a>
 6. RFC 8259 Validator</h1>
 <p>Strict validation mode that throws an exception with offset details on RFC violations (trailing commas, leading zeros, etc.). </p><div class="fragment"><div class="line"><a class="code hl_typedef" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a> doc;</div>
 <div class="line"><span class="keyword">auto</span> root = <a class="code hl_function" href="namespacebeast.html#acee79c5b18bb019002a5b1b4f0c47522">beast::parse_strict</a>(doc, <span class="stringliteral">&quot;[1, 2,]&quot;</span>); <span class="comment">// Throws std::runtime_error</span></div>
 <div class="ttc" id="anamespacebeast_html_acee79c5b18bb019002a5b1b4f0c47522"><div class="ttname"><a href="namespacebeast.html#acee79c5b18bb019002a5b1b4f0c47522">beast::parse_strict</a></div><div class="ttdeci">Value parse_strict(Document &amp;doc, std::string_view json)</div><div class="ttdef"><b>Definition</b> <a href="beast__json_8hpp_source.html#l05689">beast_json.hpp:5689</a></div></div>
-</div><!-- fragment --><hr  />
-<h1 class="doxsection"><a class="anchor" id="autotoc_md30"></a>
+</div><!-- fragment --><h1 class="doxsection"><a class="anchor" id="autotoc_md23"></a>
 7. Language Bindings</h1>
 <p>Beast JSON provides a C API and a Python <span class="tt">ctypes</span> wrapper.</p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md31"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md24"></a>
 Python Example</h2>
 <div class="fragment"><div class="line"><span class="keyword">from</span> beast_json <span class="keyword">import</span> Document, loads</div>
 <div class="line">doc = Document(<span class="stringliteral">&#39;{&quot;name&quot;: &quot;Alice&quot;}&#39;</span>)</div>
 <div class="line">print(doc.root()[<span class="stringliteral">&quot;name&quot;</span>])</div>
-</div><!-- fragment --><hr  />
-<h1 class="doxsection"><a class="anchor" id="autotoc_md33"></a>
+</div><!-- fragment --><h1 class="doxsection"><a class="anchor" id="autotoc_md25"></a>
 8. Optimization Failures &amp; Lessons</h1>
 <p>Optimization attempts that caused performance regressions provide vital architectural insights.</p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md34"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md26"></a>
 8.1 AArch64</h2>
 <ul>
 <li><b>Rule</b>: NEON is supreme. Never mix scalar <span class="tt">while</span> loops or SWAR with NEON fast-paths (e.g., for pre-gating). GPR-to-SIMD branch dependence breaks the pipeline.</li>
 <li><b>Rule</b>: 32B/64B manual unrolling degrades I-cache without improving ILP on AArch64. 16B is the sweet spot.</li>
 <li><b>Rule</b>: Two-phase parsing using NEON movemask emulation is far slower than single-pass linear scanning on AArch64.</li>
 </ul>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md35"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md27"></a>
 8.2 x86_64</h2>
 <ul>
 <li><b>Rule</b>: AVX2 constant hoisting increases register pressure and causes spills. Declare <span class="tt">_mm256_set1</span> immediately near use.</li>
 <li><b>Rule</b>: Overlapping SIMD intensive loops (e.g., AVX2 digit parsing and AVX2 string parsing) in the same function breaks YMM register limits causing spills.</li>
 </ul>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md36"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md28"></a>
 8.3 Apple Silicon PGO/LTO Golden Rules</h2>
 <ul>
 <li><b>Rule</b>: Adding <em>any</em> new loop back-edges (<span class="tt">continue</span>, <span class="tt">break</span>) confuses LTO optimization.</li>
 <li><b>Rule</b>: Code size additions in serialize functions increase I-cache pressure and cause regressions in parse performance due to LTO layout changes.</li>
 </ul>
-<hr  />
-<h1 class="doxsection"><a class="anchor" id="autotoc_md38"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md29"></a>
 9. Development Roadmap &amp; History</h1>
 <p>Beast JSON achieved v1.0 goals entirely through an AI-driven optimization pipeline crossing 80+ distinct phases.</p>
 <ul>
@@ -306,49 +298,49 @@ Python Example</h2>
 <li><b>Phase 72-81 (Apple Silicon)</b>: Uncovering extreme PGO/LTO sensitivities and completing the fastest JSON serializer for Apple hardware.</li>
 <li><b>Phase 82-100+</b>: Legacy DOM removal, introduction of Monadic <span class="tt">SafeValue</span>, C++20 modernizations, and final v1.0 stabilization.</li>
 </ul>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md39"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md30"></a>
 10. Security &amp; Memory-Safety Hardening</h1>
 <blockquote class="doxtable">
 <p><b>Summary</b>: 5 memory-safety vulnerabilities were discovered through AddressSanitizer (ASan), UndefinedBehaviorSanitizer (UBSan), and libFuzzer-guided fuzzing, then fixed. All fixes are defence-in-depth guards on malformed / adversarial input; they have <b>no measurable performance impact</b> on well-formed JSON. </p>
 </blockquote>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md40"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md31"></a>
 10.1 Vulnerability Report</h2>
-<h3 class="doxsection"><a class="anchor" id="autotoc_md41"></a>
+<h3 class="doxsection"><a class="anchor" id="autotoc_md32"></a>
 Bug 1 — Null-Dereference in <span class="tt">skip_to_action()</span> <em>(heap-buffer-overflow)</em></h3>
 <ul>
 <li><b>Trigger</b>: Input <span class="tt">[</span> (unterminated array, 1 byte)</li>
 <li><b>Root cause</b>: <span class="tt">skip_to_action()</span> dereferenced <span class="tt">*p_</span> without checking <span class="tt">p_ &lt; end_</span> first. Any input whose last meaningful byte is <span class="tt">[</span> or <span class="tt">{</span> causes the parser to re-enter <span class="tt">skip_to_action()</span> with <span class="tt">p_ == end_</span>.</li>
 <li><b>Fix</b>: Added <span class="tt">if (<a class="el" href="beast__json_8hpp.html#a15f480d574b1b8508e8b6cfd6b4677df">BEAST_UNLIKELY</a>(p_ &gt;= end_)) return 0;</span> as the very first statement in <span class="tt">skip_to_action()</span>.</li>
 </ul>
-<h3 class="doxsection"><a class="anchor" id="autotoc_md42"></a>
+<h3 class="doxsection"><a class="anchor" id="autotoc_md33"></a>
 Bug 2 — Empty-Tape Read via Bare Separator <em>(heap-buffer-overflow)</em></h3>
 <ul>
 <li><b>Trigger</b>: Input <span class="tt">,</span> (single comma, 1 byte)</li>
 <li><b>Root cause</b>: <span class="tt">kActComma</span> / <span class="tt">kActColon</span> consumed bytes without writing any tape node. <span class="tt">depth_ == 0</span> caused <span class="tt">parse()</span> / <span class="tt">parse_staged()</span> to return <span class="tt">true</span> with an empty tape. Subsequent <span class="tt">tape[0]</span> access read from uninitialized <span class="tt">malloc</span> memory.</li>
 <li><b>Fix</b>: The <span class="tt">done:</span> label return condition in both <span class="tt">parse()</span> and <span class="tt">parse_staged()</span> now requires <span class="tt">tape_head_ &gt; doc_-&gt;tape.base</span> in addition to <span class="tt">depth_ == 0</span>.</li>
 </ul>
-<h3 class="doxsection"><a class="anchor" id="autotoc_md43"></a>
+<h3 class="doxsection"><a class="anchor" id="autotoc_md34"></a>
 Bug 3 — Non-String Object Keys + Iterator Out-of-Bounds <em>(heap-buffer-overflow)</em></h3>
 <ul>
 <li><b>Trigger</b>: Inputs <span class="tt">{false}</span>, <span class="tt">{]\x01...</span></li>
 <li><b>Root cause</b>: The parser's non-string value cases lacked an <span class="tt">is_key</span> state check. <span class="tt">skip_val_s_()</span> and iterators accessed <span class="tt">doc_-&gt;tape[i]</span> without a tape-size bounds check.</li>
 <li><b>Fix</b>: Added <span class="tt">if (<a class="el" href="beast__json_8hpp.html#a15f480d574b1b8508e8b6cfd6b4677df">BEAST_UNLIKELY</a>(cur_state_ &amp; 0b001u)) goto fail;</span> to all six non-string value cases. Added <span class="tt">tape_sz</span> bounds guard at the top of iterators and in <span class="tt">skip_val_s_()</span>.</li>
 </ul>
-<h3 class="doxsection"><a class="anchor" id="autotoc_md44"></a>
+<h3 class="doxsection"><a class="anchor" id="autotoc_md35"></a>
 Bug 4 — Stale Overlay Maps + Stack Underflow in <span class="tt">dump_changes_()</span> <em>(UBSan / stack-buffer-underflow)</em></h3>
 <ul>
 <li><b>Trigger</b>: <span class="tt">[\x03\x00:}</span> fed to <span class="tt">fuzz_lazy</span> after a prior call that performed mutations.</li>
 <li><b>Root cause</b>: <span class="tt">parse_reuse()</span> did not clear <span class="tt">mutations_</span>, <span class="tt">deleted_</span>, or <span class="tt">additions_</span> between calls. <span class="tt">dump_changes_()</span> accessed the stack when <span class="tt">top == -1</span>.</li>
 <li><b>Fix</b>: Added <span class="tt">.clear()</span> for all three overlay maps at the start of <span class="tt">parse_reuse()</span>. Added <span class="tt">if (<a class="el" href="beast__json_8hpp.html#a15f480d574b1b8508e8b6cfd6b4677df">BEAST_UNLIKELY</a>(top &lt; 0))</span> early-exit guards.</li>
 </ul>
-<h3 class="doxsection"><a class="anchor" id="autotoc_md45"></a>
+<h3 class="doxsection"><a class="anchor" id="autotoc_md36"></a>
 Bug 5 — <span class="tt">skip_value_()</span> Out-of-Bounds + <span class="tt">memcpy</span> Past Source End <em>(heap-buffer-overflow)</em></h3>
 <ul>
 <li><b>Trigger</b>: Multi-invocation sequence with static <span class="tt">g_doc</span>; intermediate failed parses leave stale tape content.</li>
 <li><b>Root cause</b>: <span class="tt">skip_value_()</span> depth-tracking loop accessed <span class="tt">doc_-&gt;tape[idx]</span> with no bounds check. <span class="tt">dump_subtree_()</span> used <span class="tt">nd.offset + len</span> without verifying via <span class="tt">doc_-&gt;source.size()</span>.</li>
 <li><b>Fix</b>: <span class="tt">skip_value()_</span> added bounds check. <span class="tt">dump_substree_()</span> added a clamping: <span class="tt">std::min(len, source.size() - nd.offset)</span>.</li>
 </ul>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md46"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md37"></a>
 10.2 Fuzz Infrastructure</h2>
 <p>Three libFuzzer targets (Clang 18, static ASan+UBSan, <span class="tt">-fsanitize=address,undefined</span>):</p><ol type="1">
 <li><span class="tt">fuzz/fuzz_parse.cpp</span>: <span class="tt"><a class="el" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8" title="Parses a JSON string into the provided Document.">beast::parse()</a></span>, typing, iterators, JSON Pointer</li>

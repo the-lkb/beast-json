@@ -27,55 +27,55 @@ var NAVTREE =
   [ "Beast JSON", "index.html", [
     [ "Beast JSON — Technical Reference (v1.0)", "index.html", "index" ],
     [ "Beast JSON — Getting Started", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html", [
-      [ "Requirements", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md50", null ],
-      [ "Installation", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md52", [
-        [ "Option A: Single Header Drop-in", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md53", null ],
-        [ "Option B: CMake FetchContent", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md54", null ],
-        [ "Option C: Clone &amp; Build", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md55", null ]
+      [ "Requirements", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md39", null ],
+      [ "Installation", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md40", [
+        [ "Option A: Single Header Drop-in", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md41", null ],
+        [ "Option B: CMake FetchContent", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md42", null ],
+        [ "Option C: Clone &amp; Build", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md43", null ]
       ] ],
-      [ "First Parse", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md57", null ],
-      [ "Reading Values", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md59", [
-        [ "Type-checked access (throws on mismatch)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md60", null ],
-        [ "Implicit conversion (nlohmann-style)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md61", null ],
-        [ "Non-throwing access (<span class=\"tt\">try_as</span>)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md62", null ],
-        [ "Pipe fallback (default values, never throws)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md63", null ],
-        [ "Nested access", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md64", null ]
+      [ "First Parse", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md44", null ],
+      [ "Reading Values", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md45", [
+        [ "Type-checked access (throws on mismatch)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md46", null ],
+        [ "Implicit conversion (nlohmann-style)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md47", null ],
+        [ "Non-throwing access (<span class=\"tt\">try_as</span>)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md48", null ],
+        [ "Pipe fallback (default values, never throws)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md49", null ],
+        [ "Nested access", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md50", null ]
       ] ],
-      [ "Safe Access Patterns", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md66", [
-        [ "find() — returns optional&lt;Value&gt;", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md67", null ],
-        [ "SafeValue — optional-propagating proxy", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md68", null ],
-        [ "contains() and value()", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md69", null ]
+      [ "Safe Access Patterns", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md51", [
+        [ "find() — returns optional&lt;Value&gt;", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md52", null ],
+        [ "SafeValue — optional-propagating proxy", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md53", null ],
+        [ "contains() and value()", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md54", null ]
       ] ],
-      [ "Iterating Objects and Arrays", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md71", [
-        [ "Object iteration", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md72", null ],
-        [ "Array iteration", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md73", null ],
-        [ "C++20 Ranges pipelines", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md74", null ]
+      [ "Iterating Objects and Arrays", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md55", [
+        [ "Object iteration", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md56", null ],
+        [ "Array iteration", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md57", null ],
+        [ "C++20 Ranges pipelines", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md58", null ]
       ] ],
-      [ "Mutating Documents", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md76", [
-        [ "Value mutation (scalar overlay)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md77", null ],
-        [ "Structural mutation (add / remove)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md78", null ]
+      [ "Mutating Documents", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md59", [
+        [ "Value mutation (scalar overlay)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md60", null ],
+        [ "Structural mutation (add / remove)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md61", null ]
       ] ],
-      [ "Serialization", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md80", [
-        [ "dump() — allocates a new string", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md81", null ],
-        [ "dump(out) — reuse existing buffer", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md82", null ]
+      [ "Serialization", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md62", [
+        [ "dump() — allocates a new string", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md63", null ],
+        [ "dump(out) — reuse existing buffer", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md64", null ]
       ] ],
-      [ "Auto-Serialization (Structs)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md84", [
-        [ "Serializing Third-Party Types (ADL)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md86", null ]
+      [ "Auto-Serialization (Structs)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md65", [
+        [ "Serializing Third-Party Types (ADL)", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md66", null ]
       ] ],
-      [ "RFC 8259 Strict Mode", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md88", null ],
-      [ "Buffer Reuse for Hot Loops", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md90", null ],
-      [ "Build Options Reference", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md92", null ],
-      [ "Running Tests", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md94", null ],
-      [ "Language Bindings", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md96", [
-        [ "C API", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md97", null ],
-        [ "Python", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md98", null ]
+      [ "RFC 8259 Strict Mode", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md67", null ],
+      [ "Buffer Reuse for Hot Loops", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md68", null ],
+      [ "Build Options Reference", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md69", null ],
+      [ "Running Tests", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md70", null ],
+      [ "Language Bindings", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md71", [
+        [ "C API", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md72", null ],
+        [ "Python", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md73", null ]
       ] ],
-      [ "Common Pitfalls", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md100", [
-        [ "1. Document must outlive all Value objects", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md101", null ],
-        [ "2. string_view source must remain alive", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md102", null ],
-        [ "3. Reusing a Document clears all mutations", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md103", null ],
-        [ "4. int ambiguity — use size_t for array index", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md104", null ],
-        [ "5. as&lt;int&gt; on a double returns a cast, not an error", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md105", null ]
+      [ "Common Pitfalls", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md74", [
+        [ "1. Document must outlive all Value objects", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md75", null ],
+        [ "2. string_view source must remain alive", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md76", null ],
+        [ "3. Reusing a Document clears all mutations", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md77", null ],
+        [ "4. int ambiguity — use size_t for array index", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md78", null ],
+        [ "5. as&lt;int&gt; on a double returns a cast, not an error", "md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md79", null ]
       ] ]
     ] ],
     [ "Namespaces", "namespaces.html", [

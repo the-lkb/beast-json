@@ -2,9 +2,7 @@
 
 > C++20 · Single Header · CMake 3.14+
 
----
 
----
 
 ## Requirements
 
@@ -21,7 +19,6 @@
 - AVX-512 CPU (Intel Skylake-X+, Ice Lake+) — enables 64B/iter whitespace skip and two-phase parsing.
 - PGO (Profile-Guided Optimization) — see [docs/OPTIMIZATION_PLAN.md](OPTIMIZATION_PLAN.md).
 
----
 
 ## Installation
 
@@ -79,7 +76,6 @@ ctest --test-dir build --output-on-failure
 cmake --install build --prefix /usr/local
 ```
 
----
 
 ## First Parse
 
@@ -111,7 +107,6 @@ int main() {
 - `beast::parse()` returns a `Value` pointing into the `doc`'s tape. The `doc` can be reused by calling `parse()` again (tape reset, overlays cleared).
 - `Value` is a lightweight (16-byte) handle — cheap to copy and pass by value.
 
----
 
 ## Reading Values
 
@@ -170,7 +165,6 @@ int city_len = root["user"]["addr"]["city"].as<std::string>().size();
 std::string_view missing = root["a"]["b"]["c"] | std::string_view{"default"};
 ```
 
----
 
 ## Safe Access Patterns
 
@@ -211,7 +205,6 @@ int timeout = root.value("timeout", 5000);
 std::string mode = root.value("mode", std::string{"fast"});
 ```
 
----
 
 ## Iterating Objects and Arrays
 
@@ -271,7 +264,6 @@ auto it = std::ranges::max_element(root["ids"].elements(), {},
 std::cout << it->as<int>() << "\n";  // 30
 ```
 
----
 
 ## Mutating Documents
 
@@ -326,7 +318,6 @@ std::cout << root.dump() << "\n";
 
 **Important:** The original tape is immutable. Mutations are stored in overlay maps. The document must remain alive for overlays to be valid.
 
----
 
 ## Serialization
 
@@ -352,7 +343,6 @@ for (int i = 0; i < 1'000'000; ++i) {
 }
 ```
 
----
 
 ## Auto-Serialization (Structs)
 
@@ -407,7 +397,6 @@ int main() {
 - Supports up to 32 fields per struct
 - Works recursively for nested structs
 
----
 
 ### Serializing Third-Party Types (ADL)
 
@@ -444,7 +433,6 @@ int main() {
 }
 ```
 
----
 
 ## RFC 8259 Strict Mode
 
@@ -480,7 +468,6 @@ int main() {
 }
 ```
 
----
 
 ## Buffer Reuse for Hot Loops
 
@@ -506,7 +493,6 @@ while (std::getline(std::cin, line)) {
 3. Calls `tape.reserve(n)` — if existing capacity ≥ n, just resets `head` (no malloc)
 4. Runs Stage 1 + Stage 2 (or single-pass) parser
 
----
 
 ## Build Options Reference
 
@@ -543,7 +529,6 @@ cmake --build build-san
 ctest --test-dir build-san  # 368/368 PASS expected
 ```
 
----
 
 ## Running Tests
 
@@ -575,7 +560,6 @@ ctest --test-dir build -V
 | RFC8259_* | 56 | RFC 8259 strict validation |
 | + 17 other suites | 78 | Unicode, escaping, concepts, etc. |
 
----
 
 ## Language Bindings
 
@@ -626,7 +610,6 @@ data = loads('[1, 2, {"x": 3}]')
 
 See [docs/API_REFERENCE.md#python-binding](API_REFERENCE.md#python-binding-bindingspython) for the complete Python API.
 
----
 
 ## Common Pitfalls
 

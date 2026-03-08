@@ -2,13 +2,11 @@
 
 > This document is the unified technical reference for Beast JSON. It combines architecture details, performance data, the optimization roadmap, API reference, and lessons learned from optimization failures.
 
----
 
 ## 1. Introduction
 
 Beast JSON is a high-performance, header-only C++20 JSON parser and serializer. It operates on a **tape-based lazy DOM** and utilizes SIMD instructions (AVX-512, NEON) or SWAR (SIMD Within A Register) for peak performance. It is designed to be a drop-in single header library without dependencies.
 
----
 
 ## 2. Performance Benchmarks
 
@@ -48,7 +46,6 @@ Performance under extreme stress: measuring a massive 5.5MB file containing 50,0
 | `Glaze DOM`| 35.96 ms | 10.69 ms | Dynamic-type penalty |
 | `nlohmann` | 58.94 ms | 14.93 ms | - |
 
----
 
 ## 3. Architecture & Internals
 
@@ -77,7 +74,6 @@ For files > 2MB or on AArch64, Beast uses a 64-bit GPR SWAR scan (8 bytes/cycle)
 ### 3.4 KeyLenCache
 For repeated object schemas (e.g., `citm_catalog.json`), Beast caches the length of keys seen at specific depths. Once cached, scanning a key becomes a single-byte `O(1)` comparison.
 
----
 
 ## 4. API Reference
 
@@ -115,7 +111,6 @@ for (auto elem : root["tags"].elements()) { /* array items */ }
 auto big = root["scores"].elements() | std::views::filter([](auto v){ return v.as<int>() > 3; });
 ```
 
----
 
 ## 5. Auto-Serialization Macro
 
@@ -160,7 +155,6 @@ namespace glm {
 ```
 `beast::read<T>` and `beast::write(T)` natively search for these ADL hooks during compile-time resolution.
 
----
 
 ## 6. RFC 8259 Validator
 
@@ -170,7 +164,6 @@ beast::Document doc;
 auto root = beast::parse_strict(doc, "[1, 2,]"); // Throws std::runtime_error
 ```
 
----
 
 ## 7. Language Bindings
 
@@ -183,7 +176,6 @@ doc = Document('{"name": "Alice"}')
 print(doc.root()["name"])
 ```
 
----
 
 ## 8. Optimization Failures & Lessons
 
@@ -202,7 +194,6 @@ Optimization attempts that caused performance regressions provide vital architec
 * **Rule**: Adding *any* new loop back-edges (`continue`, `break`) confuses LTO optimization.
 * **Rule**: Code size additions in serialize functions increase I-cache pressure and cause regressions in parse performance due to LTO layout changes.
 
----
 
 ## 9. Development Roadmap & History
 
