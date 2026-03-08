@@ -67,8 +67,6 @@ gantt
 | | **Beast JSON** | 229 μs | **75 μs** | **1.44x Faster** serialization |
 | | `simdjson` | 228 μs | 439 μs | - |
 | | `RapidJSON` | 926 μs | 998 μs | - |
-| **Android (Cortex-X3)** | **Beast JSON** | **150 μs** | **155 μs** | **3.67x Faster** serialize |
-| *(Locally run)* | `yyjson` | 280 μs | 569 μs | Baseline |
 
 ### 🪶 Unmatched Memory Efficiency
 Memory measured parsing `twitter.json` (631.5 KB) via MacOS `mach_task` Resident Set Size (RSS). Beast JSON achieves industry-leading memory efficiency by utilizing a minimalistic 8-byte Tape representation and true zero-copy strings.
