@@ -77,14 +77,14 @@ jobs:
     # ── AARCH64 (ARM Linux) QEMU Emulation ────────────────────────────────────
 
     # Add swap space on the host to prevent OOM / segfault during QEMU emulation.
-    # QEMU + C++ compilation is memory-intensive; swap gives headroom on ~7 GB runners.
+    # ubuntu-latest runners already mount /swapfile; use /mnt (separate disk) instead.
     - name: Set up swap space for QEMU
       if: runner.os == 'Linux' && matrix.arch == 'aarch64'
       run: |
-        sudo fallocate -l 4G /swapfile
-        sudo chmod 600 /swapfile
-        sudo mkswap /swapfile
-        sudo swapon /swapfile
+        sudo fallocate -l 4G /mnt/swapfile
+        sudo chmod 600 /mnt/swapfile
+        sudo mkswap /mnt/swapfile
+        sudo swapon /mnt/swapfile
         free -h
 
     # Pre-fetch FetchContent dependencies on the host (has internet access).
