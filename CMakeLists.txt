@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(beast_json VERSION 1.0.4 LANGUAGES CXX)
+project(beast_json VERSION 1.0.5 LANGUAGES CXX)
 
 # Library Target
 add_library(beast_json INTERFACE)

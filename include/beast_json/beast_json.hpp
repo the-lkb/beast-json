@@ -61,19 +61,37 @@
 
 #include <algorithm>
 #include <array>
-#include <bit>      // For std::countl_zero, std::countr_zero
+#include <atomic>
+#include <bit>
+#include <bitset>
+#include <cassert>
 #include <charconv> // For from_chars in number parsing
+#include <climits>
 #include <cmath>
+#include <compare>
+#include <cstddef>
 #include <cstdint>
-#include <cstdio> // For std::snprintf
+#include <cstdlib>
 #include <cstring>
-#include <memory_resource> // For std::pmr::polymorphic_allocator
-#include <optional>        // For std::optional
+#include <functional>
+#include <list>
+#include <map>
+#include <memory>
+#include <memory_resource>
+#include <mutex>
+#include <optional>
+#include <ranges>
+#include <set>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <variant>
 #include <vector>
 
 // ============================================================================
