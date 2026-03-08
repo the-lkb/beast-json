@@ -21,7 +21,7 @@ In a world where data is increasingly exchanged via JSON, the efficiency of the 
 - [x] Strict RFC 6902 (JSON Patch) with transactional safety.
 - [x] Hardened security via ASan/UBSan/TSan.
 
-### Phase 3: Advanced Ecosystem (2024-2025)
+### Phase 3: Advanced Ecosystem (2024-2026)
 - [ ] **SVE (Scalable Vector Extension)** support for next-gen ARM architectures.
 - [ ] **JSON Schema Validation**: High-performance validation engine built on the Tape DOM.
 - [ ] **Language Bindings**: Native-speed wrappers for Python (using nanobind) and Go.
