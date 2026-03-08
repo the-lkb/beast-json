@@ -5,7 +5,7 @@ The Beast JSON API is fully documented using Doxygen.
 <div class="center-content" style="padding: 2rem; background: var(--vp-c-bg-soft); border-radius: 8px; margin: 2rem 0;">
   <h3>🚀 Detailed C++ Reference</h3>
   <p>Our Doxygen-generated API documentation provides exhaustive details on every class, function, and macro.</p>
-  <a href="/beast-json/api/reference/index.html" class="VPButton brand">View Detailed Reference</a>
+  <a href="/beast-json/api/reference/index.html" target="_blank" rel="noopener noreferrer" class="VPButton brand">View Detailed Reference</a>
 </div>
 
 ## Core APIs
