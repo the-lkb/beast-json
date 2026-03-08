@@ -28,9 +28,12 @@ jobs:
       - name: Setup Doxygen
         run: sudo apt-get install -y doxygen
 
-      # Build Doxygen FIRST so VitePress can bake the output into its dist
+      # Build Doxygen FIRST so VitePress can reference it
       - name: Build Doxygen
-        run: doxygen Doxyfile
+        run: |
+          doxygen Doxyfile
+          echo "Doxygen output files:"
+          ls -la docs/api/reference/ | head -20
 
       - name: Install dependencies
         run: |
@@ -42,11 +45,13 @@ jobs:
           cd docs
           npm run docs:build
 
-      # Doxygen outputs to docs/api/reference/ — copy into the VitePress dist
+      # Copy Doxygen HTML into the VitePress dist AFTER build completes
       - name: Copy Doxygen to VitePress dist
         run: |
           mkdir -p docs/.vitepress/dist/api/reference
-          cp -r docs/api/reference/* docs/.vitepress/dist/api/reference/
+          cp -r docs/api/reference/. docs/.vitepress/dist/api/reference/
+          echo "Files in dist/api/reference:"
+          ls docs/.vitepress/dist/api/reference/ | head -10
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
