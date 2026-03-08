@@ -84,10 +84,10 @@ img:hover {
 }
 
 .VPContent {
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
-/* Neon Mermaid Diagrams */
+/* ── Mermaid diagrams: scrollable on mobile, never clipped ───────────────── */
 .mermaid {
     background-color: #0b1016;
     padding: 1.5rem;
@@ -95,4 +95,112 @@ img:hover {
     border: 1px solid rgba(0, 229, 255, 0.15);
     margin: 2rem 0;
     box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.mermaid svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+/* ── Hero image: constrain size to prevent overlap with text ─────────────── */
+.VPHero .image-src {
+    max-width: 200px;
+    max-height: 200px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* ── Mobile responsive overrides (≤ 768px) ───────────────────────────────── */
+@media (max-width: 768px) {
+    /* Hero: reduce spacing and logo size */
+    .VPHero .image-src {
+        max-width: 120px;
+        max-height: 120px;
+    }
+
+    .VPHero .image-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .VPHero .name {
+        font-size: 2rem;
+        line-height: 1.2;
+    }
+
+    .VPHero .text {
+        font-size: 1.1rem;
+        line-height: 1.4;
+    }
+
+    .VPHero .tagline {
+        font-size: 0.9rem;
+    }
+
+    /* Content images: reduce oversized margins on mobile */
+    img {
+        margin: 1.5rem auto;
+        max-width: 100%;
+    }
+
+    /* Mermaid: ensure minimum width doesn't break layout */
+    .mermaid {
+        padding: 0.75rem;
+        margin: 1rem 0;
+    }
+}
+
+/* ── Small mobile (≤ 480px) ──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .VPHero .name {
+        font-size: 1.6rem;
+    }
+
+    .VPHero .text {
+        font-size: 1rem;
+    }
+
+    .VPHero .image-src {
+        max-width: 90px;
+        max-height: 90px;
+    }
+
+    /* Sidebar and nav on mobile */
+    .VPNav .title {
+        font-size: 0.9rem;
+    }
+}
+
+/* ── Tablet (769px – 959px): hero image may overlap text ─────────────────── */
+@media (min-width: 769px) and (max-width: 959px) {
+    .VPHero .image-src {
+        max-width: 140px;
+        max-height: 140px;
+    }
+}
+
+/* ── Tables: horizontally scrollable on mobile ───────────────────────────── */
+/* VitePress renders doc tables inside .vp-doc; make them scroll rather than  */
+/* overflow hidden or break layout on narrow viewports.                        */
+.vp-doc table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+/* ── Code blocks: ensure long lines scroll, not clip ─────────────────────── */
+.vp-doc div[class*="language-"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ── Home page sections: stack on mobile ─────────────────────────────────── */
+@media (max-width: 768px) {
+    /* Vision/Direction cards in index.md */
+    div[style*="display: flex"] {
+        flex-direction: column !important;
+    }
 }

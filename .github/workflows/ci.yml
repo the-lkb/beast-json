@@ -76,9 +76,22 @@ jobs:
 
     # ── AARCH64 (ARM Linux) QEMU Emulation ────────────────────────────────────
 
+    # Add swap space on the host to prevent OOM / segfault during QEMU emulation.
+    # ubuntu-latest runners already mount /swapfile; use /mnt (separate disk) instead.
+    - name: Set up swap space for QEMU
+      if: runner.os == 'Linux' && matrix.arch == 'aarch64'
+      run: |
+        sudo fallocate -l 4G /mnt/swapfile
+        sudo chmod 600 /mnt/swapfile
+        sudo mkswap /mnt/swapfile
+        sudo swapon /mnt/swapfile
+        free -h
+
     # Pre-fetch FetchContent dependencies on the host (has internet access).
     # The QEMU container cannot reliably reach github.com, so we download
     # googletest here and pass FETCHCONTENT_SOURCE_DIR_GOOGLETEST to cmake.
+    # Benchmarks are disabled in QEMU to reduce memory pressure; only googletest
+    # is required.
     - name: Pre-fetch dependencies for QEMU
       if: runner.os == 'Linux' && matrix.arch == 'aarch64'
       run: |
@@ -88,39 +101,6 @@ jobs:
         unzip -q /tmp/gtest.zip -d /tmp/gtest-extracted
         cp -r /tmp/gtest-extracted/googletest-1.14.0/. \
           "${{ github.workspace }}/.cmake-deps/googletest-src/"
-
-        mkdir -p "${{ github.workspace }}/.cmake-deps/nlohmann_json-src"
-        curl -L -o /tmp/json.tar.xz \
-          https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
-        tar -xf /tmp/json.tar.xz -C "${{ github.workspace }}/.cmake-deps/nlohmann_json-src" --strip-components=1
-
-        mkdir -p "${{ github.workspace }}/.cmake-deps/rapidjson-src"
-        curl -L -o /tmp/rapidjson.zip \
-          https://github.com/Tencent/rapidjson/archive/master.zip
-        unzip -q /tmp/rapidjson.zip -d /tmp/rapidjson-extracted
-        cp -r /tmp/rapidjson-extracted/rapidjson-master/. \
-          "${{ github.workspace }}/.cmake-deps/rapidjson-src/"
-
-        mkdir -p "${{ github.workspace }}/.cmake-deps/simdjson-src"
-        curl -L -o /tmp/simdjson.zip \
-          https://github.com/simdjson/simdjson/archive/refs/tags/v3.10.1.zip
-        unzip -q /tmp/simdjson.zip -d /tmp/simdjson-extracted
-        cp -r /tmp/simdjson-extracted/simdjson-3.10.1/. \
-          "${{ github.workspace }}/.cmake-deps/simdjson-src/"
-
-        mkdir -p "${{ github.workspace }}/.cmake-deps/yyjson-src"
-        curl -L -o /tmp/yyjson.zip \
-          https://github.com/ibireme/yyjson/archive/refs/tags/0.10.0.zip
-        unzip -q /tmp/yyjson.zip -d /tmp/yyjson-extracted
-        cp -r /tmp/yyjson-extracted/yyjson-0.10.0/. \
-          "${{ github.workspace }}/.cmake-deps/yyjson-src/"
-
-        mkdir -p "${{ github.workspace }}/.cmake-deps/glaze-src"
-        curl -L -o /tmp/glaze.zip \
-          https://github.com/stephenberry/glaze/archive/refs/tags/v2.9.5.zip
-        unzip -q /tmp/glaze.zip -d /tmp/glaze-extracted
-        cp -r /tmp/glaze-extracted/glaze-2.9.5/. \
-          "${{ github.workspace }}/.cmake-deps/glaze-src/"
 
     - name: Run aarch64 Build & Test (QEMU)
       if: runner.os == 'Linux' && matrix.arch == 'aarch64'
@@ -140,17 +120,15 @@ jobs:
             export CC=clang-15
             export CXX=clang++-15
           fi
+          # Limit glibc malloc arenas to reduce fragmentation under emulation
+          export MALLOC_ARENA_MAX=1
           cmake -B build \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DBEAST_JSON_BUILD_TESTS=ON \
+            -DBEAST_JSON_BUILD_BENCHMARKS=OFF \
             -DBEAST_DISABLE_LTO=ON \
-            -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=${{ github.workspace }}/.cmake-deps/googletest-src \
-            -DFETCHCONTENT_SOURCE_DIR_NLOHMANN_JSON=${{ github.workspace }}/.cmake-deps/nlohmann_json-src \
-            -DFETCHCONTENT_SOURCE_DIR_RAPIDJSON=${{ github.workspace }}/.cmake-deps/rapidjson-src \
-            -DFETCHCONTENT_SOURCE_DIR_SIMDJSON=${{ github.workspace }}/.cmake-deps/simdjson-src \
-            -DFETCHCONTENT_SOURCE_DIR_YYJSON=${{ github.workspace }}/.cmake-deps/yyjson-src \
-            -DFETCHCONTENT_SOURCE_DIR_GLAZE=${{ github.workspace }}/.cmake-deps/glaze-src
+            -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=${{ github.workspace }}/.cmake-deps/googletest-src
           cmake --build build --config ${{ matrix.build_type }} -j1
-          cd build && ctest -C ${{ matrix.build_type }} --output-on-failure
+          cd build && ctest -C ${{ matrix.build_type }} --output-on-failure --timeout 120
 
 

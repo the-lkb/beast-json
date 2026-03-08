@@ -6,6 +6,7 @@ export default withMermaid(
         title: "Beast JSON",
         description: "The Ultimate High-Performance C++20 JSON Engine",
         base: '/beast-json/',
+        appearance: false,
         sitemap: {
             hostname: 'https://the-lkb.github.io/beast-json/'
         },

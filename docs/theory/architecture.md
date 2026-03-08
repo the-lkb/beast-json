@@ -5,29 +5,29 @@ Beast JSON operates on a **Linear Tape DOM** model. Unlike tree-based DOMs (like
 ## 🧱 Memory Layout: The Linear Tape
 
 ```mermaid
-graph TD
-    subgraph JSON_Source["JSON Input"]
-    STR[\"{'id': 101, 'active': true}\"]
-    end
+flowchart TB
+    STR["JSON Input<br/>{ id: 101, active: true }"]
+
+    STR -.->|parse| N1
 
     subgraph Tape_DOM["Beast JSON Tape (64-bit Blocks)"]
-    N1["[OBJ_START]"]
-    N2["['id']"]
-    N3["[101]"]
-    N4["['active']"]
-    N5["[TRUE]"]
-    N6["[OBJ_END]"]
+        direction TB
+        N1["[OBJ_START]"]
+        N2["[key: id]"]
+        N3["[101]"]
+        N4["[key: active]"]
+        N5["[TRUE]"]
+        N6["[OBJ_END]"]
 
-    N1 --> N2
-    N2 --> N3
-    N3 --> N4
-    N4 --> N5
-    N5 --> N6
+        N1 --> N2
+        N2 --> N3
+        N3 --> N4
+        N4 --> N5
+        N5 --> N6
     end
 
-    STR -.-> Tape_DOM
-
     style Tape_DOM fill:#05070a,stroke:#00e5ff,stroke-width:2px
+    style STR fill:#0b1016,stroke:#00e5ff,stroke-width:1px,color:#ffffff
 ```
 
 ## 🏗️ Sequential Tape Layout

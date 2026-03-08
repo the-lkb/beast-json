@@ -37,29 +37,36 @@ Beast JSON is the first library to combine the **Eisel-Lemire bit-manipulation s
 ## 📊 Scaling Pipeline Schematic
 
 ```mermaid
-graph TD
-    subgraph Input
-    S["Decimal String<br/>1.23e4"]
+flowchart TB
+    subgraph Input["Input"]
+        direction TB
+        S["Decimal String<br/>1.23e4"]
     end
-    
+
     subgraph Stage1["Stage 1: SIMD Extraction"]
-    M["Extract Mantissa (123)"]
-    E["Extract Exponent (4)"]
+        direction TB
+        M["Extract Mantissa (123)"]
+        E["Extract Exponent (4)"]
     end
-    
+
     subgraph Stage2["Stage 2: 128-bit Scaling"]
-    C["Lookup 128-bit Multiplier C_e"]
-    P["Product = Mantissa * C_e"]
+        direction TB
+        C["Lookup 128-bit Multiplier Ce"]
+        P["Product = Mantissa x Ce"]
+        C --> P
     end
-    
-    subgraph Output["Stage 3: Bit-Accurate Rounding"]
-    R["IEEE-754 Result"]
+
+    subgraph Stage3["Stage 3: Bit-Accurate Rounding"]
+        direction TB
+        R["IEEE-754 Result"]
     end
-    
-    S --> Stage1
-    Stage1 --> Stage2
-    Stage2 --> Output
-    
+
+    S --> M
+    S --> E
+    M --> C
+    E --> C
+    P --> R
+
     style Stage2 fill:#0b1016,stroke:#00e5ff,stroke-width:2px
 ```
 
