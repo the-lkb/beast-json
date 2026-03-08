@@ -1,9 +1,7 @@
 /**
  * @file beast_json.hpp
- * @brief Beast JSON v3.1 - FINAL Complete Implementation
- * @version 3.1.0
- * @date 2026-01-26
- * @author Kayden
+ * @brief Beast JSON v1.0.3 - High-Performance C++20 JSON Parser
+ * @version 1.0.3
  *
  * 🏆 Ultimate C++20 JSON Library - 100% Complete!
  *
