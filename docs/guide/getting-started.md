@@ -75,9 +75,12 @@ auto parsed = beast::json::parse(json).as<std::map<std::string, std::vector<int>
 
 ## 🛠️ Build Configuration
 
+> [!IMPORTANT]
+> Beast JSON supports **Linux** and **macOS** only. Windows is not supported.
+
 Beast JSON targets **C++20**. Ensure your compiler flags are set accordingly:
 
-- **GCC/Clang**: `-std=c++20 -O3 -march=native`
-- **MSVC**: `/std:c++20 /O2`
+- **GCC**: `-std=c++20 -O3 -march=native`
+- **Clang**: `-std=c++20 -O3 -march=native`
 
 For maximum performance on Apple Silicon, use `-mcpu=apple-m1` (or your specific M-series chip).
