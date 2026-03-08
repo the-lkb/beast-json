@@ -83,7 +83,7 @@ Memory measured parsing `twitter.json` (631.5 KB) via MacOS `mach_task` Resident
 > *Note: For deep-nesting custom types, Beast JSON outpaces C++23 Reflection-based `Glaze` natively due to fully inlined variadic macros.*
 
 ### 🌪 Extreme Heavy-Load Benchmarks (Harsh Environment)
-Performance under extreme stress: measuring a massive 5.5MB file containing 50,000 deeply nested objects, arrays, floats, and heavily escaped strings (`\n\t\r\"`). This tests the parser's absolute worst-case fallback performance.
+Performance under extreme stress: measuring a massive 5.5MB file containing 50,000 deeply nested objects, arrays, floats, and heavily escaped strings (containing `\n`, `\t`, `\r`, and escaped quotes). This tests the parser's absolute worst-case fallback performance.
 
 #### 🖥 Intel x86_64
 

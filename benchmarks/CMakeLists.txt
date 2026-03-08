@@ -187,8 +187,8 @@ endif()
 #       yyjson must also get -march=native for fair comparison (yyjson has its
 #         own NEON paths gated on __ARM_NEON + compiler DOTPROD hints).
 #
-#   (C) Android/Linux AArch64 (Snapdragon, Graviton, etc.) + Clang:
-#       SVE hardware may be present but Android kernels < 5.16 do NOT expose
+#   (C) Linux AArch64 (Graviton, etc.) + GCC/Clang:
+#       SVE hardware may be present but Linux kernels < 5.16 do NOT expose
 #         SVE to userspace → any SVE instruction triggers SIGILL at runtime.
 #       Clang with -march=native + LTO emits SVE at link time even when source
 #         only uses arm_neon.h intrinsics (LTO can inline + auto-vectorize).
