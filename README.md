@@ -34,6 +34,8 @@ By fully leveraging **C++20 Concepts**, **SIMD (AVX-512, NEON)**, **SWAR (SIMD W
 Tested entirely via automated GitHub Actions CI, parsing the standard `twitter.json` (631 KB) payload.
 Beast JSON outperforms traditional and modern C++ JSON parsers utilizing aggressive SIMD and a zero-allocation sequential tape.
 
+> **Note:** All benchmark results shown below are directly derived from our [automated GitHub Actions CI pipeline](https://github.com/kyubuem/beast-json/actions/workflows/ci.yml) to ensure reproducible and transparent metrics.
+
 ```mermaid
 gantt
     title Parse Speed Comparison (twitter.json) - Shorter is Better
@@ -45,6 +47,12 @@ gantt
     yyjson (749 μs)       : 0, 749
     RapidJSON (1294 μs)   : 0, 1294
     nlohmann (6142 μs)    : 0, 6142
+
+    section Linux AArch64
+    yyjson (2873 μs)      : 0, 2873
+    Beast JSON (3254 μs)  : 0, 3254
+    RapidJSON (6652 μs)   : 0, 6652
+    nlohmann (56953 μs)   : 0, 56953
 
     section Apple M-Series
     yyjson (187 μs)       : 0, 187
@@ -63,6 +71,11 @@ gantt
 | | `yyjson` | 749 μs | 153 μs | Baseline |
 | | `RapidJSON` | 1294 μs | 826 μs | - |
 | | `nlohmann/json` | 6142 μs | 2211 μs | - |
+| **Linux (AArch64)** | `yyjson` | **2873 μs** | 1503 μs | Baseline |
+| | **Beast JSON** | 3253 μs | **1164 μs** | **1.29x Faster** serialization |
+| | `RapidJSON` | 6652 μs | 3239 μs | - |
+| | `simdjson` | 7620 μs | 4158 μs | - |
+| | `nlohmann/json` | 56952 μs | 13042 μs | - |
 | **macOS (Apple M-Series)** | `yyjson` | **187 μs** | 108 μs | **+22% Faster** than Beast |
 | | **Beast JSON** | 229 μs | **75 μs** | **1.44x Faster** serialization |
 | | `simdjson` | 228 μs | 439 μs | - |
