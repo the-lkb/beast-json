@@ -12,14 +12,14 @@ A tree-based DOM (e.g., `nlohmann/json`) allocates one heap node per JSON elemen
 flowchart TB
     subgraph TREE["Tree DOM — scattered heap layout"]
         direction TB
-        ROOT["Object node (heap malloc #1)<br/>ptr → children list"]
-        N1["String node (heap malloc #2)<br/>'Alice' copy (heap malloc #3)"]
-        N2["Int node (heap malloc #4)<br/>value: 30"]
+        ROOT["Object node (heap malloc 1)<br/>ptr → children list"]
+        N1["String node (heap malloc 2)<br/>'Alice' copy (heap malloc 3)"]
+        N2["Int node (heap malloc 4)<br/>value: 30"]
         ROOT --> N1 --> N2
     end
 
     subgraph TAPE["Tape DOM — one contiguous array"]
-        direction LR
+        direction TB
         T0["[0] OBJ_START"]
         T1["[1] KEY 'name'"]
         T2["[2] STRING 'Alice'"]
@@ -62,7 +62,7 @@ flowchart TB
     T5["tape[5] — OBJ_END — jump: 0"]
 
     T0 --- T1 --- T2 --- T3 --- T4 --- T5
-    T0 <-->|"O(1) skip"| T5
+    T0 ---|"O(1) skip ↕"| T5
 ```
 
 Reading this diagram:
@@ -187,8 +187,8 @@ flowchart TB
         I0 --- I1 --- I2 --- I3 --- I4 --- I5 --- I6 --- I7 --- I8 --- I9
     end
 
-    I2 <-->|"O(1) skip array"| I6
-    I0 <-->|"O(1) skip object"| I9
+    I2 ---|"O(1) skip array ↕"| I6
+    I0 ---|"O(1) skip object ↕"| I9
 ```
 
 Use case: querying only key `"b"` in an object with a huge nested array under `"a"`. The parser jumps from `ARR_START` directly to `ARR_END` in one step — O(1) regardless of array size.

@@ -82,7 +82,10 @@ export default withMermaid(
             }
         },
         mermaid: {
-            // mermaid config
+            // Allow HTML in node labels so <br/> renders as a line-break
+            // rather than being stripped/shown as raw text, which causes
+            // nodes to overflow their bounding boxes.
+            securityLevel: 'loose',
         }
     })
 )

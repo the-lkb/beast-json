@@ -110,6 +110,18 @@ img:hover {
     display: inline-block;
     max-width: none;
     height: auto;
+    /* overflow: visible prevents node labels from being clipped when the
+       rendered font is wider than mermaid's server-side size estimate */
+    overflow: visible;
+}
+
+/* Force mermaid node rect/polygon elements to have adequate padding so
+   labels with long text have breathing room */
+.mermaid .node rect,
+.mermaid .node polygon,
+.mermaid .node circle,
+.mermaid .node ellipse {
+    padding: 4px;
 }
 /* ── Hero image: desktop baseline (≥ 960px) ──────────────────────────────── */
 .VPHero .image-src {
@@ -120,17 +132,46 @@ img:hover {
     object-fit: contain;
 }
 
-/* ── Hero image: un-overlap on mobile (< 960px VitePress breakpoint) ────── */
+/* ── Hero image: fix overlap on mobile (< 960px) ─────────────────────────
+   VitePress gives .VPHero .image large negative margins on mobile so the
+   logo acts as a faded background behind the text. We override that to
+   render it as a normal block below the copy instead. */
 @media (max-width: 959px) {
-    /* VitePress positions the image-container absolute by default on larger
-       screens. On mobile we need it in normal flow so it doesn't sit on top
-       of the title text. */
+    /* Make the hero container a column so image sits below text */
+    .VPHero .container {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+
+    /* Push image section below the text */
+    .VPHero .main {
+        order: 1 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        text-align: center !important;
+        padding-bottom: 0 !important;
+    }
+
+    .VPHero .image {
+        order: 2 !important;
+        /* Reset VitePress's negative margins that cause the overlap */
+        margin: 1.5rem 0 0 !important;
+        position: static !important;
+        width: auto !important;
+        min-height: unset !important;
+        flex: unset !important;
+    }
+
     .VPHero .image-container {
         position: static !important;
         transform: none !important;
-        margin: 0 auto 2rem;
-        display: flex;
-        justify-content: center;
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    .VPHero .image-bg {
+        display: none !important;
     }
 }
 
