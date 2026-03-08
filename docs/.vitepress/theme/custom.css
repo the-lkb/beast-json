@@ -3,34 +3,39 @@
    Matches the "THE LKB" Banner Aesthetic
 */
 
+/* Brand accent colours – applied in both light and dark modes */
 :root {
+    --vp-c-brand-1: #0097a7;
+    --vp-c-brand-2: #00838f;
+    --vp-c-brand-3: #006064;
+    --vp-c-brand-soft: rgba(0, 151, 167, 0.12);
+
+    --vp-home-hero-name-color: transparent;
+    --vp-home-hero-name-background: linear-gradient(135deg, #0097a7 0%, #00acc1 100%);
+}
+
+/* Dark-mode overrides – only applied when .dark is active */
+.dark {
     --vp-c-brand-1: #00e5ff;
     --vp-c-brand-2: #00d2ff;
     --vp-c-brand-3: #00b8d4;
     --vp-c-brand-soft: rgba(0, 229, 255, 0.08);
 
-    --vp-home-hero-name-color: transparent;
     --vp-home-hero-name-background: linear-gradient(135deg, #00e5ff 0%, #00d2ff 100%);
 
     --vp-c-bg: #05070a;
-    /* Ultra Deep Black from Banner */
     --vp-c-bg-soft: #0b1016;
     --vp-c-bg-mute: #111821;
     --vp-c-default-1: #ffffff;
-
     --vp-c-divider: rgba(0, 229, 255, 0.1);
     --vp-c-text-1: #ffffff;
     --vp-c-text-2: rgba(255, 255, 255, 0.7);
-}
 
-/* Force branding across all modes for consistency with LKB identity */
-.dark,
-:root {
     background-color: #05070a;
 }
 
-/* THE LKB Signature Tech Grid */
-.VPApp {
+/* THE LKB Signature Tech Grid – dark mode only */
+.dark .VPApp {
     background-image:
         linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
         linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
@@ -39,8 +44,8 @@
     position: relative;
 }
 
-/* Atmospheric Radial Glow */
-.VPApp::before {
+/* Atmospheric Radial Glow – dark mode only */
+.dark .VPApp::before {
     content: "";
     position: fixed;
     top: 0;
@@ -54,8 +59,11 @@
 
 .VPFooter {
     border-top: 1px solid var(--vp-c-divider);
-    background-color: #05070a;
     color: var(--vp-c-text-2);
+}
+
+.dark .VPFooter {
+    background-color: #05070a;
 }
 
 .VPHero .name {
@@ -89,14 +97,18 @@ img:hover {
 
 /* ── Mermaid diagrams: scrollable on mobile, never clipped ───────────────── */
 .mermaid {
-    background-color: #0b1016;
     padding: 1.5rem;
     border-radius: 4px;
-    border: 1px solid rgba(0, 229, 255, 0.15);
+    border: 1px solid var(--vp-c-divider);
     margin: 2rem 0;
-    box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+}
+
+.dark .mermaid {
+    background-color: #0b1016;
+    border-color: rgba(0, 229, 255, 0.15);
+    box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
 }
 
 .mermaid svg {
