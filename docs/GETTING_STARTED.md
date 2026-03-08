@@ -4,32 +4,8 @@
 
 ---
 
-## Table of Contents
-
-1. [Requirements](#requirements)
-2. [Installation](#installation)
-   - [Option A: Single Header](#option-a-single-header-drop-in)
-   - [Option B: CMake FetchContent](#option-b-cmake-fetchcontent)
-   - [Option C: Clone & Build](#option-c-clone--build)
-3. [First Parse](#first-parse)
-4. [Reading Values](#reading-values)
-5. [Safe Access Patterns](#safe-access-patterns)
-6. [Iterating Objects and Arrays](#iterating-objects-and-arrays)
-7. [Mutating Documents](#mutating-documents)
-8. [Serialization](#serialization)
-9. [Auto-Serialization (Structs)](#auto-serialization-structs)
-10. [RFC 8259 Strict Mode](#strict-mode-validation)
-11. [Buffer Reuse for Hot Loops](#performance-tips-zero-allocation)
-12. [Build Options Reference](#build-options-reference)
-13. [Running Tests](#running-tests)
-14. [Language Bindings](#gs-language-bindings)
-    - [C API](#c-api)
-    - [Python](#python)
-15. [Common Pitfalls](#common-pitfalls)
-
 ---
 
-<a id="requirements"></a>
 ## Requirements
 
 | Requirement | Minimum | Recommended |
@@ -47,10 +23,8 @@
 
 ---
 
-<a id="installation"></a>
 ## Installation
 
-<a id="option-a-single-header-drop-in"></a>
 ### Option A: Single Header Drop-in
 
 Beast JSON is a **single header library**. Copy the header into your project — no CMake required.
@@ -69,7 +43,6 @@ Compile with C++20:
 g++ -std=c++20 -O3 main.cpp -o main
 ```
 
-<a id="option-b-cmake-fetchcontent"></a>
 ### Option B: CMake FetchContent
 
 ```cmake
@@ -84,7 +57,6 @@ FetchContent_MakeAvailable(beast_json)
 target_link_libraries(your_target PRIVATE beast_json)
 ```
 
-<a id="option-c-clone--build"></a>
 ### Option C: Clone & Build
 
 ```bash
@@ -109,7 +81,6 @@ cmake --install build --prefix /usr/local
 
 ---
 
-<a id="first-parse"></a>
 ## First Parse
 
 ```cpp
@@ -142,7 +113,6 @@ int main() {
 
 ---
 
-<a id="reading-values"></a>
 ## Reading Values
 
 ### Type-checked access (throws on mismatch)
@@ -202,7 +172,6 @@ std::string_view missing = root["a"]["b"]["c"] | std::string_view{"default"};
 
 ---
 
-<a id="safe-access-patterns"></a>
 ## Safe Access Patterns
 
 When you need to distinguish "key absent" from "key with wrong type" without exceptions, use `find()` or `SafeValue`:
@@ -244,7 +213,6 @@ std::string mode = root.value("mode", std::string{"fast"});
 
 ---
 
-<a id="iterating-objects-and-arrays"></a>
 ## Iterating Objects and Arrays
 
 ### Object iteration
@@ -305,7 +273,6 @@ std::cout << it->as<int>() << "\n";  // 30
 
 ---
 
-<a id="mutating-documents"></a>
 ## Mutating Documents
 
 ### Value mutation (scalar overlay)
@@ -361,7 +328,6 @@ std::cout << root.dump() << "\n";
 
 ---
 
-<a id="serialization"></a>
 ## Serialization
 
 ### dump() — allocates a new string
@@ -388,7 +354,6 @@ for (int i = 0; i < 1'000'000; ++i) {
 
 ---
 
-<a id="auto-serialization-structs"></a>
 ## Auto-Serialization (Structs)
 
 ```cpp
@@ -444,7 +409,6 @@ int main() {
 
 ---
 
-<a id="third-party-types-adl"></a>
 ### Serializing Third-Party Types (ADL)
 
 If you cannot modify a struct (e.g., `glm::vec3` from an external library), you cannot use the `BEAST_JSON_FIELDS` macro. Instead, you can define two **Argument-Dependent Lookup (ADL)** functions inside the *same namespace* as your target type:
@@ -482,7 +446,6 @@ int main() {
 
 ---
 
-<a id="strict-mode-validation"></a>
 ## RFC 8259 Strict Mode
 
 By default, `beast::parse()` is lenient. Use `beast::parse_strict()` or `beast::rfc8259::validate()` when you need guaranteed RFC 8259 compliance.
@@ -519,7 +482,6 @@ int main() {
 
 ---
 
-<a id="performance-tips-zero-allocation"></a>
 ## Buffer Reuse for Hot Loops
 
 For maximum performance when parsing multiple documents (e.g., a JSON stream), reuse the `Document`:
@@ -546,7 +508,6 @@ while (std::getline(std::cin, line)) {
 
 ---
 
-<a id="build-options-reference"></a>
 ## Build Options Reference
 
 | CMake Option | Default | Description |
@@ -584,7 +545,6 @@ ctest --test-dir build-san  # 368/368 PASS expected
 
 ---
 
-<a id="running-tests"></a>
 ## Running Tests
 
 ```bash
@@ -617,10 +577,8 @@ ctest --test-dir build -V
 
 ---
 
-<a id="gs-language-bindings"></a>
 ## Language Bindings
 
-<a id="c-api"></a>
 ### C API
 
 ```bash
@@ -646,7 +604,6 @@ bjson_doc_destroy(doc);
 
 See [docs/API_REFERENCE.md#c-api](API_REFERENCE.md#c-api-bindingsc) for the complete C API.
 
-<a id="python"></a>
 ### Python
 
 ```bash
@@ -671,7 +628,6 @@ See [docs/API_REFERENCE.md#python-binding](API_REFERENCE.md#python-binding-bindi
 
 ---
 
-<a id="common-pitfalls"></a>
 ## Common Pitfalls
 
 ### 1. Document must outlive all Value objects

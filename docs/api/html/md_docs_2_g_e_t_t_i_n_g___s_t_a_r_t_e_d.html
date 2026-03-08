@@ -92,42 +92,13 @@ $(function(){initNavTree('md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html','',''); 
   <div class="headertitle"><div class="title">Beast JSON — Getting Started </div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="autotoc_md48"></a></p>
+<div class="textblock"><p><a class="anchor" id="autotoc_md47"></a></p>
 <blockquote class="doxtable">
 <p>C++20 · Single Header · CMake 3.14+ </p>
 </blockquote>
 <hr  />
-<h1 class="doxsection"><a class="anchor" id="autotoc_md50"></a>
-Table of Contents</h1>
-<ol type="1">
-<li><a class="el" href="#requirements" title="requirements">Requirements</a></li>
-<li><a class="el" href="#installation" title="installation">Installation</a><ul>
-<li><a class="el" href="#option-a-single-header-drop-in" title="option-a-single-header-drop-in">Option A: Single Header</a></li>
-<li><a class="el" href="#option-b-cmake-fetchcontent" title="option-b-cmake-fetchcontent">Option B: CMake FetchContent</a></li>
-<li><a class="el" href="#option-c-clone--build" title="option-c-clone--build">Option C: Clone &amp; Build</a></li>
-</ul>
-</li>
-<li><a class="el" href="#first-parse" title="first-parse">First Parse</a></li>
-<li><a class="el" href="#reading-values" title="reading-values">Reading Values</a></li>
-<li><a class="el" href="#safe-access-patterns" title="safe-access-patterns">Safe Access Patterns</a></li>
-<li><a class="el" href="#iterating-objects-and-arrays" title="iterating-objects-and-arrays">Iterating Objects and Arrays</a></li>
-<li><a class="el" href="#mutating-documents" title="mutating-documents">Mutating Documents</a></li>
-<li><a class="el" href="#serialization" title="serialization">Serialization</a></li>
-<li><a class="el" href="#auto-serialization-structs" title="auto-serialization-structs">Auto-Serialization (Structs)</a></li>
-<li><a class="el" href="#strict-mode-validation" title="strict-mode-validation">RFC 8259 Strict Mode</a></li>
-<li><a class="el" href="#performance-tips-zero-allocation" title="performance-tips-zero-allocation">Buffer Reuse for Hot Loops</a></li>
-<li><a class="el" href="#build-options-reference" title="build-options-reference">Build Options Reference</a></li>
-<li><a class="el" href="#running-tests" title="running-tests">Running Tests</a></li>
-<li><a class="el" href="#gs-language-bindings" title="gs-language-bindings">Language Bindings</a><ul>
-<li><a class="el" href="#c-api" title="c-api">C API</a></li>
-<li><a class="el" href="#python" title="python">Python</a></li>
-</ul>
-</li>
-<li><a class="el" href="#common-pitfalls" title="common-pitfalls">Common Pitfalls</a></li>
-</ol>
 <hr  />
-<p><a class="anchor" id="requirements"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md52"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md50"></a>
 Requirements</h1>
 <table class="markdownTable">
 <tr class="markdownTableHead">
@@ -150,11 +121,9 @@ Requirements</h1>
 <li>PGO (Profile-Guided Optimization) — see docs/OPTIMIZATION_PLAN.md.</li>
 </ul>
 <hr  />
-<p><a class="anchor" id="installation"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md54"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md52"></a>
 Installation</h1>
-<p><a class="anchor" id="option-a-single-header-drop-in"></a> </p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md55"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md53"></a>
 Option A: Single Header Drop-in</h2>
 <p>Beast JSON is a <b>single header library</b>. Copy the header into your project — no CMake required.</p>
 <div class="fragment"><div class="line">cp include/beast_json/beast_json.hpp /your/project/include/</div>
@@ -162,8 +131,7 @@ Option A: Single Header Drop-in</h2>
 <div class="ttc" id="abeast__json_8hpp_html"><div class="ttname"><a href="beast__json_8hpp.html">beast_json.hpp</a></div><div class="ttdoc">Beast JSON v1.0.3 - High-Performance C++20 JSON Parser.</div></div>
 </div><!-- fragment --><p>Compile with C++20:</p>
 <div class="fragment"><div class="line">g++ -std=c++20 -O3 main.cpp -o main</div>
-</div><!-- fragment --><p><a class="anchor" id="option-b-cmake-fetchcontent"></a> </p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md56"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md54"></a>
 Option B: CMake FetchContent</h2>
 <div class="fragment"><div class="line">include(FetchContent)</div>
 <div class="line">FetchContent_Declare(</div>
@@ -174,8 +142,7 @@ Option B: CMake FetchContent</h2>
 <div class="line">FetchContent_MakeAvailable(beast_json)</div>
 <div class="line"> </div>
 <div class="line">target_link_libraries(your_target PRIVATE beast_json)</div>
-</div><!-- fragment --><p><a class="anchor" id="option-c-clone--build"></a> </p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md57"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md55"></a>
 Option C: Clone &amp; Build</h2>
 <div class="fragment"><div class="line">git clone https://github.com/kyubuem/beast-json.git</div>
 <div class="line">cd beast-json</div>
@@ -191,8 +158,7 @@ Option C: Clone &amp; Build</h2>
 </div><!-- fragment --><p><b>CMake install (for system-wide use):</b></p>
 <div class="fragment"><div class="line">cmake --install build --prefix /usr/local</div>
 </div><!-- fragment --><hr  />
-<p><a class="anchor" id="first-parse"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md59"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md57"></a>
 First Parse</h1>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="beast__json_8hpp.html">beast_json/beast_json.hpp</a>&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;iostream&gt;</span></div>
@@ -224,10 +190,9 @@ First Parse</h1>
 <li><span class="tt">Value</span> is a lightweight (16-byte) handle — cheap to copy and pass by value.</li>
 </ul>
 <hr  />
-<p><a class="anchor" id="reading-values"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md61"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md59"></a>
 Reading Values</h1>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md62"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md60"></a>
 Type-checked access (throws on mismatch)</h2>
 <div class="fragment"><div class="line"><span class="comment">// Scalar types</span></div>
 <div class="line"><span class="keywordtype">int</span>    <span class="keywordtype">id</span>     = root[<span class="stringliteral">&quot;id&quot;</span>].as&lt;<span class="keywordtype">int</span>&gt;();</div>
@@ -245,22 +210,22 @@ Type-checked access (throws on mismatch)</h2>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Validity</span></div>
 <div class="line">root[<span class="stringliteral">&quot;missing&quot;</span>].is_valid()  <span class="comment">// false — missing key returns invalid Value{}</span></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md63"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md61"></a>
 Implicit conversion (nlohmann-style)</h2>
 <div class="fragment"><div class="line"><span class="keywordtype">int</span>    <span class="keywordtype">id</span>   = root[<span class="stringliteral">&quot;id&quot;</span>];       <span class="comment">// operator int()</span></div>
 <div class="line"><span class="keywordtype">double</span> sc   = root[<span class="stringliteral">&quot;score&quot;</span>];    <span class="comment">// operator double()</span></div>
 <div class="line">std::string name = root[<span class="stringliteral">&quot;name&quot;</span>]; <span class="comment">// operator std::string()</span></div>
 <div class="line"><span class="keywordtype">bool</span>   flag = root[<span class="stringliteral">&quot;active&quot;</span>];   <span class="comment">// operator bool()</span></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md64"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md62"></a>
 Non-throwing access (<span class="tt">try_as</span>)</h2>
 <div class="fragment"><div class="line">std::optional&lt;int&gt;    <span class="keywordtype">id</span>    = root[<span class="stringliteral">&quot;id&quot;</span>].try_as&lt;<span class="keywordtype">int</span>&gt;();    <span class="comment">// nullopt on mismatch</span></div>
 <div class="line">std::optional&lt;double&gt; score = root[<span class="stringliteral">&quot;score&quot;</span>].try_as&lt;<span class="keywordtype">double</span>&gt;();</div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md65"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md63"></a>
 Pipe fallback (default values, never throws)</h2>
 <div class="fragment"><div class="line"><span class="keywordtype">int</span>    <span class="keywordtype">id</span>   = root[<span class="stringliteral">&quot;id&quot;</span>]    | -1;           <span class="comment">// -1 if missing or wrong type</span></div>
 <div class="line"><span class="keywordtype">double</span> sc   = root[<span class="stringliteral">&quot;score&quot;</span>] | 0.0;</div>
 <div class="line">std::string s = root[<span class="stringliteral">&quot;name&quot;</span>] | std::string{<span class="stringliteral">&quot;unknown&quot;</span>};</div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md66"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md64"></a>
 Nested access</h2>
 <div class="fragment"><div class="line"><span class="comment">// Deep chains — safe even if intermediate keys are missing</span></div>
 <div class="line"><span class="keywordtype">int</span> city_len = root[<span class="stringliteral">&quot;user&quot;</span>][<span class="stringliteral">&quot;addr&quot;</span>][<span class="stringliteral">&quot;city&quot;</span>].as&lt;std::string&gt;().size();</div>
@@ -268,18 +233,17 @@ Nested access</h2>
 <div class="line"><span class="comment">// Missing at any level → invalid Value{} — no exception</span></div>
 <div class="line">std::string_view missing = root[<span class="stringliteral">&quot;a&quot;</span>][<span class="stringliteral">&quot;b&quot;</span>][<span class="stringliteral">&quot;c&quot;</span>] | std::string_view{<span class="stringliteral">&quot;default&quot;</span>};</div>
 </div><!-- fragment --><hr  />
-<p><a class="anchor" id="safe-access-patterns"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md68"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md66"></a>
 Safe Access Patterns</h1>
 <p>When you need to distinguish "key absent" from "key with wrong type" without exceptions, use <span class="tt">find()</span> or <span class="tt">SafeValue</span>:</p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md69"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md67"></a>
 find() — returns optional&lt;Value&gt;</h2>
 <div class="fragment"><div class="line"><span class="keywordflow">if</span> (<span class="keyword">auto</span> v = root.find(<span class="stringliteral">&quot;config&quot;</span>)) {</div>
 <div class="line">    <span class="keywordtype">int</span> timeout = v-&gt;value(<span class="stringliteral">&quot;timeout&quot;</span>, 5000);</div>
 <div class="line">} <span class="keywordflow">else</span> {</div>
 <div class="line">    <span class="comment">// &quot;config&quot; key was absent entirely</span></div>
 <div class="line">}</div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md70"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md68"></a>
 SafeValue — optional-propagating proxy</h2>
 <div class="fragment"><div class="line"><span class="comment">// Never throws, propagates absence through the chain</span></div>
 <div class="line"><span class="keyword">auto</span> name = root.get(<span class="stringliteral">&quot;user&quot;</span>)[<span class="stringliteral">&quot;profile&quot;</span>][<span class="stringliteral">&quot;name&quot;</span>].as&lt;std::string&gt;();</div>
@@ -290,7 +254,7 @@ SafeValue — optional-propagating proxy</h2>
 <div class="line"> </div>
 <div class="line"><span class="comment">// value_or with a SafeValue using pipe syntax</span></div>
 <div class="line"><span class="keywordtype">int</span> n = root.get(<span class="stringliteral">&quot;n&quot;</span>) | 42;  <span class="comment">// same as value_or(42)</span></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md71"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md69"></a>
 contains() and value()</h2>
 <div class="fragment"><div class="line"><span class="keywordflow">if</span> (root.contains(<span class="stringliteral">&quot;optional_field&quot;</span>))</div>
 <div class="line">    process(root[<span class="stringliteral">&quot;optional_field&quot;</span>]);</div>
@@ -299,10 +263,9 @@ contains() and value()</h2>
 <div class="line"><span class="keywordtype">int</span> timeout = root.value(<span class="stringliteral">&quot;timeout&quot;</span>, 5000);</div>
 <div class="line">std::string mode = root.value(<span class="stringliteral">&quot;mode&quot;</span>, std::string{<span class="stringliteral">&quot;fast&quot;</span>});</div>
 </div><!-- fragment --><hr  />
-<p><a class="anchor" id="iterating-objects-and-arrays"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md73"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md71"></a>
 Iterating Objects and Arrays</h1>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md74"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md72"></a>
 Object iteration</h2>
 <div class="fragment"><div class="line"><a class="code hl_typedef" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a> doc;</div>
 <div class="line"><span class="keyword">auto</span> root = <a class="code hl_function" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a>(doc, R<span class="stringliteral">&quot;({&quot;a&quot;:1,&quot;b&quot;:2,&quot;c&quot;:3})&quot;);</span></div>
@@ -318,7 +281,7 @@ Object iteration</h2>
 <div class="line"> </div>
 <div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> v : root.values())</div>
 <div class="line">    std::cout &lt;&lt; v.as&lt;<span class="keywordtype">int</span>&gt;() &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md75"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md73"></a>
 Array iteration</h2>
 <div class="fragment"><div class="line"><a class="code hl_typedef" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a> doc;</div>
 <div class="line"><span class="keyword">auto</span> root = <a class="code hl_function" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a>(doc, R<span class="stringliteral">&quot;({&quot;ids&quot;:[10,20,30],&quot;tags&quot;:[&quot;go&quot;,&quot;cpp&quot;]})&quot;);</span></div>
@@ -333,7 +296,7 @@ Array iteration</h2>
 <div class="line"><span class="comment">// try_as variant — never throws</span></div>
 <div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> v : root[<span class="stringliteral">&quot;ids&quot;</span>].try_as_array&lt;int&gt;())</div>
 <div class="line">    <span class="keywordflow">if</span> (v) std::cout &lt;&lt; *v &lt;&lt; <span class="stringliteral">&quot; &quot;</span>;</div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md76"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md74"></a>
 C++20 Ranges pipelines</h2>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;ranges&gt;</span></div>
 <div class="line"> </div>
@@ -350,10 +313,9 @@ C++20 Ranges pipelines</h2>
 <div class="line">    [](<span class="keyword">auto</span> v){ <span class="keywordflow">return</span> v.as&lt;<span class="keywordtype">int</span>&gt;(); });</div>
 <div class="line">std::cout &lt;&lt; it-&gt;as&lt;<span class="keywordtype">int</span>&gt;() &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;  <span class="comment">// 30</span></div>
 </div><!-- fragment --><hr  />
-<p><a class="anchor" id="mutating-documents"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md78"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md76"></a>
 Mutating Documents</h1>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md79"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md77"></a>
 Value mutation (scalar overlay)</h2>
 <div class="fragment"><div class="line"><a class="code hl_typedef" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a> doc;</div>
 <div class="line"><span class="keyword">auto</span> root = <a class="code hl_function" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a>(doc, R<span class="stringliteral">&quot;({&quot;user&quot;:{&quot;id&quot;:1,&quot;name&quot;:&quot;Alice&quot;}})&quot;);</span></div>
@@ -374,7 +336,7 @@ Value mutation (scalar overlay)</h2>
 <div class="line">std::cout &lt;&lt; root[<span class="stringliteral">&quot;user&quot;</span>].dump() &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
 <div class="line"><span class="comment">// {&quot;id&quot;:1,&quot;name&quot;:&quot;Bob&quot;,&quot;active&quot;:true,&quot;score&quot;:3.14,&quot;ptr&quot;:null}</span></div>
 <div class="line"><span class="comment">// (id is back to 1 after unset())</span></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md80"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md78"></a>
 Structural mutation (add / remove)</h2>
 <div class="fragment"><div class="line"><a class="code hl_typedef" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a> doc;</div>
 <div class="line"><span class="keyword">auto</span> root = <a class="code hl_function" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a>(doc, R<span class="stringliteral">&quot;({&quot;users&quot;:[{&quot;id&quot;:1},{&quot;id&quot;:2}],&quot;tags&quot;:[&quot;a&quot;,&quot;b&quot;]})&quot;);</span></div>
@@ -398,16 +360,15 @@ Structural mutation (add / remove)</h2>
 <div class="line">std::cout &lt;&lt; root.dump() &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
 </div><!-- fragment --><p><b>Important:</b> The original tape is immutable. Mutations are stored in overlay maps. The document must remain alive for overlays to be valid.</p>
 <hr  />
-<p><a class="anchor" id="serialization"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md82"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md80"></a>
 Serialization</h1>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md83"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md81"></a>
 dump() — allocates a new string</h2>
 <div class="fragment"><div class="line">std::string json = root.dump();            <span class="comment">// compact</span></div>
 <div class="line">std::string pretty = root.dump(2);         <span class="comment">// 2-space indent</span></div>
 <div class="line">std::string pretty4 = root.dump(4);        <span class="comment">// 4-space indent</span></div>
 <div class="line">std::string subtree = root[<span class="stringliteral">&quot;user&quot;</span>].dump(); <span class="comment">// serialize subtree only</span></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md84"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md82"></a>
 dump(out) — reuse existing buffer</h2>
 <p>For hot loops or repeated serialization of the same document, supply your own buffer. The <span class="tt">last_dump_size_</span> cache (Phase 75B) makes <span class="tt">resize()</span> a no-op if the output size is unchanged.</p>
 <div class="fragment"><div class="line">std::string buf;</div>
@@ -417,8 +378,7 @@ dump(out) — reuse existing buffer</h2>
 <div class="line">    send(buf);</div>
 <div class="line">}</div>
 </div><!-- fragment --><hr  />
-<p><a class="anchor" id="auto-serialization-structs"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md86"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md84"></a>
 Auto-Serialization (Structs)</h1>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="beast__json_8hpp.html">beast_json/beast_json.hpp</a>&gt;</span></div>
 <div class="line"> </div>
@@ -472,8 +432,7 @@ Auto-Serialization (Structs)</h1>
 <li>Works recursively for nested structs</li>
 </ul>
 <hr  />
-<p><a class="anchor" id="third-party-types-adl"></a> </p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md88"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md86"></a>
 Serializing Third-Party Types (ADL)</h2>
 <p>If you cannot modify a struct (e.g., <span class="tt">glm::vec3</span> from an external library), you cannot use the <span class="tt"><a class="el" href="beast__json_8hpp.html#ae97b68b1fe33639fb05d4b3bce066ab8" title="Register struct Type for automatic JSON serialization/deserialization.">BEAST_JSON_FIELDS</a></span> macro. Instead, you can define two <b>Argument-Dependent Lookup (ADL)</b> functions inside the <em>same namespace</em> as your target type:</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;glm/vec3.hpp&gt;</span></div>
@@ -505,8 +464,7 @@ Serializing Third-Party Types (ADL)</h2>
 <div class="line">    std::string json = <a class="code hl_function" href="namespacebeast.html#ad2948cb59234eecf06173a5ecf44031b">beast::write</a>(position);</div>
 <div class="line">}</div>
 </div><!-- fragment --><hr  />
-<p><a class="anchor" id="strict-mode-validation"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md90"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md88"></a>
 RFC 8259 Strict Mode</h1>
 <p>By default, <span class="tt"><a class="el" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8" title="Parses a JSON string into the provided Document.">beast::parse()</a></span> is lenient. Use <span class="tt"><a class="el" href="namespacebeast.html#acee79c5b18bb019002a5b1b4f0c47522">beast::parse_strict()</a></span> or <span class="tt"><a class="el" href="namespacebeast_1_1rfc8259.html#ad12eee77ee60a990b1cd681b508281c6">beast::rfc8259::validate()</a></span> when you need guaranteed RFC 8259 compliance.</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;<a class="code" href="beast__json_8hpp.html">beast_json/beast_json.hpp</a>&gt;</span></div>
@@ -539,8 +497,7 @@ RFC 8259 Strict Mode</h1>
 <div class="ttc" id="anamespacebeast_1_1rfc8259_html_ad12eee77ee60a990b1cd681b508281c6"><div class="ttname"><a href="namespacebeast_1_1rfc8259.html#ad12eee77ee60a990b1cd681b508281c6">beast::rfc8259::validate</a></div><div class="ttdeci">void validate(std::string_view json)</div><div class="ttdef"><b>Definition</b> <a href="beast__json_8hpp_source.html#l05681">beast_json.hpp:5681</a></div></div>
 <div class="ttc" id="anamespacebeast_html_acee79c5b18bb019002a5b1b4f0c47522"><div class="ttname"><a href="namespacebeast.html#acee79c5b18bb019002a5b1b4f0c47522">beast::parse_strict</a></div><div class="ttdeci">Value parse_strict(Document &amp;doc, std::string_view json)</div><div class="ttdef"><b>Definition</b> <a href="beast__json_8hpp_source.html#l05689">beast_json.hpp:5689</a></div></div>
 </div><!-- fragment --><hr  />
-<p><a class="anchor" id="performance-tips-zero-allocation"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md92"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md90"></a>
 Buffer Reuse for Hot Loops</h1>
 <p>For maximum performance when parsing multiple documents (e.g., a JSON stream), reuse the <span class="tt">Document</span>:</p>
 <div class="fragment"><div class="line"><a class="code hl_typedef" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a> doc;</div>
@@ -562,8 +519,7 @@ Buffer Reuse for Hot Loops</h1>
 <li>Runs Stage 1 + Stage 2 (or single-pass) parser</li>
 </ol>
 <hr  />
-<p><a class="anchor" id="build-options-reference"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md94"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md92"></a>
 Build Options Reference</h1>
 <table class="markdownTable">
 <tr class="markdownTableHead">
@@ -600,8 +556,7 @@ Build Options Reference</h1>
 <div class="line">cmake --build build-san</div>
 <div class="line">ctest --test-dir build-san  # 368/368 PASS expected</div>
 </div><!-- fragment --><hr  />
-<p><a class="anchor" id="running-tests"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md96"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md94"></a>
 Running Tests</h1>
 <div class="fragment"><div class="line"># Build and run all 368 tests</div>
 <div class="line">cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBEAST_JSON_BUILD_TESTS=ON</div>
@@ -639,11 +594,9 @@ Running Tests</h1>
 <td class="markdownTableBodyLeft">+ 17 other suites  </td><td class="markdownTableBodyRight">78  </td><td class="markdownTableBodyLeft">Unicode, escaping, concepts, etc.  </td></tr>
 </table>
 <hr  />
-<p><a class="anchor" id="gs-language-bindings"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md98"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md96"></a>
 Language Bindings</h1>
-<p><a class="anchor" id="c-api"></a> </p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md99"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md97"></a>
 C API</h2>
 <div class="fragment"><div class="line"># Build shared library</div>
 <div class="line">cmake -S . -B build -DBEAST_JSON_BUILD_BINDINGS=ON</div>
@@ -661,8 +614,7 @@ C API</h2>
 <div class="line"> </div>
 <div class="line">bjson_doc_destroy(doc);</div>
 </div><!-- fragment --><p>See <a href="API_REFERENCE.md#c-api-bindingsc">docs/API_REFERENCE.md#c-api</a> for the complete C API.</p>
-<p><a class="anchor" id="python"></a> </p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md100"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md98"></a>
 Python</h2>
 <div class="fragment"><div class="line">export BEAST_JSON_LIB_PATH=./build/bindings/c</div>
 <div class="line">cd bindings/python</div>
@@ -678,10 +630,9 @@ Python</h2>
 <div class="line">data = loads(<span class="stringliteral">&#39;[1, 2, {&quot;x&quot;: 3}]&#39;</span>)</div>
 </div><!-- fragment --><p>See <a href="API_REFERENCE.md#python-binding-bindingspython">docs/API_REFERENCE.md#python-binding</a> for the complete Python API.</p>
 <hr  />
-<p><a class="anchor" id="common-pitfalls"></a> </p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md102"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md100"></a>
 Common Pitfalls</h1>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md103"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md101"></a>
 1. Document must outlive all Value objects</h2>
 <div class="fragment"><div class="line"><span class="comment">// WRONG — doc destroyed before root is used</span></div>
 <div class="line"><a class="code hl_typedef" href="namespacebeast.html#abe9ce2ed4fb57c25aa6a7eed31343f11">beast::Value</a> bad() {</div>
@@ -700,7 +651,7 @@ Common Pitfalls</h1>
 <div class="line">    r.root = <a class="code hl_function" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a>(r.doc, json);</div>
 <div class="line">    <span class="keywordflow">return</span> r;</div>
 <div class="line">}</div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md104"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md102"></a>
 2. string_view source must remain alive</h2>
 <p><span class="tt"><a class="el" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8" title="Parses a JSON string into the provided Document.">beast::parse()</a></span> takes a <span class="tt">std::string_view</span> and zero-copies strings. The underlying buffer must remain alive for the lifetime of the <span class="tt">Document</span>.</p>
 <div class="fragment"><div class="line"><span class="comment">// WRONG — temporary string destroyed</span></div>
@@ -713,7 +664,7 @@ Common Pitfalls</h1>
 <div class="line">std::string json = load_file(<span class="stringliteral">&quot;data.json&quot;</span>);</div>
 <div class="line"><a class="code hl_typedef" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a> doc;</div>
 <div class="line"><span class="keyword">auto</span> root = <a class="code hl_function" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a>(doc, json);  <span class="comment">// json outlives doc</span></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md105"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md103"></a>
 3. Reusing a Document clears all mutations</h2>
 <div class="fragment"><div class="line"><a class="code hl_typedef" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a> doc;</div>
 <div class="line"><span class="keyword">auto</span> root = <a class="code hl_function" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a>(doc, json1);</div>
@@ -722,7 +673,7 @@ Common Pitfalls</h1>
 <div class="line"><span class="keyword">auto</span> root2 = <a class="code hl_function" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a>(doc, json2);  <span class="comment">// ← clears all overlays on doc</span></div>
 <div class="line"><span class="comment">// root is now invalid! (tape was reset)</span></div>
 <div class="line"><span class="comment">// root2 is valid and points to json2&#39;s parsed data</span></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md106"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md104"></a>
 4. int ambiguity — use size_t for array index</h2>
 <div class="fragment"><div class="line"><span class="comment">// Ambiguous: root[&quot;key&quot;] with literal 0</span></div>
 <div class="line"><span class="keyword">auto</span> v = root[<span class="stringliteral">&quot;key&quot;</span>];   <span class="comment">// OK — const char* overload</span></div>
@@ -730,7 +681,7 @@ Common Pitfalls</h1>
 <div class="line"><span class="comment">// For integer indices, use size_t explicitly</span></div>
 <div class="line"><span class="keyword">auto</span> elem = root[<span class="stringliteral">&quot;array&quot;</span>][<span class="keywordtype">size_t</span>{0}];   <span class="comment">// array[0]</span></div>
 <div class="line"><span class="keyword">auto</span> elem2 = root[<span class="stringliteral">&quot;array&quot;</span>][0u];         <span class="comment">// also fine</span></div>
-</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md107"></a>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md105"></a>
 5. as&lt;int&gt; on a double returns a cast, not an error</h2>
 <div class="fragment"><div class="line"><a class="code hl_typedef" href="namespacebeast.html#a935c88c55ef79ff1276d48580b6c7d49">beast::Document</a> doc;</div>
 <div class="line"><span class="keyword">auto</span> root = <a class="code hl_function" href="namespacebeast.html#ae00ae23ff0f4fadca8b85b9870bcc0c8">beast::parse</a>(doc, R<span class="stringliteral">&quot;({&quot;x&quot;: 3.14})&quot;);</span></div>

@@ -1,16 +1,16 @@
 var searchData=
 [
-  ['efficiency_0',['2.4 Sub-MegaByte Memory Efficiency',['../index.html#autotoc_md12',1,'']]],
+  ['efficiency_0',['2.4 Sub-MegaByte Memory Efficiency',['../index.html#autotoc_md11',1,'']]],
   ['elements_1',['elements',['../classbeast_1_1json_1_1lazy_1_1_value.html#a33cbddf4aaca4179044b0d384c787e75',1,'beast::json::lazy::Value']]],
   ['empty_2',['empty',['../classbeast_1_1json_1_1lazy_1_1_value.html#af1d8b0821750c004498cf95d72126e5c',1,'beast::json::lazy::Value']]],
-  ['empty_20tape_20read_20via_20bare_20separator_20heap_20buffer_20overflow_3',['Bug 2 — Empty-Tape Read via Bare Separator &lt;em&gt;(heap-buffer-overflow)&lt;/em&gt;',['../index.html#autotoc_md43',1,'']]],
+  ['empty_20tape_20read_20via_20bare_20separator_20heap_20buffer_20overflow_3',['Bug 2 — Empty-Tape Read via Bare Separator &lt;em&gt;(heap-buffer-overflow)&lt;/em&gt;',['../index.html#autotoc_md42',1,'']]],
   ['end_4',['end',['../structbeast_1_1rfc8259_1_1detail___1_1_validator.html#a10da8480932d97a19f6937b7f828205c',1,'beast::rfc8259::detail_::Validator::end'],['../classbeast_1_1json_1_1lazy_1_1_value_1_1_object_range.html#a79997f374368d1b9156d1d5f20ea6cd3',1,'beast::json::lazy::Value::ObjectRange::end()'],['../classbeast_1_1json_1_1lazy_1_1_value_1_1_array_range.html#abc9ff67879053b429f3d0a802396a4d8',1,'beast::json::lazy::Value::ArrayRange::end()'],['../structbeast_1_1json_1_1lazy_1_1_value_1_1_keys_range.html#ad6a8f5eebe5e7aad5524b6483c4bc018',1,'beast::json::lazy::Value::KeysRange::end()'],['../structbeast_1_1json_1_1lazy_1_1_value_1_1_values_range.html#a2da29044bdf1fc3cda2707f25f575583',1,'beast::json::lazy::Value::ValuesRange::end()'],['../structbeast_1_1json_1_1lazy_1_1_value_1_1_typed_array_range.html#a6a9f6265d7e204b3b5d278dd5903b6d7',1,'beast::json::lazy::Value::TypedArrayRange::end()'],['../structbeast_1_1json_1_1lazy_1_1_value_1_1_optional_array_range.html#a7b3e57fa10dfd9162d81f4a57beac0ca',1,'beast::json::lazy::Value::OptionalArrayRange::end()']]],
-  ['end_20heap_20buffer_20overflow_5',['Bug 5 — &lt;span class=&quot;tt&quot;&gt;skip_value_()&lt;/span&gt; Out-of-Bounds + &lt;span class=&quot;tt&quot;&gt;memcpy&lt;/span&gt; Past Source End &lt;em&gt;(heap-buffer-overflow)&lt;/em&gt;',['../index.html#autotoc_md46',1,'']]],
-  ['environment_6',['2.5 Extreme Heavy-Load Benchmarks (Harsh Environment)',['../index.html#autotoc_md13',1,'']]],
+  ['end_20heap_20buffer_20overflow_5',['Bug 5 — &lt;span class=&quot;tt&quot;&gt;skip_value_()&lt;/span&gt; Out-of-Bounds + &lt;span class=&quot;tt&quot;&gt;memcpy&lt;/span&gt; Past Source End &lt;em&gt;(heap-buffer-overflow)&lt;/em&gt;',['../index.html#autotoc_md45',1,'']]],
+  ['environment_6',['2.5 Extreme Heavy-Load Benchmarks (Harsh Environment)',['../index.html#autotoc_md12',1,'']]],
   ['erase_7',['erase',['../classbeast_1_1json_1_1lazy_1_1_value.html#a09614f2f5ff4e9982ab681db2229beb6',1,'beast::json::lazy::Value::erase(std::string_view key)'],['../classbeast_1_1json_1_1lazy_1_1_value.html#a6df8845bcbb7e56865ae42d0827f598b',1,'beast::json::lazy::Value::erase(const char *key)'],['../classbeast_1_1json_1_1lazy_1_1_value.html#a4ca9d44bb19568fc3e7593af7520eeee',1,'beast::json::lazy::Value::erase(size_t idx)'],['../classbeast_1_1json_1_1lazy_1_1_value.html#afd7bcdbf2fd37c99c57728434cda2569',1,'beast::json::lazy::Value::erase(int idx)']]],
-  ['error_8',['5. as&amp;lt;int&amp;gt; on a double returns a cast, not an error',['../md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md107',1,'']]],
-  ['example_9',['Python Example',['../index.html#autotoc_md32',1,'']]],
-  ['existing_20buffer_10',['dump(out) — reuse existing buffer',['../md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md84',1,'']]],
+  ['error_8',['5. as&amp;lt;int&amp;gt; on a double returns a cast, not an error',['../md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md105',1,'']]],
+  ['example_9',['Python Example',['../index.html#autotoc_md31',1,'']]],
+  ['existing_20buffer_10',['dump(out) — reuse existing buffer',['../md_docs_2_g_e_t_t_i_n_g___s_t_a_r_t_e_d.html#autotoc_md82',1,'']]],
   ['expect_5fliteral_11',['expect_literal',['../structbeast_1_1rfc8259_1_1detail___1_1_validator.html#a0440819bbf13ccb39c0c423fc5d9bad5',1,'beast::rfc8259::detail_::Validator']]],
-  ['extreme_20heavy_20load_20benchmarks_20harsh_20environment_12',['2.5 Extreme Heavy-Load Benchmarks (Harsh Environment)',['../index.html#autotoc_md13',1,'']]]
+  ['extreme_20heavy_20load_20benchmarks_20harsh_20environment_12',['2.5 Extreme Heavy-Load Benchmarks (Harsh Environment)',['../index.html#autotoc_md12',1,'']]]
 ];

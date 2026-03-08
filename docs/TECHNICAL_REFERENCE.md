@@ -2,28 +2,14 @@
 
 > This document is the unified technical reference for Beast JSON. It combines architecture details, performance data, the optimization roadmap, API reference, and lessons learned from optimization failures.
 
-## Table of Contents
-1. [Introduction](#introduction)
-2. [Performance Benchmarks](#performance-benchmarks)
-3. [Architecture & Internals](#architecture--internals)
-4. [API Reference](#api-reference)
-5. [Auto-Serialization Macro](#auto-serialization-macro)
-6. [RFC 8259 Validator](#rfc-8259-validator)
-7. [Language Bindings](#language-bindings)
-8. [Optimization Failures & Lessons](#optimization-failures--lessons)
-9. [Development Roadmap & History](#development-roadmap--history)
-10. [Security & Memory-Safety Hardening](#security--memory-safety-hardening)
-
 ---
 
-<a id="introduction"></a>
 ## 1. Introduction
 
 Beast JSON is a high-performance, header-only C++20 JSON parser and serializer. It operates on a **tape-based lazy DOM** and utilizes SIMD instructions (AVX-512, NEON) or SWAR (SIMD Within A Register) for peak performance. It is designed to be a drop-in single header library without dependencies.
 
 ---
 
-<a id="performance-benchmarks"></a>
 ## 2. Performance Benchmarks
 
 All measurements are taken on dedicated bare-metal hardware. `yyjson` is the primary benchmark target.
@@ -64,7 +50,6 @@ Performance under extreme stress: measuring a massive 5.5MB file containing 50,0
 
 ---
 
-<a id="architecture--internals"></a>
 ## 3. Architecture & Internals
 
 Beast JSON stores every JSON token as a flat `TapeNode` array (8 bytes/node) inside a pre-allocated `TapeArena`.
@@ -94,7 +79,6 @@ For repeated object schemas (e.g., `citm_catalog.json`), Beast caches the length
 
 ---
 
-<a id="api-reference"></a>
 ## 4. API Reference
 
 ### 4.1 `beast::Document` and `beast::Value`
@@ -133,7 +117,6 @@ auto big = root["scores"].elements() | std::views::filter([](auto v){ return v.a
 
 ---
 
-<a id="auto-serialization-macro"></a>
 ## 5. Auto-Serialization Macro
 
 Zero-boilerplate serialization utilizing C++20 Concepts. Built-in support for all STL containers.
@@ -179,7 +162,6 @@ namespace glm {
 
 ---
 
-<a id="rfc-8259-validator"></a>
 ## 6. RFC 8259 Validator
 
 Strict validation mode that throws an exception with offset details on RFC violations (trailing commas, leading zeros, etc.).
@@ -190,7 +172,6 @@ auto root = beast::parse_strict(doc, "[1, 2,]"); // Throws std::runtime_error
 
 ---
 
-<a id="language-bindings"></a>
 ## 7. Language Bindings
 
 Beast JSON provides a C API and a Python `ctypes` wrapper.
@@ -204,7 +185,6 @@ print(doc.root()["name"])
 
 ---
 
-<a id="optimization-failures--lessons"></a>
 ## 8. Optimization Failures & Lessons
 
 Optimization attempts that caused performance regressions provide vital architectural insights.
@@ -224,7 +204,6 @@ Optimization attempts that caused performance regressions provide vital architec
 
 ---
 
-<a id="development-roadmap--history"></a>
 ## 9. Development Roadmap & History
 
 Beast JSON achieved v1.0 goals entirely through an AI-driven optimization pipeline crossing 80+ distinct phases.
@@ -237,7 +216,6 @@ Beast JSON achieved v1.0 goals entirely through an AI-driven optimization pipeli
 * **Phase 82-100+**: Legacy DOM removal, introduction of Monadic `SafeValue`, C++20 modernizations, and final v1.0 stabilization.
 
 
-<a id="security--memory-safety-hardening"></a>
 ## 10. Security & Memory-Safety Hardening
 
 > **Summary**: 5 memory-safety vulnerabilities were discovered through AddressSanitizer (ASan),
