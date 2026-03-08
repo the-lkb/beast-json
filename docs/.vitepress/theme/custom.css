@@ -14,7 +14,9 @@
     --vp-home-hero-name-background: linear-gradient(135deg, #0097a7 0%, #00acc1 100%);
 }
 
-/* Dark-mode overrides – only applied when .dark is active */
+/* Dark-mode brand overrides – accent colours only.
+   Background/text variables are intentionally left to VitePress's own
+   dark-mode system so menus, flyouts, and sidebars render correctly. */
 .dark {
     --vp-c-brand-1: #00e5ff;
     --vp-c-brand-2: #00d2ff;
@@ -22,16 +24,6 @@
     --vp-c-brand-soft: rgba(0, 229, 255, 0.08);
 
     --vp-home-hero-name-background: linear-gradient(135deg, #00e5ff 0%, #00d2ff 100%);
-
-    --vp-c-bg: #05070a;
-    --vp-c-bg-soft: #0b1016;
-    --vp-c-bg-mute: #111821;
-    --vp-c-default-1: #ffffff;
-    --vp-c-divider: rgba(0, 229, 255, 0.1);
-    --vp-c-text-1: #ffffff;
-    --vp-c-text-2: rgba(255, 255, 255, 0.7);
-
-    background-color: #05070a;
 }
 
 /* THE LKB Signature Tech Grid – dark mode only */
@@ -62,9 +54,6 @@
     color: var(--vp-c-text-2);
 }
 
-.dark .VPFooter {
-    background-color: #05070a;
-}
 
 .VPHero .name {
     font-weight: 900;
@@ -111,9 +100,15 @@ img:hover {
     box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
 }
 
+/* Center the SVG inside its scrollable wrapper; max-width: none lets the
+   diagram render at full natural width instead of being squashed/clipped. */
+.mermaid {
+    text-align: center;
+}
+
 .mermaid svg {
-    display: block;
-    max-width: 100%;
+    display: inline-block;
+    max-width: none;
     height: auto;
 }
 /* ── Hero image: constrain size to prevent overlap with text ─────────────── */
@@ -141,14 +136,14 @@ img:hover {
 
 /* ── Mobile responsive overrides (≤ 768px) ───────────────────────────────── */
 @media (max-width: 768px) {
-    /* Hero: reduce spacing and logo size */
+    /* Hero: keep original logo size on mobile */
     .VPHero .image-src {
-        max-width: 100px;
-        max-height: 100px;
+        max-width: 200px;
+        max-height: 200px;
     }
 
     .VPHero .image-container {
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
     }
 
     .VPHero .name {
