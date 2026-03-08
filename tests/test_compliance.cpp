@@ -396,3 +396,113 @@ TEST(RFC8259_API, ErrorMessageContainsOffset) {
         << "Error message should contain byte offset: " << msg;
   }
 }
+
+// ── RFC 6901: JSON Pointer ───────────────────────────────────────────────────
+
+TEST(RFC6901_Pointer, BasicNavigation) {
+  Document doc;
+  auto root = parse(doc, R"({"foo":["bar","baz"],"":0,"a/b":1,"m~n":8})");
+  EXPECT_EQ(root.at("").dump(), root.dump());
+  EXPECT_EQ(root.at("/foo/0").as<std::string>(), "bar");
+  EXPECT_EQ(root.at("/").as<int>(), 0);
+  EXPECT_EQ(root.at("/a~1b").as<int>(), 1);
+  EXPECT_EQ(root.at("/m~0n").as<int>(), 8);
+}
+
+TEST(RFC6901_Pointer, LeadingZerosMustReject) {
+  Document doc;
+  auto root = parse(doc, "[10,20,30]");
+  // RFC 6901: leading zeros are not allowed unless the index is exactly "0"
+  EXPECT_FALSE(root.at("/01").is_valid());
+  EXPECT_TRUE(root.at("/0").is_valid());
+}
+
+TEST(RFC6901_Pointer, ArrayEndOfArrayToken) {
+  Document doc;
+  auto root = parse(doc, "[1,2,3]");
+  // "-" is valid pointer but points to non-existent element
+  EXPECT_FALSE(root.at("/-").is_valid());
+}
+
+// ── RFC 6902: JSON Patch
+// ──────────────────────────────────────────────────────
+
+static std::string apply_patch(Value &v, std::string_view patch_json) {
+  if (!v.patch(patch_json))
+    return "PATCH_FAILED";
+  return v.dump();
+}
+
+TEST(RFC6902_Patch, AddObjectMember) {
+  Document doc;
+  auto root = parse(doc, R"({"foo":"bar"})");
+  EXPECT_EQ(
+      apply_patch(root, R"([{"op":"add", "path":"/baz", "value":"qux"}])"),
+      R"({"foo":"bar","baz":"qux"})");
+}
+
+TEST(RFC6902_Patch, AddArrayElementPosition) {
+  Document doc;
+  auto root = parse(doc, R"(["a","c"])");
+  // Add "b" at index 1 -> ["a","b","c"]
+  EXPECT_EQ(apply_patch(root, R"([{"op":"add", "path":"/1", "value":"b"}])"),
+            R"(["a","b","c"])");
+}
+
+TEST(RFC6902_Patch, AddArrayEnd) {
+  Document doc;
+  auto root = parse(doc, "[1,2]");
+  EXPECT_EQ(apply_patch(root, R"([{"op":"add", "path":"/-", "value":3}])"),
+            "[1,2,3]");
+}
+
+TEST(RFC6902_Patch, Remove) {
+  Document doc;
+  auto root = parse(doc, R"({"a":1,"b":2})");
+  EXPECT_EQ(apply_patch(root, R"([{"op":"remove", "path":"/a"}])"),
+            R"({"b":2})");
+}
+
+TEST(RFC6902_Patch, Replace) {
+  Document doc;
+  auto root = parse(doc, R"({"a":1})");
+  EXPECT_EQ(apply_patch(root, R"([{"op":"replace", "path":"/a", "value":42}])"),
+            R"({"a":42})");
+}
+
+TEST(RFC6902_Patch, TestOp) {
+  Document doc;
+  auto root = parse(doc, R"({"baz":"qux"})");
+  EXPECT_TRUE(root.patch(R"([{"op":"test", "path":"/baz", "value":"qux"}])"));
+  EXPECT_FALSE(
+      root.patch(R"([{"op":"test", "path":"/baz", "value":"error"}])"));
+}
+
+TEST(RFC6902_Patch, Move) {
+  Document doc;
+  auto root = parse(doc, R"({"foo":{"bar":"baz"},"qux":{}})");
+  // Move /foo/bar to /qux/thud
+  EXPECT_EQ(
+      apply_patch(root,
+                  R"([{"op":"move", "from":"/foo/bar", "path":"/qux/thud"}])"),
+      R"({"foo":{},"qux":{"thud":"baz"}})");
+}
+
+TEST(RFC6902_Patch, Copy) {
+  Document doc;
+  auto root = parse(doc, R"({"a":1})");
+  EXPECT_EQ(apply_patch(root, R"([{"op":"copy", "from":"/a", "path":"/b"}])"),
+            R"({"a":1,"b":1})");
+}
+
+TEST(RFC6902_Patch, TransactionalRollback) {
+  Document doc;
+  auto root = parse(doc, R"({"a":1})");
+  // Transactional failure: 2nd op fails, 1st must rollback
+  bool ok = root.patch(R"([
+    {"op":"replace", "path":"/a", "value":2},
+    {"op":"test", "path":"/a", "value":999}
+  ])");
+  EXPECT_FALSE(ok);
+  EXPECT_EQ(root.dump(), R"({"a":1})");
+}

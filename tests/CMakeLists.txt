@@ -17,6 +17,10 @@ include(GoogleTest)
 # Sanitizer option: build tests with ASan + UBSan
 option(BEAST_JSON_SANITIZE
     "Build tests with AddressSanitizer + UBSan (requires Clang or GCC >= 4.8)" OFF)
+option(BEAST_JSON_SANITIZE_THREAD
+    "Build tests with ThreadSanitizer (TSan) to detect data races" OFF)
+option(BEAST_JSON_SANITIZE_MEMORY
+    "Build tests with MemorySanitizer (MSan) to detect uninitialized reads (Clang/Linux only)" OFF)
 
 # GTest function (uses gtest_main)
 function(add_beast_gtest name)
@@ -34,6 +38,16 @@ function(add_beast_gtest name)
         target_link_options(${name} PRIVATE
             -fsanitize=address,undefined
         )
+    elseif(BEAST_JSON_SANITIZE_THREAD)
+        target_compile_options(${name} PRIVATE
+            -O1 -g -fsanitize=thread -fno-omit-frame-pointer
+        )
+        target_link_options(${name} PRIVATE -fsanitize=thread)
+    elseif(BEAST_JSON_SANITIZE_MEMORY)
+        target_compile_options(${name} PRIVATE
+            -O1 -g -fsanitize=memory -fsanitize-memory-track-origins -fPIE -fno-omit-frame-pointer
+        )
+        target_link_options(${name} PRIVATE -fsanitize=memory -pie)
     else()
         target_compile_options(${name} PRIVATE -O1 -g -Wall -Wextra)
     endif()

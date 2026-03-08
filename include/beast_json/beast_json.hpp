@@ -61,37 +61,19 @@
 
 #include <algorithm>
 #include <array>
-#include <atomic>
-#include <bit>
-#include <bitset>
-#include <cassert>
+#include <bit>      // For std::countl_zero, std::countr_zero
 #include <charconv> // For from_chars in number parsing
-#include <climits>
 #include <cmath>
-#include <compare>
-#include <cstddef>
 #include <cstdint>
-#include <cstdlib>
+#include <cstdio> // For std::snprintf
 #include <cstring>
-#include <functional>
-#include <list>
-#include <map>
-#include <memory>
-#include <memory_resource>
-#include <mutex>
-#include <optional>
-#include <ranges>
-#include <set>
-#include <sstream>
+#include <memory_resource> // For std::pmr::polymorphic_allocator
+#include <optional>        // For std::optional
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <tuple>
-#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
-#include <utility>
-#include <variant>
 #include <vector>
 
 // ============================================================================
@@ -457,9 +439,14 @@ public:
   // additions_ : keyed by parent ObjectStart/ArrayStart tape index.
   //              Each entry is {key_string (empty for arrays), pre-serialized
   //              JSON value}.
+  struct ArrayInsertion {
+    size_t index;
+    std::string data;
+  };
   std::unordered_set<uint32_t> deleted_;
   std::unordered_map<uint32_t, std::vector<std::pair<std::string, std::string>>>
       additions_;
+  std::unordered_map<uint32_t, std::vector<ArrayInsertion>> array_insertions_;
 
   DocumentView() = default;
   explicit DocumentView(std::string_view json) : source(json) {}
@@ -615,6 +602,9 @@ public:
       return false;
     return effective_type_() == TapeNodeType::ArrayStart;
   }
+
+  /// Returns the type of this value, correctly accounting for live mutations.
+  TapeNodeType type() const noexcept { return effective_type_(); }
 
   // ── set<T>(): write / mutate a value
   //
@@ -1069,7 +1059,8 @@ public:
     if (!doc_ || doc_->tape.size() == 0)
       return "null";
     // Delegate to structural dump when deletions/additions are present
-    if (BEAST_UNLIKELY(!doc_->deleted_.empty() || !doc_->additions_.empty()))
+    if (BEAST_UNLIKELY(!doc_->deleted_.empty() || !doc_->additions_.empty() ||
+                       !doc_->array_insertions_.empty()))
       return dump_changes_();
     // Subtree (non-root): use separate path to avoid polluting the hot loop
     if (BEAST_UNLIKELY(idx_ != 0))
@@ -1350,7 +1341,8 @@ public:
       out.assign("null", 4);
       return;
     }
-    if (BEAST_UNLIKELY(!doc_->deleted_.empty() || !doc_->additions_.empty())) {
+    if (BEAST_UNLIKELY(!doc_->deleted_.empty() || !doc_->additions_.empty() ||
+                       !doc_->array_insertions_.empty())) {
       out = dump_changes_();
       return;
     }
@@ -1605,15 +1597,15 @@ public:
   // All operations are reflected immediately by dump(), operator[], find(),
   // size(), items(), and elements().
 
-  void erase(std::string_view key) {
+  bool erase(std::string_view key) {
     if (!is_object())
-      return;
+      return false;
     uint32_t i = idx_ + 1;
     const size_t ntape = doc_->tape.size();
     while (i < ntape) {
       const auto t = doc_->tape[i].type();
       if (t == TapeNodeType::ObjectEnd)
-        return;
+        return false;
       const TapeNode &kn = doc_->tape[i];
       const char *kdata = doc_->source.data() + kn.offset;
       if (kn.length() == key.size() &&
@@ -1621,23 +1613,24 @@ public:
         doc_->deleted_.insert(
             i); // mark key deleted (cascade: dump skips value)
         doc_->last_dump_size_ = 0;
-        return;
+        return true;
       }
       i = skip_value_(i + 1);
     }
+    return false;
   }
-  void erase(const char *key) { erase(std::string_view(key)); }
+  bool erase(const char *key) { return erase(std::string_view(key)); }
 
-  void erase(size_t idx) {
+  bool erase(size_t idx) {
     if (!is_array())
-      return;
+      return false;
     uint32_t i = idx_ + 1;
     const size_t ntape = doc_->tape.size();
     size_t count = 0;
     while (i < ntape) {
       const auto t = doc_->tape[i].type();
       if (t == TapeNodeType::ArrayEnd)
-        return;
+        return false;
       if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
         i = skip_value_(i);
         continue;
@@ -1645,15 +1638,17 @@ public:
       if (count == idx) {
         doc_->deleted_.insert(i);
         doc_->last_dump_size_ = 0;
-        return;
+        return true;
       }
       i = skip_value_(i);
       ++count;
     }
+    return false;
   }
-  void erase(int idx) {
+  bool erase(int idx) {
     if (idx >= 0)
-      erase(static_cast<size_t>(idx));
+      return erase(static_cast<size_t>(idx));
+    return false;
   }
 
   // ── Structural insert API ────────────────────────────────────────────────
@@ -2314,19 +2309,30 @@ public:
     }
   }
 
-  // ── merge_patch(json) — JSON Merge Patch (RFC 7396) ───────────────────────
+  void merge_patch(std::string_view patch_json);
+
+  // ── patch(json) — JSON Patch (RFC 6902) ────────────────────────────────────
   //
-  // Applies a JSON Merge Patch to this object:
-  //   • null values   → delete the key
-  //   • object values → recursive patch (if target key is also an object)
-  //   • other values  → overwrite the key
+  // Applies a JSON Patch array of operations to this value.
+  // Supported operations: add, remove, replace, move, copy, test.
+  // Returns true on success, false if any operation fails (atomic-ish).
   //
   // Usage:
-  //   root.merge_patch(R"({"name":"Eve","score":null})");
-  //   // → sets "name"="Eve", deletes "score"
+  //   root.patch(R"([{"op":"add", "path":"/a/b", "value":1}])");
+  bool patch(std::string_view patch_json);
+  bool patch(const Value &patch_array);
 
-  // merge_patch() is defined out-of-line (after parse_reuse is declared)
-  void merge_patch(std::string_view patch_json);
+  // ── insert(idx, val) — array-at-index insertion ────────────────────────────
+  void insert(size_t idx, std::string_view str_val) {
+    insert_json(idx, scalar_to_json_(str_val));
+  }
+  void insert(size_t idx, const Value &v) { insert_json(idx, v.dump()); }
+  void insert_json(size_t idx, std::string_view raw_json) {
+    if (!is_array())
+      return;
+    doc_->array_insertions_[idx_].push_back({idx, std::string(raw_json)});
+    doc_->last_dump_size_ = 0;
+  }
 
 private:
   // ── Private helpers ────────────────────────────────────────────────────────
@@ -2336,13 +2342,18 @@ private:
   // Object: token is the key string.
   static Value at_step_(const Value &cur, std::string_view token) noexcept {
     if (cur.is_array()) {
+      if (token == "-")
+        return {}; // RFC 6901: end of array (invalid but representable)
       if (token.empty())
         return {};
+      // Handle "0" as single digit, or non-zero starting digits
+      if (token.size() > 1 && token[0] == '0')
+        return {}; // RFC 6901: leading zeros are not allowed
       size_t idx = 0;
-      for (char c : token)
-        if (c < '0' || c > '9')
-          return {};
-      std::from_chars(token.data(), token.data() + token.size(), idx);
+      auto [ptr, ec] =
+          std::from_chars(token.data(), token.data() + token.size(), idx);
+      if (ec != std::errc{} || ptr != token.data() + token.size())
+        return {};
       return cur[idx];
     }
     return cur[token];
@@ -2378,7 +2389,8 @@ private:
         } else {
           erase(k);
           erase_from_additions_(k);
-          insert(k, v);
+          insert(k,
+                 v); // Insert serialized value to ensure cross-document safety
         }
       }
     }
@@ -2575,9 +2587,56 @@ private:
       bool has_prev;
       bool next_val;
       uint32_t start_idx;
+      size_t arr_idx;
     };
     Frame stk[64];
     int top = -1;
+
+    uint32_t i = start_c;
+    const TapeNodeType initial_type = doc_->tape[start_c].type();
+
+    // Handle initial node if it's an object or array
+    if (initial_type == TapeNodeType::ObjectStart) {
+      out += '{';
+      top++;
+      stk[top] = {true, false, false, start_c, 0};
+      i++; // Move past the ObjectStart node
+    } else if (initial_type == TapeNodeType::ArrayStart) {
+      out += '[';
+      top++;
+      stk[top] = {false, false, false, start_c, 0};
+      i++; // Move past the ArrayStart node
+    } else {
+      // If it's a scalar, just dump it directly without stack logic
+      // This path is only taken if idx_ is a scalar and there are
+      // mutations/additions on it, which is handled by the mutation overlay. If
+      // it's a scalar and no mutations, dump() or dump_subtree_() would have
+      // been called. So this case should only happen if a scalar has a
+      // mutation.
+      auto mit = doc_->mutations_.find(i);
+      if (mit != doc_->mutations_.end()) {
+        write_mutation_(out, mit->second);
+      } else {
+        // Fallback for non-mutated scalar (should not be reached if logic is
+        // correct) This means a scalar is being dumped via dump_changes_
+        // without mutations. This is an edge case, but for completeness, we'll
+        // dump the original value.
+        const TapeNode &nd = doc_->tape[i];
+        const uint16_t len = static_cast<uint16_t>(nd.meta & 0xFFFFu);
+        const size_t src_sz = doc_->source.size();
+        const size_t safe_len = (nd.offset < src_sz)
+                                    ? std::min<size_t>(len, src_sz - nd.offset)
+                                    : 0;
+        if (initial_type == TapeNodeType::StringRaw) {
+          out += '"';
+          out.append(src + nd.offset, safe_len);
+          out += '"';
+        } else {
+          out.append(src + nd.offset, safe_len);
+        }
+      }
+      return out; // Scalar value, done.
+    }
 
     // Separator helper: update frame after writing one complete element
     auto done_elem = [](Frame &f) {
@@ -2587,6 +2646,7 @@ private:
           f.has_prev = true;
       } else {
         f.has_prev = true;
+        f.arr_idx++;
       }
     };
     // Write separator before a non-closing node
@@ -2602,26 +2662,41 @@ private:
       }
     };
     // Inject additions before a closing brace/bracket
-    auto inject_adds = [&](uint32_t parent_idx, Frame &f) {
-      if (doc_->additions_.empty())
+    // Inject additions BEFORE a closing brace/bracket or AT an array index
+    auto inject_array_adds = [&](uint32_t parent_idx, size_t current_idx) {
+      if (doc_->array_insertions_.empty())
         return;
-      auto ait = doc_->additions_.find(parent_idx);
-      if (ait == doc_->additions_.end())
+      auto ait = doc_->array_insertions_.find(parent_idx);
+      if (ait == doc_->array_insertions_.end())
         return;
-      for (const auto &[k, v] : ait->second) {
-        if (f.has_prev)
-          out += ',';
-        if (f.is_obj) {
-          out += '"';
-          out += k;
-          out += "\":";
+      for (const auto &ins : ait->second) {
+        if (ins.index == current_idx) {
+          if (stk[top].has_prev)
+            out += ',';
+          out += ins.data;
+          stk[top].has_prev = true;
         }
-        out += v;
-        f.has_prev = true;
+      }
+    };
+    auto inject_adds = [&](uint32_t parent_idx, Frame &f) {
+      if (!doc_->additions_.empty()) {
+        auto ait = doc_->additions_.find(parent_idx);
+        if (ait != doc_->additions_.end()) {
+          for (const auto &[k, v] : ait->second) {
+            if (f.has_prev)
+              out += ',';
+            if (f.is_obj) {
+              out += '"';
+              out += k;
+              out += "\":";
+            }
+            out += v;
+            f.has_prev = true;
+          }
+        }
       }
     };
 
-    uint32_t i = start_c;
     while (i < end_c) {
       const TapeNode &nd = doc_->tape[i];
       const TapeNodeType type =
@@ -2635,10 +2710,12 @@ private:
           continue;
         }
       }
-      // At array element: check if deleted
+      // At array element: check if deleted or needs insertion
       if (top >= 0 && !stk[top].is_obj && type != TapeNodeType::ArrayEnd) {
+        inject_array_adds(stk[top].start_idx, stk[top].arr_idx);
         if (!doc_->deleted_.empty() && doc_->deleted_.count(i)) {
           i = skip_value_(i); // skip deleted element
+          stk[top].arr_idx++;
           continue;
         }
       }
@@ -2664,15 +2741,13 @@ private:
       switch (type) {
       case TapeNodeType::ObjectStart:
         out += '{';
-        if (top >= 0 && !(i == start_c)) {
-        } // sep already written
         ++top;
-        stk[top] = {true, false, false, i};
+        stk[top] = {true, false, false, i, 0};
         break;
       case TapeNodeType::ArrayStart:
         out += '[';
         ++top;
-        stk[top] = {false, false, false, i};
+        stk[top] = {false, false, false, i, 0};
         break;
       case TapeNodeType::ObjectEnd:
         if (BEAST_UNLIKELY(top < 0)) {
@@ -5164,6 +5239,180 @@ inline void Value::merge_patch(std::string_view patch_json) {
   DocumentView patch_doc;
   Value patch = parse_reuse(patch_doc, patch_json);
   merge_patch_impl_(patch);
+}
+
+// ── Value::patch() — RFC 6902 ────────────────────────────────────────────────
+
+inline bool Value::patch(std::string_view patch_json) {
+  DocumentView patch_doc;
+  Value patch_array = parse_reuse(patch_doc, patch_json);
+  return patch(patch_array);
+}
+
+inline bool Value::patch(const Value &patch_array) {
+  if (!patch_array.is_array())
+    return false;
+
+  // Transactional safety: backup current mutation state
+  auto saved_deleted = doc_->deleted_;
+  auto saved_additions = doc_->additions_;
+  auto saved_array_insertions = doc_->array_insertions_;
+
+  auto rollback = [&]() {
+    doc_->deleted_ = std::move(saved_deleted);
+    doc_->additions_ = std::move(saved_additions);
+    doc_->array_insertions_ = std::move(saved_array_insertions);
+    doc_->last_dump_size_ = 0;
+    return false;
+  };
+
+  for (Value op_obj : patch_array.elements()) {
+    if (!op_obj.is_object())
+      return rollback();
+    std::string op = op_obj["op"] | "";
+    std::string path = op_obj["path"] | "";
+    if (op.empty())
+      return rollback();
+    if (!path.empty() && path[0] != '/')
+      return rollback();
+
+    if (op == "add") {
+      Value val = op_obj["value"];
+      if (!val)
+        return rollback();
+      if (path.empty()) {
+        doc_->mutations_[idx_] = {val.type(), val.dump()};
+        doc_->last_dump_size_ = 0;
+        continue;
+      }
+      const size_t last_slash = path.find_last_of('/');
+      std::string parent_path(path.substr(0, last_slash));
+      std::string key(path.substr(last_slash + 1));
+      Value parent = at(parent_path);
+      if (!parent)
+        return rollback();
+      if (parent.is_object()) {
+        parent.erase(key);
+        parent.insert(key, val);
+      } else if (parent.is_array()) {
+        if (key == "-") {
+          parent.push_back(val);
+        } else {
+          size_t p_idx = 0;
+          auto [ptr, ec] =
+              std::from_chars(key.data(), key.data() + key.size(), p_idx);
+          if (ec != std::errc{})
+            return rollback();
+          parent.insert(p_idx, val);
+        }
+      } else
+        return rollback();
+    } else if (op == "remove") {
+      if (path.empty())
+        return rollback();
+      const size_t last_slash = path.find_last_of('/');
+      std::string parent_path(path.substr(0, last_slash));
+      std::string key(path.substr(last_slash + 1));
+      Value parent = at(parent_path);
+      if (!parent || !parent.erase(key))
+        return rollback();
+    } else if (op == "replace") {
+      Value val = op_obj["value"];
+      if (!val || !at(path).is_valid())
+        return rollback();
+      if (path.empty()) {
+        doc_->mutations_[idx_] = {val.type(), val.dump()};
+        doc_->last_dump_size_ = 0;
+        continue;
+      }
+      const size_t last_slash = path.find_last_of('/');
+      std::string parent_path(path.substr(0, last_slash));
+      std::string key(path.substr(last_slash + 1));
+      Value parent = at(parent_path);
+      if (parent.is_object()) {
+        if (!parent.erase(key))
+          return rollback();
+        parent.insert(key, val);
+      } else if (parent.is_array()) {
+        size_t p_idx = 0;
+        auto [ptr, ec] =
+            std::from_chars(key.data(), key.data() + key.size(), p_idx);
+        if (ec != std::errc{} || !parent.erase(p_idx))
+          return rollback();
+        parent.insert(p_idx, val);
+      } else
+        return rollback();
+    } else if (op == "move") {
+      std::string from = op_obj["from"] | "";
+      Value val = at(from);
+      if (from.empty() || !val)
+        return rollback();
+      std::string json = val.dump();
+      // Remove from
+      const size_t f_slash = from.find_last_of('/');
+      Value f_parent = at(from.substr(0, f_slash));
+      std::string f_key(from.substr(f_slash + 1));
+      if (f_parent.is_object()) {
+        if (!f_parent.erase(f_key))
+          return rollback();
+      } else if (f_parent.is_array()) {
+        size_t idx = 0;
+        std::from_chars(f_key.data(), f_key.data() + f_key.size(), idx);
+        if (!f_parent.erase(idx))
+          return rollback();
+      } else
+        return rollback();
+      // Add to path (recursion-simulated)
+      DocumentView temp_doc;
+      Value v_new = parse_reuse(temp_doc, json);
+      // Re-use 'add' logic manually or create helper
+      const size_t t_slash = path.find_last_of('/');
+      Value t_parent = at(path.substr(0, t_slash));
+      std::string t_key(path.substr(t_slash + 1));
+      if (t_parent.is_object())
+        t_parent.insert(t_key, v_new);
+      else if (t_parent.is_array()) {
+        if (t_key == "-")
+          t_parent.push_back(v_new);
+        else {
+          size_t idx = 0;
+          std::from_chars(t_key.data(), t_key.data() + t_key.size(), idx);
+          t_parent.insert(idx, v_new);
+        }
+      } else
+        return rollback();
+    } else if (op == "copy") {
+      std::string from = op_obj["from"] | "";
+      Value val = at(from);
+      if (from.empty() || !val)
+        return rollback();
+      std::string json = val.dump();
+      DocumentView temp_doc;
+      Value v_new = parse_reuse(temp_doc, json);
+      const size_t t_slash = path.find_last_of('/');
+      Value t_parent = at(path.substr(0, t_slash));
+      std::string t_key(path.substr(t_slash + 1));
+      if (t_parent.is_object())
+        t_parent.insert(t_key, v_new);
+      else if (t_parent.is_array()) {
+        if (t_key == "-")
+          t_parent.push_back(v_new);
+        else {
+          size_t idx = 0;
+          std::from_chars(t_key.data(), t_key.data() + t_key.size(), idx);
+          t_parent.insert(idx, v_new);
+        }
+      }
+    } else if (op == "test") {
+      Value expected = op_obj["value"];
+      Value actual = at(path);
+      if (expected.dump() != actual.dump())
+        return rollback();
+    } else {
+      return rollback(); // Unknown operation
+    }
+  }
+  return true;
 }
 
 // SafeValue — optional-propagating chain proxy
