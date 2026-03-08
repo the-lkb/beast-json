@@ -65,7 +65,7 @@ jobs:
 
     - name: Build (Native)
       if: runner.os != 'Linux' || matrix.arch == 'x86_64'
-      run: cmake --build build --config ${{ matrix.build_type }} -j4
+      run: cmake --build build --config ${{ matrix.build_type }} -j1
 
     - name: Test (Native)
       if: runner.os != 'Linux' || matrix.arch == 'x86_64'
