@@ -43,7 +43,7 @@ endfunction()
 
 # ── Core correctness tests ─────────────────────────────────────────────────
 add_beast_gtest(test_relaxed)
-add_beast_gtest(test_rfc8259)
+add_beast_gtest(test_compliance)
 add_beast_gtest(test_unicode)
 add_beast_gtest(test_strict_number)
 add_beast_gtest(test_control_char)

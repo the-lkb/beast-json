@@ -17,43 +17,32 @@
 
 using namespace beast;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers
+// ───────────────────────────────────────────────────────────────────
 
 static bool strict_ok(std::string_view json) {
   try {
     Document doc;
     parse_strict(doc, json);
     return true;
-  } catch (const std::runtime_error&) {
+  } catch (const std::runtime_error &) {
     return false;
   }
 }
 
-static bool strict_fail(std::string_view json) {
-  return !strict_ok(json);
-}
+static bool strict_fail(std::string_view json) { return !strict_ok(json); }
 
 // ── y_: Must Accept — valid JSON values ──────────────────────────────────────
 
-TEST(RFC8259_Accept, Null) {
-  EXPECT_TRUE(strict_ok("null"));
-}
+TEST(RFC8259_Accept, Null) { EXPECT_TRUE(strict_ok("null")); }
 
-TEST(RFC8259_Accept, BoolTrue) {
-  EXPECT_TRUE(strict_ok("true"));
-}
+TEST(RFC8259_Accept, BoolTrue) { EXPECT_TRUE(strict_ok("true")); }
 
-TEST(RFC8259_Accept, BoolFalse) {
-  EXPECT_TRUE(strict_ok("false"));
-}
+TEST(RFC8259_Accept, BoolFalse) { EXPECT_TRUE(strict_ok("false")); }
 
-TEST(RFC8259_Accept, EmptyObject) {
-  EXPECT_TRUE(strict_ok("{}"));
-}
+TEST(RFC8259_Accept, EmptyObject) { EXPECT_TRUE(strict_ok("{}")); }
 
-TEST(RFC8259_Accept, EmptyArray) {
-  EXPECT_TRUE(strict_ok("[]"));
-}
+TEST(RFC8259_Accept, EmptyArray) { EXPECT_TRUE(strict_ok("[]")); }
 
 TEST(RFC8259_Accept, SimpleObject) {
   EXPECT_TRUE(strict_ok(R"({"a":1})"));
@@ -109,9 +98,7 @@ TEST(RFC8259_Accept, NumberZeroFractional) {
 }
 
 // Strings
-TEST(RFC8259_Accept, StringEmpty) {
-  EXPECT_TRUE(strict_ok(R"("")"));
-}
+TEST(RFC8259_Accept, StringEmpty) { EXPECT_TRUE(strict_ok(R"("")")); }
 
 TEST(RFC8259_Accept, StringSimple) {
   EXPECT_TRUE(strict_ok(R"("hello")"));
@@ -119,21 +106,21 @@ TEST(RFC8259_Accept, StringSimple) {
 }
 
 TEST(RFC8259_Accept, StringEscapeSequences) {
-  EXPECT_TRUE(strict_ok(R"("\"")"));    // quote
-  EXPECT_TRUE(strict_ok(R"("\\")"));   // backslash
-  EXPECT_TRUE(strict_ok(R"("\/")"));   // forward slash
-  EXPECT_TRUE(strict_ok(R"("\b")"));   // backspace
-  EXPECT_TRUE(strict_ok(R"("\f")"));   // form feed
-  EXPECT_TRUE(strict_ok(R"("\n")"));   // newline
-  EXPECT_TRUE(strict_ok(R"("\r")"));   // carriage return
-  EXPECT_TRUE(strict_ok(R"("\t")"));   // tab
+  EXPECT_TRUE(strict_ok(R"("\"")")); // quote
+  EXPECT_TRUE(strict_ok(R"("\\")")); // backslash
+  EXPECT_TRUE(strict_ok(R"("\/")")); // forward slash
+  EXPECT_TRUE(strict_ok(R"("\b")")); // backspace
+  EXPECT_TRUE(strict_ok(R"("\f")")); // form feed
+  EXPECT_TRUE(strict_ok(R"("\n")")); // newline
+  EXPECT_TRUE(strict_ok(R"("\r")")); // carriage return
+  EXPECT_TRUE(strict_ok(R"("\t")")); // tab
 }
 
 TEST(RFC8259_Accept, StringUnicodeEscape) {
-  EXPECT_TRUE(strict_ok(R"("\u0041")"));    // A
-  EXPECT_TRUE(strict_ok(R"("\u0000")"));    // null char (escaped)
-  EXPECT_TRUE(strict_ok(R"("\uFFFF")"));    // high BMP
-  EXPECT_TRUE(strict_ok(R"("\u0048\u0065\u006C\u006C\u006F")"));  // Hello
+  EXPECT_TRUE(strict_ok(R"("\u0041")")); // A
+  EXPECT_TRUE(strict_ok(R"("\u0000")")); // null char (escaped)
+  EXPECT_TRUE(strict_ok(R"("\uFFFF")")); // high BMP
+  EXPECT_TRUE(strict_ok(R"("\u0048\u0065\u006C\u006C\u006F")")); // Hello
 }
 
 TEST(RFC8259_Accept, StringSurrogatePair) {
@@ -143,7 +130,7 @@ TEST(RFC8259_Accept, StringSurrogatePair) {
 
 TEST(RFC8259_Accept, StringMultibyte) {
   EXPECT_TRUE(strict_ok(R"("한글")"));   // Korean characters (UTF-8)
-  EXPECT_TRUE(strict_ok(R"("日本語")"));  // Japanese
+  EXPECT_TRUE(strict_ok(R"("日本語")")); // Japanese
 }
 
 // Whitespace
@@ -160,13 +147,9 @@ TEST(RFC8259_Accept, TopLevelNumber) {
   EXPECT_TRUE(strict_ok("3.14"));
 }
 
-TEST(RFC8259_Accept, TopLevelString) {
-  EXPECT_TRUE(strict_ok(R"("hello")"));
-}
+TEST(RFC8259_Accept, TopLevelString) { EXPECT_TRUE(strict_ok(R"("hello")")); }
 
-TEST(RFC8259_Accept, TopLevelArray) {
-  EXPECT_TRUE(strict_ok("[1,2,3]"));
-}
+TEST(RFC8259_Accept, TopLevelArray) { EXPECT_TRUE(strict_ok("[1,2,3]")); }
 
 // ── n_: Must Reject — invalid JSON ───────────────────────────────────────────
 
@@ -227,17 +210,17 @@ TEST(RFC8259_Reject, UnterminatedString) {
 }
 
 TEST(RFC8259_Reject, InvalidEscapeSequence) {
-  EXPECT_TRUE(strict_fail(R"("\x41")"));   // \x not valid
-  EXPECT_TRUE(strict_fail(R"("\a")"));     // \a not valid
-  EXPECT_TRUE(strict_fail(R"("\z")"));     // \z not valid
-  EXPECT_TRUE(strict_fail(R"("\0")"));     // \0 not valid (must use \u0000)
+  EXPECT_TRUE(strict_fail(R"("\x41")")); // \x not valid
+  EXPECT_TRUE(strict_fail(R"("\a")"));   // \a not valid
+  EXPECT_TRUE(strict_fail(R"("\z")"));   // \z not valid
+  EXPECT_TRUE(strict_fail(R"("\0")"));   // \0 not valid (must use \u0000)
 }
 
 TEST(RFC8259_Reject, IncompleteUnicodeEscape) {
   EXPECT_TRUE(strict_fail(R"("\u")"));
   EXPECT_TRUE(strict_fail(R"("\u00")"));
   EXPECT_TRUE(strict_fail(R"("\u004")"));
-  EXPECT_TRUE(strict_fail(R"("\uGGGG")"));  // non-hex digits
+  EXPECT_TRUE(strict_fail(R"("\uGGGG")")); // non-hex digits
 }
 
 TEST(RFC8259_Reject, UnescapedControlCharInString) {
@@ -266,21 +249,13 @@ TEST(RFC8259_Reject, MissingComma) {
   EXPECT_TRUE(strict_fail(R"({"a":1 "b":2})"));
 }
 
-TEST(RFC8259_Reject, MissingColon) {
-  EXPECT_TRUE(strict_fail(R"({"a" 1})"));
-}
+TEST(RFC8259_Reject, MissingColon) { EXPECT_TRUE(strict_fail(R"({"a" 1})")); }
 
-TEST(RFC8259_Reject, MissingValue) {
-  EXPECT_TRUE(strict_fail(R"({"a":})"));
-}
+TEST(RFC8259_Reject, MissingValue) { EXPECT_TRUE(strict_fail(R"({"a":})")); }
 
-TEST(RFC8259_Reject, SingleQuotes) {
-  EXPECT_TRUE(strict_fail("{'a': 'b'}"));
-}
+TEST(RFC8259_Reject, SingleQuotes) { EXPECT_TRUE(strict_fail("{'a': 'b'}")); }
 
-TEST(RFC8259_Reject, UnquotedKey) {
-  EXPECT_TRUE(strict_fail("{a: 1}"));
-}
+TEST(RFC8259_Reject, UnquotedKey) { EXPECT_TRUE(strict_fail("{a: 1}")); }
 
 TEST(RFC8259_Reject, UnquotedString) {
   EXPECT_TRUE(strict_fail("hello"));
@@ -313,7 +288,7 @@ TEST(RFC8259_Reject, BareComma) {
   EXPECT_TRUE(strict_fail("[,1]"));
 }
 
-// ── i_: Implementation-defined (document our behaviour) ──────────────────────
+// ── i_: Implementation-defined (document our behaviour) ──────────
 
 TEST(RFC8259_ImplDefined, DuplicateKeys_Accepted) {
   // RFC 8259 §4: "The names within an object SHOULD be unique"
@@ -325,6 +300,20 @@ TEST(RFC8259_ImplDefined, DeepNesting_Accepted) {
   // RFC 8259 does not specify a depth limit; we accept up to available stack
   std::string deep = std::string(64, '[') + "1" + std::string(64, ']');
   EXPECT_TRUE(strict_ok(deep));
+
+  // Test maximum practical nesting before general fallback limits out
+  std::string very_deep = std::string(512, '[') + "1" + std::string(512, ']');
+  EXPECT_TRUE(strict_ok(very_deep));
+}
+
+TEST(RFC8259_ImplDefined, DeepObjectNesting_Accepted) {
+  std::string deep_obj;
+  for (int i = 0; i < 300; i++)
+    deep_obj += R"({"a":)";
+  deep_obj += "1";
+  for (int i = 0; i < 300; i++)
+    deep_obj += "}";
+  EXPECT_TRUE(strict_ok(deep_obj));
 }
 
 TEST(RFC8259_ImplDefined, LargeNumber_Accepted) {
@@ -333,7 +322,32 @@ TEST(RFC8259_ImplDefined, LargeNumber_Accepted) {
   EXPECT_TRUE(strict_ok("1e308"));
 }
 
-// ── Roundtrip via parse_strict ────────────────────────────────────────────────
+TEST(RFC8259_ImplDefined, SubnormalFloats_Accepted) {
+  // Parsing subnormals without blowing up
+  EXPECT_TRUE(strict_ok("4.9406564584124654e-324"));
+}
+
+TEST(RFC8259_ImplDefined, NullByteInString_MustReject) {
+  // strictly RFC: Unescaped control characters MUST be rejected
+  EXPECT_TRUE(strict_fail(std::string_view("\"\0\"", 3)));
+}
+
+TEST(RFC8259_ImplDefined, UnescapedSurrogateHalves_StringParsing) {
+  // Although RFC 8259 states string content is UTF-8, isolated surrogates
+  // are often an implementation detail. We ensure they pass basic parse
+  // but may render as garbage or trigger undefined behavior if heavily mutated.
+  // Standard surrogate escape
+  EXPECT_TRUE(strict_ok(R"("\uD83D")"));
+}
+
+TEST(RFC8259_ImplDefined, EdgeCaseWhiteSpace) {
+  // Lots of boundary whitespaces
+  std::string pad(10000, ' ');
+  EXPECT_TRUE(strict_ok(pad + "{}" + pad));
+}
+
+// ── Roundtrip via parse_strict
+// ────────────────────────────────────────────────
 
 TEST(RFC8259_Roundtrip, ObjectRoundtrip) {
   constexpr auto JSON = R"({"name":"Alice","age":30,"active":true})";
@@ -369,14 +383,14 @@ TEST(RFC8259_API, ValidateStandaloneOk) {
 
 TEST(RFC8259_API, ValidateStandaloneFail) {
   EXPECT_THROW(rfc8259::validate("[1,]"), std::runtime_error);
-  EXPECT_THROW(rfc8259::validate("01"),   std::runtime_error);
+  EXPECT_THROW(rfc8259::validate("01"), std::runtime_error);
 }
 
 TEST(RFC8259_API, ErrorMessageContainsOffset) {
   try {
     rfc8259::validate("[1,]");
     FAIL() << "Expected runtime_error";
-  } catch (const std::runtime_error& e) {
+  } catch (const std::runtime_error &e) {
     std::string msg = e.what();
     EXPECT_NE(msg.find("offset"), std::string::npos)
         << "Error message should contain byte offset: " << msg;
