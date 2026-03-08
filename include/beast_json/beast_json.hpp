@@ -26,6 +26,36 @@
  * - Single 64-bit multiplication (90%+ cases)
  *
  * License: Apache License 2.0
+ *
+ * ============================================================================
+ * 🤖 AI & Developer Context Guide
+ * ============================================================================
+ * Welcome to the beast_json source! When modifying this file, keep the
+ * following architectural guidelines and constraints in mind:
+ *
+ * 1. The Value vs SafeValue Dichotomy
+ *    - `Value`: Strict, confident access. Returns an invalid `Value{}` on
+ * missing key, BUT throws `std::runtime_error` if you call `.as<T>()` and the
+ * type mismatches. Use `is_int()` etc. first if unsure.
+ *    - `SafeValue`: Monadic, untrusted access. Created via `root.get("key")`.
+ *                   NEVER throws. Propagates missing keys or type mismatches
+ * across deep chains. Terminated by `.value_or(default)`.
+ *
+ * 2. Auto-Serialization & ADL (Argument-Dependent Lookup)
+ *    - The magic `BEAST_JSON_FIELDS` macro works by generating
+ * `from_beast_json(const Value&, T&)` and `to_beast_json(Value&, const T&)`
+ * functions inside the struct's namespace.
+ *    - To support third-party types without macro injection, simply implement
+ * these two ADL functions manually in the target type's namespace.
+ *
+ * 3. High-Performance Constraints (PGO/LTO Sensitivities)
+ *    - Tape nodes (TapeNode) are strictly 8 bytes.
+ *    - Adding new loop back-edges (`continue`, `break`) in the core
+ * serialization loop has historically devastated Apple Silicon (PGO/LTO)
+ * performance.
+ *    - `std::to_chars` is the backbone of the "Beast Float/Int" serialization
+ * paths.
+ * ============================================================================
  */
 
 #ifndef BEAST_JSON_HPP

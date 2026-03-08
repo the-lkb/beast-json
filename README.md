@@ -155,6 +155,11 @@ int main() {
 }
 ```
 
+### Architectural Philosophy: Typed Arrays vs Safes
+Beast JSON provides two distinct data access philosophies:
+1. **`Value` (Strict)**: Designed for known schemas. Throws `std::runtime_error` on type mismatch. Returns a null `Value{}` if a key is missing. Used via `operator[]` (e.g., `root["user"]`).
+2. **`SafeValue` (Monadic)**: Designed for untrusted schemas. Never throws. Propagates missing keys or type mismatches throughout deep chains, returning `std::nullopt` at the very end. Used via `.get()` (e.g., `root.get("user")`).
+
 ### Magic Auto-Serialization (C++20 Macros)
 
 ```cpp
@@ -188,6 +193,8 @@ int main() {
 ```
 
 ## 📦 Integration
+
+> **AI / Developer Note**: `BEAST_JSON_FIELDS` operates by injecting Argument-Dependent Lookup (ADL) functions (`from_beast_json` and `to_beast_json`). To serialize custom third-party types that cannot use the macro, simply define these two ADL functions in the same namespace as the target type.
 
 ### CMake
 

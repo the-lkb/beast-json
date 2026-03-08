@@ -143,6 +143,17 @@ auto user = beast::read<User>(R"({"name": "Alice"})");
 std::string json = beast::write(user);
 ```
 
+### 5.1 Custom Third-Party Types via ADL
+If a type cannot be modified to use `BEAST_JSON_FIELDS` (e.g., a third-party struct like `glm::vec3`), you can opt into auto-serialization by defining two Argument-Dependent Lookup (ADL) functions in the same namespace as the type:
+
+```cpp
+namespace third_party {
+    void from_beast_json(const beast::json::Value& v, MyStruct& out) { /* manual deserialization */ }
+    void to_beast_json(beast::json::Value& root, const MyStruct& in) { /* manual serialization */ }
+}
+```
+`beast::read<T>` and `beast::write(T)` natively search for these ADL hooks.
+
 ---
 
 ## 6. RFC 8259 Validator
