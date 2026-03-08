@@ -17,13 +17,19 @@ compile_commands.json
 .idea/
 
 # Large Files & Data
+# Keep config JSONs, ignore test data
 *.json
+!package.json
+!**/package.json
 !tests/small.json
 !tests/test_*.json
-# But ignore large specific ones
+# Specifically ignore large benchmark/test files
 tests/test_large.json
 tests/test_uint64.json
 twitter.json
+canada.json
+citm_catalog.json
+gsoc-2018.json
 
 # Temporary Scripts
 *.py

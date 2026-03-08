@@ -1,0 +1,13 @@
+{
+    "name": "beast-json-docs",
+    "version": "1.0.5",
+    "description": "Premium documentation for the Beast JSON library",
+    "scripts": {
+        "docs:dev": "vitepress dev",
+        "docs:build": "vitepress build",
+        "docs:preview": "vitepress preview"
+    },
+    "devDependencies": {
+        "vitepress": "^1.0.1"
+    }
+}
