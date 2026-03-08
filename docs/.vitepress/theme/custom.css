@@ -111,10 +111,10 @@ img:hover {
     max-width: none;
     height: auto;
 }
-/* ── Hero image: constrain size to prevent overlap with text ─────────────── */
+/* ── Hero image: desktop baseline (≥ 960px) ──────────────────────────────── */
 .VPHero .image-src {
-    max-width: 200px;
-    max-height: 200px;
+    max-width: 320px;
+    max-height: 320px;
     width: auto;
     height: auto;
     object-fit: contain;
@@ -134,12 +134,19 @@ img:hover {
     }
 }
 
+/* ── Tablet (769px – 959px) ──────────────────────────────────────────────── */
+@media (min-width: 769px) and (max-width: 959px) {
+    .VPHero .image-src {
+        max-width: 220px;
+        max-height: 220px;
+    }
+}
+
 /* ── Mobile responsive overrides (≤ 768px) ───────────────────────────────── */
 @media (max-width: 768px) {
-    /* Hero: keep original logo size on mobile */
     .VPHero .image-src {
-        max-width: 200px;
-        max-height: 200px;
+        max-width: 160px;
+        max-height: 160px;
     }
 
     .VPHero .image-container {
@@ -184,21 +191,13 @@ img:hover {
     }
 
     .VPHero .image-src {
-        max-width: 90px;
-        max-height: 90px;
+        max-width: 120px;
+        max-height: 120px;
     }
 
     /* Sidebar and nav on mobile */
     .VPNav .title {
         font-size: 0.9rem;
-    }
-}
-
-/* ── Tablet (769px – 959px): hero image may overlap text ─────────────────── */
-@media (min-width: 769px) and (max-width: 959px) {
-    .VPHero .image-src {
-        max-width: 140px;
-        max-height: 140px;
     }
 }
 
