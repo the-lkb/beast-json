@@ -1,54 +1,194 @@
 # Serialization
 
-Beast JSON's serializer is engineered for extreme throughput. It utilizes a **Stream-Push** model that writes directly to an output buffer without intermediate string allocations.
+Beast JSON's serializer is built for **extreme throughput**. It uses a Stream-Push model that writes directly to an output buffer — no intermediate allocations, no `sprintf`, no `std::to_string`.
 
-## ⚡ The Unified `dump()` API
+## 🚀 Quick Start
 
-There is only one function you need to know for serialization: `beast::json::dump`. It is heavily overloaded to handle everything from scalars to complex custom types.
-
-### 1. Simple Values
 ```cpp
-std::string s = beast::json::dump(123.456);  // "123.456"
-std::string b = beast::json::dump(true);     // "true"
-```
+#include <beast_json/beast_json.hpp>
 
-### 2. STL Containers
-Beast JSON natively supports `std::vector`, `std::map`, and other standard containers.
-```cpp
+// Serialize any type with a single call
+std::string json = beast::write(42);           // "42"
+std::string json = beast::write(true);         // "true"
+std::string json = beast::write("hello");      // "\"hello\""
+
 std::vector<int> v = {1, 2, 3};
-std::string out = beast::json::dump(v); // "[1,2,3]"
+std::string json = beast::write(v);            // "[1,2,3]"
+
+std::map<std::string, int> m = {{"a", 1}};
+std::string json = beast::write(m);            // "{\"a\":1}"
 ```
 
-### 3. Custom Structs
-As covered in the [Mapping Guide](/guide/mapping), structs with `BEAST_JSON_FIELDS` are one-call away from serialization.
+---
+
+## 📤 Serialization APIs
+
+### `beast::write(value)` — The Unified Serializer
+
+Works with **any supported type** out of the box.
+
 ```cpp
-MyStruct data{...};
-std::string out = beast::json::dump(data);
+// --- Scalars ---
+beast::write(42);           // "42"
+beast::write(3.14);         // "3.14"
+beast::write(true);         // "true"
+beast::write(nullptr);      // "null"
+beast::write("hello");      // "\"hello\""
+
+// --- STL Containers ---
+beast::write(std::vector<int>{1, 2, 3});                   // "[1,2,3]"
+beast::write(std::array<double, 2>{1.1, 2.2});             // "[1.1,2.2]"
+beast::write(std::map<std::string, int>{{"a",1},{"b",2}}); // "{\"a\":1,\"b\":2}"
+beast::write(std::set<int>{3, 1, 2});                      // "[1,2,3]"
+
+// --- Optional / Nullable ---
+beast::write(std::optional<int>{42});     // "42"
+beast::write(std::optional<int>{});      // "null"
+
+// --- Tuples & Pairs ---
+beast::write(std::tuple{1, "hello", true}); // "[1,\"hello\",true]"
+beast::write(std::pair{"key", 99});         // "[\"key\",99]"
 ```
 
-## 🏎️ Performance Optimizations
+### `beast::write(value, indent)` — Pretty Print
 
-### String Buffer Reuse
-To avoid repeated allocations, you can dump into an existing `std::string`:
+```cpp
+struct Config { std::string host; int port; };
+BEAST_JSON_FIELDS(Config, host, port)
+
+Config cfg{"localhost", 8080};
+
+// Compact
+std::string compact = beast::write(cfg);
+// {"host":"localhost","port":8080}
+
+// Pretty with 2-space indent
+std::string pretty = beast::write(cfg, 2);
+// {
+//   "host": "localhost",
+//   "port": 8080
+// }
+
+// Pretty with 4-space indent
+std::string pretty4 = beast::write(cfg, 4);
+```
+
+### `beast::write_to(buffer, value)` — Zero-Allocation Buffer Reuse
+
+The highest-performance option. Appends to an existing `std::string` buffer to avoid repeated allocations in hot loops.
 
 ```cpp
 std::string buffer;
-buffer.reserve(1024); // warm up
+buffer.reserve(4096); // warm up once
 
-beast::json::dump_to(buffer, my_data);
+for (auto& event : event_stream) {
+    buffer.clear();
+    beast::write_to(buffer, event); // no malloc after buffer is warmed up!
+    send_to_kafka(buffer);
+}
 ```
-`dump_to` appends directly to the buffer, making it ideal for streaming protocols or loggers.
 
-### The Russ Cox Number Printer
-Beast JSON uses a proprietary implementation of the **Russ Cox unrounded scaling algorithm**. It is:
-- **Exact**: Guarantees bit-accurate round-tripping of floats.
-- **Fast**: Outperforms `std::to_chars` on most platforms by 20-30% by using specialized 64-bit and 128-bit scaling paths.
+### `Value::dump()` — Serialize a Parsed Value
 
-## 🎨 Pretty Printing
-
-For human-readable output, use the `beast::json::dump_pretty` function:
+When you have a `beast::Value` from a parsed document, you can serialize any subtree.
 
 ```cpp
-std::string pretty = beast::json::dump_pretty(my_data, 4); // 4-space indent
+beast::Document doc;
+auto root = beast::parse(doc, R"({"user": {"name": "Bob", "age": 25}, "active": true})");
+
+// Serialize entire document
+std::string full = root.dump();
+// {"user":{"name":"Bob","age":25},"active":true}
+
+// Serialize only the user subtree
+std::string user = root["user"].dump();
+// {"name":"Bob","age":25}
+
+// Serialize a scalar
+std::string name = root["user"]["name"].dump();
+// "Bob"
 ```
-This adds indentation and newlines while maintaining the same high-performance streaming backend.
+
+### `Value::dump(indent)` — Pretty Print a Parsed Value
+
+```cpp
+std::string pretty = root.dump(2);
+// {
+//   "user": {
+//     "name": "Bob",
+//     "age": 25
+//   },
+//   "active": true
+// }
+```
+
+### `Value::dump(buffer)` — Serialize into Existing Buffer
+
+Perfect for repeated serialization of the same (potentially mutated) document.
+
+```cpp
+std::string buf;
+buf.reserve(1024);
+
+// Subsequent calls reuse the buffer's capacity
+root["active"] = false;
+root.dump(buf);
+send(buf);
+```
+
+---
+
+## ⚡ Performance Tips
+
+### Tip 1: Reserve Your Buffer
+
+```cpp
+// Pre-estimate the output size to avoid reallocations
+std::string buf;
+buf.reserve(estimated_json_size);
+beast::write_to(buf, my_data);
+```
+
+### Tip 2: Reuse Buffers in Loops
+
+```cpp
+CompetitorData competitor;
+std::string output;
+output.reserve(512);
+
+for (const auto& match : live_matches) {
+    fill(competitor, match);
+    output.clear();
+    beast::write_to(output, competitor); // zero-alloc after warmup
+    publish(output);
+}
+```
+
+### Tip 3: Use `string_view` for Read-Only Strings
+
+When adding strings to your struct, use `std::string_view` where the source buffer is guaranteed to outlive the serialization call. This avoids a heap copy.
+
+```cpp
+struct LogEntry {
+    std::string_view level;   // pointer to a static string — zero copy
+    std::string message;       // owned string
+    int64_t timestamp;
+};
+BEAST_JSON_FIELDS(LogEntry, level, message, timestamp)
+```
+
+---
+
+## 🔢 Float Precision
+
+Beast JSON uses the **Russ Cox + Eisel-Lemire** hybrid algorithm for number serialization. It guarantees:
+
+- **Bit-accurate round-tripping**: Parsing the serialized output gives you back the exact same `double`.
+- **Shortest representation**: It always produces the shortest possible decimal that round-trips correctly.
+
+```cpp
+double pi = 3.141592653589793;
+
+beast::write(pi);  // "3.141592653589793"
+// Not "3.14159265358979300" or "3.1415926535897931"
+```
