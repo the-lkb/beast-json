@@ -1,29 +1,31 @@
+/* Base Light Mode Variables (Standard VitePress) */
 :root {
-    --vp-c-brand-1: #00e5ff;
-    --vp-c-brand-2: #00b8d4;
-    --vp-c-brand-3: #0097a7;
-    --vp-c-brand-soft: rgba(0, 229, 255, 0.1);
+    --vp-c-brand-1: #00b8d4;
+    --vp-c-brand-2: #0097a7;
+    --vp-c-brand-3: #006064;
+    --vp-c-brand-soft: rgba(0, 184, 212, 0.1);
 
     --vp-home-hero-name-color: transparent;
-    --vp-home-hero-name-background: linear-gradient(135deg, #00e5ff 0%, #00b8d4 100%);
-
-    --vp-c-default-1: #ffffff;
-    --vp-c-bg: #0b0e14;
-    --vp-c-bg-soft: #11151c;
-    --vp-c-bg-mute: #161b22;
+    --vp-home-hero-name-background: linear-gradient(135deg, #00b8d4 0%, #0097a7 100%);
 }
 
+/* Dark Mode Overrides */
 .dark {
     --vp-c-brand-1: #00e5ff;
     --vp-c-brand-2: #00d2ff;
     --vp-c-brand-soft: rgba(0, 229, 255, 0.1);
+
+    --vp-c-bg: #0b0e14;
+    --vp-c-bg-soft: #11151c;
+    --vp-c-bg-mute: #161b22;
+    --vp-c-default-1: #ffffff;
 }
 
-/* Custom grid library background to match THE LKB banner */
+/* Unified Grid Background - Subtle for both modes */
 .VPApp {
     background-image:
-        linear-gradient(rgba(0, 229, 255, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 229, 255, 0.04) 1px, transparent 1px);
+        linear-gradient(var(--vp-c-brand-soft) 1px, transparent 1px),
+        linear-gradient(90deg, var(--vp-c-brand-soft) 1px, transparent 1px);
     background-size: 50px 50px;
     background-attachment: fixed;
 }
@@ -36,4 +38,35 @@
 .VPHero .name {
     font-weight: 800;
     letter-spacing: -0.02em;
+}
+
+/* Premium Image Presentation */
+img {
+    display: block;
+    margin: 2rem auto;
+    border-radius: 12px;
+    border: 1px solid var(--vp-c-divider);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.dark img {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+img:hover {
+    transform: scale(1.02);
+}
+
+.VPContent {
+    overflow-x: hidden;
+}
+
+/* Enhance Mermaid diagrams for both modes */
+.mermaid {
+    background-color: var(--vp-c-bg-soft);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--vp-c-divider);
+    margin: 1rem 0;
 }

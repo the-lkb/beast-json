@@ -1,3 +1,0 @@
-User-agent: *
-Allow: /
-Sitemap: https://the-lkb.github.io/beast-json/sitemap.xml

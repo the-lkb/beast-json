@@ -2,6 +2,8 @@
 
 Beast JSON's core parsing engine is split into two stages. Stage 1 is a dedicated SIMD scanner that identifies structural characters at hardware limits.
 
+![SIMD Logic Theory](/simd_logic_clean.png)
+
 ## 🚠 The Multi-Architecture Dispatcher
 
 We don't just use SIMD; we use it **intelligently**. Beast JSON detects the CPU architecture at compile-time and dispatches to the most efficient vectorized implementation.
@@ -25,6 +27,16 @@ SWAR allows us to process 8 bytes at a time using standard 64-bit integer regist
 Beast JSON adjusts its prefetching distance based on the CPU's cache line size.
 - **Apple Silicon**: 512B prefetch distance (highly aggressive for M-series).
 - **Intel/AMD**: 64B-128B prefetch distance (standard for L1/L2 patterns).
+
+## 🔄 Two-Phase Execution
+
+```mermaid
+graph TD
+    A[Raw JSON Data] --> B[Stage 1: SIMD Scanning]
+    B --> C[Structural Bitmask]
+    C --> D[Stage 2: Tape Generation]
+    D --> E[Linear Tape DOM]
+```
 
 ## 🛡 Performance Gains
 
