@@ -31,7 +31,7 @@ graph TD
 Every JSON element is converted into an 8-byte `TapeNode`. This allows for extremely fast sequential access and near-instant traversal.
 
 ```mermaid
-graph LR
+graph TD
     A[Doc Start] --> B[Obj Start]
     B --> C[Key]
     C --> D[Value]
