@@ -25,6 +25,13 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup Doxygen
+        run: sudo apt-get install -y doxygen
+
+      # Build Doxygen FIRST so VitePress can bake the output into its dist
+      - name: Build Doxygen
+        run: doxygen Doxyfile
+
       - name: Install dependencies
         run: |
           cd docs
@@ -35,12 +42,7 @@ jobs:
           cd docs
           npm run docs:build
 
-      - name: Setup Doxygen
-        run: sudo apt-get install -y doxygen
-
-      - name: Build Doxygen
-        run: doxygen Doxyfile
-
+      # Doxygen outputs to docs/api/reference/ — copy into the VitePress dist
       - name: Copy Doxygen to VitePress dist
         run: |
           mkdir -p docs/.vitepress/dist/api/reference
