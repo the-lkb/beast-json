@@ -4,7 +4,7 @@ var index =
     [ "1. Introduction", "index.html#autotoc_md6", null ],
     [ "2. Performance Benchmarks", "index.html#autotoc_md8", [
       [ "2.1 Linux x86_64 (GCC 13.3, AVX-512, PGO)", "index.html#autotoc_md9", null ],
-      [ "2.2 AArch64 (Android, Clang 21)", "index.html#autotoc_md10", null ],
+      [ "2.2 Linux AArch64 (GCC/Clang)", "index.html#autotoc_md10", null ],
       [ "2.3 Apple M1 Pro (macOS, Apple Clang, NEON, PGO)", "index.html#autotoc_md11", null ],
       [ "2.4 Sub-MegaByte Memory Efficiency", "index.html#autotoc_md12", null ],
       [ "2.5 Extreme Heavy-Load Benchmarks (Harsh Environment)", "index.html#autotoc_md13", null ]
