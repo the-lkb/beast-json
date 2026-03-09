@@ -4,8 +4,9 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 export default withMermaid(
     defineConfig({
         title: "Beast JSON",
-        description: "The Ultimate High-Performance C++20 JSON Engine",
+        description: "Beast JSON is the fastest C++20 JSON parser and serializer. Single header, zero dependencies, AVX-512 SIMD accelerated, zero-allocation design for HFT, game engines, and high-throughput servers.",
         base: '/beast-json/',
+        lang: 'en-US',
         appearance: false,
         sitemap: {
             hostname: 'https://the-lkb.github.io/beast-json/'
@@ -14,12 +15,50 @@ export default withMermaid(
             math: true
         },
         head: [
-            ['meta', { name: 'keywords', content: 'C++, JSON, SIMD, AVX-512, High-Performance, HFT, parser, serializer' }],
-            ['meta', { property: 'og:title', content: 'Beast JSON - Ultimate C++20 JSON Engine' }],
-            ['meta', { property: 'og:description', content: 'Bleeding-edge C++20 JSON library with AVX-512 acceleration and zero-allocation design.' }],
+            // Google Site Verification
+            ['meta', { name: 'google-site-verification', content: 'lyhYqUe6A757oe9CdwPEGxsyL7jHnqJ87ssXVuJdE_k' }],
+
+            // SEO - Core
+            ['meta', { name: 'keywords', content: 'C++ JSON, C++20 JSON library, fastest JSON parser, SIMD JSON, AVX-512 JSON, zero-allocation JSON, high-performance JSON, HFT JSON, JSON serializer, single header JSON, beast-json, nlohmann alternative, simdjson alternative, RapidJSON alternative' }],
+            ['meta', { name: 'author', content: 'Beast JSON Authors' }],
+            ['meta', { name: 'robots', content: 'index, follow' }],
+            ['link', { rel: 'canonical', href: 'https://the-lkb.github.io/beast-json/' }],
+
+            // Open Graph
+            ['meta', { property: 'og:title', content: 'Beast JSON - The Fastest C++20 JSON Engine' }],
+            ['meta', { property: 'og:description', content: 'Beast JSON is a bleeding-edge C++20 JSON library with AVX-512 SIMD acceleration, zero-allocation design, and single-header simplicity. Up to 2.7 GB/s parsing, 8.1 GB/s serialization.' }],
             ['meta', { property: 'og:image', content: 'https://the-lkb.github.io/beast-json/logo.png' }],
+            ['meta', { property: 'og:image:alt', content: 'Beast JSON Logo' }],
             ['meta', { property: 'og:type', content: 'website' }],
-            ['meta', { name: 'twitter:card', content: 'summary_large_image' }]
+            ['meta', { property: 'og:url', content: 'https://the-lkb.github.io/beast-json/' }],
+            ['meta', { property: 'og:site_name', content: 'Beast JSON' }],
+            ['meta', { property: 'og:locale', content: 'en_US' }],
+
+            // Twitter Card
+            ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+            ['meta', { name: 'twitter:title', content: 'Beast JSON - The Fastest C++20 JSON Engine' }],
+            ['meta', { name: 'twitter:description', content: 'Bleeding-edge C++20 JSON library: AVX-512 SIMD, zero-allocation, single header. Outperforms simdjson, yyjson, RapidJSON, and nlohmann.' }],
+            ['meta', { name: 'twitter:image', content: 'https://the-lkb.github.io/beast-json/logo.png' }],
+
+            // JSON-LD Structured Data
+            ['script', { type: 'application/ld+json' }, JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'SoftwareSourceCode',
+                name: 'Beast JSON',
+                description: 'The fastest C++20 JSON parser and serializer. Single header, zero dependencies, AVX-512 SIMD accelerated, zero-allocation design.',
+                url: 'https://the-lkb.github.io/beast-json/',
+                codeRepository: 'https://github.com/the-lkb/beast-json',
+                programmingLanguage: 'C++',
+                runtimePlatform: 'C++20',
+                version: '1.0.5',
+                license: 'https://www.apache.org/licenses/LICENSE-2.0',
+                keywords: 'C++, JSON, SIMD, AVX-512, High-Performance, HFT, parser, serializer, zero-allocation',
+                offers: {
+                    '@type': 'Offer',
+                    price: '0',
+                    priceCurrency: 'USD'
+                }
+            })]
         ],
         themeConfig: {
             logo: '/logo.png',
