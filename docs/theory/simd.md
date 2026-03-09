@@ -61,32 +61,39 @@ The raw `structural_mask` still includes characters **inside string literals** �
 
 The core insight: `in_string[i] = XOR of all unescaped quote bits from index 0 to i`.
 
-```mermaid
-flowchart TB
-    subgraph STEP1["Step 1 — Locate backslashes and quotes"]
-        direction LR
-        BS["backslash_mask<br/>bit=1 at each '\\' position"]
-        QM["raw_quote_mask<br/>bit=1 at each '\"' position"]
-    end
-
-    subgraph STEP2["Step 2 — Suppress escaped quotes"]
-        direction TB
-        ESC["escape_mask<br/>= backslash_mask shifted left by 1<br/>(marks the byte AFTER each backslash)"]
-        REAL["real_quote_mask<br/>= raw_quote_mask AND NOT escape_mask<br/>(removes escaped quotes like \\\")"]
-        ESC --> REAL
-    end
-
-    subgraph STEP3["Step 3 — Prefix-XOR via CLMUL"]
-        direction TB
-        CLMUL["PCLMULQDQ real_quote_mask, 0xFFFF...<br/>(carryless multiply = prefix XOR, 4 cycles)"]
-        ISM["in_string_mask<br/>bit[i] = XOR(real_quote_mask[0..i])<br/>0 = outside string, 1 = inside string"]
-        CLMUL --> ISM
-    end
-
-    CLEAN["clean_structural_mask<br/>= structural_mask AND NOT in_string_mask"]
-
-    STEP1 --> STEP2 --> STEP3 --> CLEAN
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-group" style="max-width:520px;width:100%;">
+      <div class="bd-group__title">Step 1 — Locate backslashes and quotes</div>
+      <div class="bd-group__body bd-group__body--row">
+        <div class="bd-box bd-box--orange">backslash_mask<br><small>bit=1 at each '\' position</small></div>
+        <div class="bd-box bd-box--purple">raw_quote_mask<br><small>bit=1 at each '"' position</small></div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-group" style="max-width:520px;width:100%;">
+      <div class="bd-group__title">Step 2 — Suppress escaped quotes</div>
+      <div class="bd-group__body">
+        <div class="bd-box">escape_mask = backslash_mask <strong>shift left 1</strong><br><small>(marks the byte AFTER each backslash)</small></div>
+        <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+        <div class="bd-box bd-box--green">real_quote_mask = raw_quote_mask <strong>AND NOT</strong> escape_mask<br><small>(removes escaped quotes like \")</small></div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-group" style="max-width:520px;width:100%;">
+      <div class="bd-group__title">Step 3 — Prefix-XOR via CLMUL (4 cycles)</div>
+      <div class="bd-group__body">
+        <div class="bd-box bd-box--teal">PCLMULQDQ real_quote_mask, 0xFFFF…<br><small>carryless multiply = prefix XOR</small></div>
+        <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+        <div class="bd-box bd-box--brand">in_string_mask<br><small>bit[i] = XOR(real_quote_mask[0..i]) — 0=outside string, 1=inside</small></div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-box bd-box--green" style="max-width:440px;">
+      clean_structural_mask = structural_mask <strong>AND NOT</strong> in_string_mask
+    </div>
+  </div>
+</div>
 
 ### Worked example: colon inside a string
 
@@ -110,17 +117,26 @@ clean_struct:   1    1  0  0  0  0  0  0  0  0  1  1  0  1
 
 On Intel Ice Lake+, `VCOMPRESSB` packs the flagged bytes into a dense output in **one instruction**:
 
-```mermaid
-flowchart TB
-    BEFORE["zmm0 — 64 input bytes (sparse)<br/>{ . . . . . . . . . . . . . . .<br/>. . . . . . . . . } . . . . . ."]
-
-    MASK["clean_structural_mask (k1)<br/>64-bit integer — set bits mark structural positions"]
-
-    AFTER["zmm1 — structural bytes packed<br/>{ }  (2 bytes, dense)"]
-
-    BEFORE -->|"VCOMPRESSB zmm1 {k1}, zmm0<br/>one instruction, ~3 cycles"| AFTER
-    MASK --> AFTER
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-split" style="max-width:540px;width:100%;gap:1rem;">
+      <div class="bd-col">
+        <div class="bd-group__title" style="font-size:0.7rem;text-transform:uppercase;color:var(--vp-c-text-2);letter-spacing:.07em;margin-bottom:.35rem;">Before — zmm0 (64 bytes, sparse)</div>
+        <div class="bd-box" style="font-size:0.75rem;font-family:monospace;letter-spacing:0.05em;">{ · · · · · · · · · · · · · ·<br>· · · · · · · · · } · · · · ·</div>
+        <div class="bd-badge bd-badge--brand" style="margin-top:.35rem;">64 bytes total</div>
+      </div>
+      <div class="bd-col">
+        <div class="bd-group__title" style="font-size:0.7rem;text-transform:uppercase;color:var(--vp-c-text-2);letter-spacing:.07em;margin-bottom:.35rem;">After — zmm1 (dense structural bytes)</div>
+        <div class="bd-box bd-box--green" style="font-size:0.85rem;font-family:monospace;">{ }</div>
+        <div class="bd-badge bd-badge--green" style="margin-top:.35rem;">2 bytes — structural only</div>
+      </div>
+    </div>
+    <div class="bd-callout" style="max-width:540px;width:100%;margin:0.75rem 0 0;font-size:0.8rem;">
+      <strong>VCOMPRESSB zmm1 {k1}, zmm0</strong> — one instruction, ~3 cycles<br>
+      k1 = clean_structural_mask; set bits select which bytes to keep
+    </div>
+  </div>
+</div>
 
 Stage 2 now iterates a **tiny dense buffer** — only structural characters — rather than the full input.
 
@@ -130,29 +146,36 @@ Stage 2 now iterates a **tiny dense buffer** — only structural characters — 
 
 Stage 2 uses `TZCNT` (trailing zero count) to iterate only the set bits in `clean_structural_mask`:
 
-```mermaid
-flowchart TB
-    MASK["clean_structural_mask<br/>e.g. 0b...0001001010010001"]
-
-    subgraph LOOP["Per-structural-character loop"]
-        direction TB
-        TZC["TZCNT: find index of next structural char<br/>(count trailing zeros — 1 cycle)"]
-        CHAR["Load input[index]"]
-        DISPATCH["switch(char) — 8 cases"]
-        BLSR["BLSR: clear lowest set bit<br/>(advance to next — 1 cycle)"]
-        TZC --> CHAR --> DISPATCH --> BLSR --> TZC
-    end
-
-    subgraph EMIT["TapeNode emitted per case"]
-        direction TB
-        E1["'{' / '}' / '[' / ']'<br/>→ OBJ/ARR node, record jump-patch"]
-        E2["'\"'<br/>→ KEY or STRING, string_view into buf"]
-        E3["digit / '-'<br/>→ number parse → UINT64 / INT64 / DOUBLE"]
-        E4["'t' / 'f' / 'n'<br/>→ BOOL_TRUE / BOOL_FALSE / NULL"]
-    end
-
-    MASK --> LOOP --> EMIT
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-box bd-box--brand" style="max-width:400px;font-size:0.78rem;">
+      clean_structural_mask<br><small style="color:var(--vp-c-text-2);">e.g. 0b…0001001010010001</small>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-split" style="width:100%;max-width:600px;gap:1rem;">
+      <div class="bd-group">
+        <div class="bd-group__title">Per-structural-character loop</div>
+        <div class="bd-group__body">
+          <div class="bd-steps">
+            <div class="bd-step"><div class="bd-step__num">1</div><div class="bd-step__body"><div class="bd-step__title">TZCNT</div><div class="bd-step__desc">Find index of next structural char (count trailing zeros — 1 cycle)</div></div></div>
+            <div class="bd-step"><div class="bd-step__num">2</div><div class="bd-step__body"><div class="bd-step__title">Load input[index]</div><div class="bd-step__desc">Read the structural character</div></div></div>
+            <div class="bd-step"><div class="bd-step__num">3</div><div class="bd-step__body"><div class="bd-step__title">switch(char)</div><div class="bd-step__desc">8-way dispatch — emit TapeNode</div></div></div>
+            <div class="bd-step"><div class="bd-step__num">4</div><div class="bd-step__body"><div class="bd-step__title">BLSR</div><div class="bd-step__desc">Clear lowest set bit → advance to next (1 cycle) → back to step 1</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="bd-group">
+        <div class="bd-group__title">TapeNode emitted per case</div>
+        <div class="bd-group__body">
+          <div class="bd-box bd-box--teal" style="font-size:0.75rem;">{ } [ ]<br><small>→ OBJ/ARR node + jump-patch</small></div>
+          <div class="bd-box bd-box--purple" style="font-size:0.75rem;">"<br><small>→ KEY or STRING string_view</small></div>
+          <div class="bd-box bd-box--green" style="font-size:0.75rem;">digit / -<br><small>→ UINT64 / INT64 / DOUBLE</small></div>
+          <div class="bd-box bd-box--orange" style="font-size:0.75rem;">t / f / n<br><small>→ BOOL_TRUE / FALSE / NULL</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 The loop body executes **once per structural character**. In typical JSON, structural characters are 5–15% of the input — Stage 2 is extremely cache-efficient.
 
@@ -162,16 +185,32 @@ The loop body executes **once per structural character**. In typical JSON, struc
 
 On Apple Silicon and ARM64 servers, Beast JSON uses NEON 128-bit registers (16 bytes per load). The algorithm is identical; 4 NEON iterations cover 64 bytes:
 
-```mermaid
-flowchart TB
-    subgraph NEON["One NEON iteration — 16 bytes"]
-        direction TB
-        LD["VLD1Q_U8 q0, [buf]<br/>load 16 bytes (1 cycle)"]
-        CE["VCEQQ_U8 ×8<br/>compare vs each structural target in parallel"]
-        OR2["VORRQ_U8<br/>merge all 8 masks into one"]
-        LD --> CE --> OR2
-    end
-```
+<div class="bd-diagram">
+  <div class="bd-group" style="max-width:480px;margin:0 auto;">
+    <div class="bd-group__title">One NEON iteration — 16 bytes</div>
+    <div class="bd-group__body">
+      <div class="bd-pipeline">
+        <div class="bd-pipe-stage">
+          <div class="bd-pipe-stage__label">Load</div>
+          <div class="bd-pipe-stage__main">VLD1Q_U8 q0, [buf]</div>
+          <div class="bd-pipe-stage__note">16 bytes · 1 cycle</div>
+        </div>
+        <div class="bd-pipe-arrow">→</div>
+        <div class="bd-pipe-stage">
+          <div class="bd-pipe-stage__label">Compare</div>
+          <div class="bd-pipe-stage__main">VCEQQ_U8 ×8</div>
+          <div class="bd-pipe-stage__note">vs each structural target</div>
+        </div>
+        <div class="bd-pipe-arrow">→</div>
+        <div class="bd-pipe-stage">
+          <div class="bd-pipe-stage__label">Merge</div>
+          <div class="bd-pipe-stage__main">VORRQ_U8</div>
+          <div class="bd-pipe-stage__note">all 8 masks → one</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 NEON has no `VCOMPRESSB` equivalent. Beast JSON uses a `VBSL`-based gather with a compact scalar loop for Stage 2 on ARM — still far faster than a pure scalar parser.
 
