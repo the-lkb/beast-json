@@ -55,7 +55,7 @@ export default withMermaid(
                         items: [
                             { text: 'Custom Allocators', link: '/guide/allocators' },
                             { text: 'Language Bindings', link: '/guide/bindings' },
-                            { text: 'HFT Optimization Patterns', link: '/guide/hft-patterns' },
+                            { text: 'Low-Latency Patterns', link: '/guide/low-latency-patterns' },
                             { text: 'Debugging Guide', link: '/guide/debugging' }
                         ]
                     }

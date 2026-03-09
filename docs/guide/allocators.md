@@ -56,4 +56,4 @@ Using a `monotonic_buffer_resource` for small-to-medium JSON documents typically
 ---
 
 > [!TIP]
-> Combine custom allocators with [Document Reuse](/guide/hft-patterns#pattern-document-reuse) for the ultimate "Infinite Loop" optimization where memory is allocated once on startup and never touched again.
+> Combine custom allocators with [Document Reuse](/guide/low-latency-patterns#the-fundamental-pattern-document-reuse) for the ultimate steady-state optimization where memory is allocated once on startup and never touched again.
