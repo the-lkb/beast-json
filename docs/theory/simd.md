@@ -45,13 +45,25 @@ Instead of eight `if` branches, Beast JSON runs eight `VPCMPEQB` instructions. E
 
 For the input `{ "name": "Alice" }` (first 20 bytes shown):
 
-```
-Byte:         0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19
-Input:        {     "  n  a  m  e  "  :     "  A  l  i  c  e  "        }
-structural:   1  0  1  0  0  0  0  1  1  0  1  0  0  0  0  0  1  0  0  1
-              ↑     ↑           ↑  ↑     ↑              ↑           ↑
-              {     "           "  :     "              "           }
-```
+<div class="bd-mask-table">
+  <div class="bd-mt-row">
+    <span class="bd-mt-label">Byte</span>
+    <span class="bd-mt-cell bd-mt-cell--idx">0</span><span class="bd-mt-cell bd-mt-cell--idx">1</span><span class="bd-mt-cell bd-mt-cell--idx">2</span><span class="bd-mt-cell bd-mt-cell--idx">3</span><span class="bd-mt-cell bd-mt-cell--idx">4</span><span class="bd-mt-cell bd-mt-cell--idx">5</span><span class="bd-mt-cell bd-mt-cell--idx">6</span><span class="bd-mt-cell bd-mt-cell--idx">7</span><span class="bd-mt-cell bd-mt-cell--idx">8</span><span class="bd-mt-cell bd-mt-cell--idx">9</span><span class="bd-mt-cell bd-mt-cell--idx">10</span><span class="bd-mt-cell bd-mt-cell--idx">11</span><span class="bd-mt-cell bd-mt-cell--idx">12</span><span class="bd-mt-cell bd-mt-cell--idx">13</span><span class="bd-mt-cell bd-mt-cell--idx">14</span><span class="bd-mt-cell bd-mt-cell--idx">15</span><span class="bd-mt-cell bd-mt-cell--idx">16</span><span class="bd-mt-cell bd-mt-cell--idx">17</span><span class="bd-mt-cell bd-mt-cell--idx">18</span><span class="bd-mt-cell bd-mt-cell--idx">19</span>
+  </div>
+  <div class="bd-mt-row">
+    <span class="bd-mt-label">Input</span>
+    <span class="bd-mt-cell bd-mt-cell--struct">{</span><span class="bd-mt-cell"> </span><span class="bd-mt-cell bd-mt-cell--struct">"</span><span class="bd-mt-cell">n</span><span class="bd-mt-cell">a</span><span class="bd-mt-cell">m</span><span class="bd-mt-cell">e</span><span class="bd-mt-cell bd-mt-cell--struct">"</span><span class="bd-mt-cell bd-mt-cell--struct">:</span><span class="bd-mt-cell"> </span><span class="bd-mt-cell bd-mt-cell--struct">"</span><span class="bd-mt-cell">A</span><span class="bd-mt-cell">l</span><span class="bd-mt-cell">i</span><span class="bd-mt-cell">c</span><span class="bd-mt-cell">e</span><span class="bd-mt-cell bd-mt-cell--struct">"</span><span class="bd-mt-cell"> </span><span class="bd-mt-cell"> </span><span class="bd-mt-cell bd-mt-cell--struct">}</span>
+  </div>
+  <div class="bd-mt-row">
+    <span class="bd-mt-label">Mask</span>
+    <span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span>
+  </div>
+  <div class="bd-mt-annotation">
+    <span class="bd-mt-ann-chip" style="background:color-mix(in srgb,var(--vp-c-brand-1) 15%,transparent);color:var(--vp-c-brand-1);"><strong>■</strong> structural char detected</span>
+    <span class="bd-mt-ann-chip" style="background:color-mix(in srgb,#4caf50 15%,transparent);color:#4caf50;"><strong>1</strong> = set in mask</span>
+    <span class="bd-mt-ann-chip" style="color:var(--vp-c-text-3);">0 = cleared</span>
+  </div>
+</div>
 
 ---
 
@@ -97,19 +109,42 @@ The core insight: `in_string[i] = XOR of all unescaped quote bits from index 0 t
 
 ### Worked example: colon inside a string
 
-```
-Input:          {    "  k  e  y  :  v  a  l  "  :  1  }
-Byte index:     0    1  2  3  4  5  6  7  8  9 10 11 12 13
+Input: `{"key:val":1}` — the `:` at byte 5 is inside a string and must be suppressed.
 
-raw_quote_mask: 0    1  0  0  0  0  0  0  0  0  1  0  0  0
-in_string_mask: 0    1  1  1  1  1  1  1  1  1  0  0  0  0
-                     ╰─────────── inside string ───────────╯
+<div class="bd-mask-table">
+  <div class="bd-mt-row">
+    <span class="bd-mt-label">Byte</span>
+    <span class="bd-mt-cell bd-mt-cell--idx">0</span><span class="bd-mt-cell bd-mt-cell--idx">1</span><span class="bd-mt-cell bd-mt-cell--idx">2</span><span class="bd-mt-cell bd-mt-cell--idx">3</span><span class="bd-mt-cell bd-mt-cell--idx">4</span><span class="bd-mt-cell bd-mt-cell--idx">5</span><span class="bd-mt-cell bd-mt-cell--idx">6</span><span class="bd-mt-cell bd-mt-cell--idx">7</span><span class="bd-mt-cell bd-mt-cell--idx">8</span><span class="bd-mt-cell bd-mt-cell--idx">9</span><span class="bd-mt-cell bd-mt-cell--idx">10</span><span class="bd-mt-cell bd-mt-cell--idx">11</span><span class="bd-mt-cell bd-mt-cell--idx">12</span>
+  </div>
+  <div class="bd-mt-row">
+    <span class="bd-mt-label">Input</span>
+    <span class="bd-mt-cell bd-mt-cell--struct">{</span><span class="bd-mt-cell bd-mt-cell--struct">"</span><span class="bd-mt-cell bd-mt-cell--in-str">k</span><span class="bd-mt-cell bd-mt-cell--in-str">e</span><span class="bd-mt-cell bd-mt-cell--in-str">y</span><span class="bd-mt-cell bd-mt-cell--false-pos">:</span><span class="bd-mt-cell bd-mt-cell--in-str">v</span><span class="bd-mt-cell bd-mt-cell--in-str">a</span><span class="bd-mt-cell bd-mt-cell--in-str">l</span><span class="bd-mt-cell bd-mt-cell--struct">"</span><span class="bd-mt-cell bd-mt-cell--struct">:</span><span class="bd-mt-cell">1</span><span class="bd-mt-cell bd-mt-cell--struct">}</span>
+  </div>
+  <div class="bd-mt-row">
+    <span class="bd-mt-label">quote_mask</span>
+    <span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span>
+  </div>
+  <div class="bd-mt-row">
+    <span class="bd-mt-label">in_string</span>
+    <span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--in-str">1</span><span class="bd-mt-cell bd-mt-cell--in-str">1</span><span class="bd-mt-cell bd-mt-cell--in-str">1</span><span class="bd-mt-cell bd-mt-cell--in-str">1</span><span class="bd-mt-cell bd-mt-cell--in-str">1</span><span class="bd-mt-cell bd-mt-cell--in-str">1</span><span class="bd-mt-cell bd-mt-cell--in-str">1</span><span class="bd-mt-cell bd-mt-cell--in-str">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span>
+  </div>
+  <div class="bd-mt-row bd-mt-row--spacer"></div>
+  <div class="bd-mt-row">
+    <span class="bd-mt-label">raw_struct</span>
+    <span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--false-pos">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span>
+  </div>
+  <div class="bd-mt-row">
+    <span class="bd-mt-label">clean_struct</span>
+    <span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--suppressed">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--one">1</span><span class="bd-mt-cell bd-mt-cell--zero">0</span><span class="bd-mt-cell bd-mt-cell--one">1</span>
+  </div>
+  <div class="bd-mt-annotation">
+    <span class="bd-mt-ann-chip" style="background:color-mix(in srgb,#e91e63 12%,transparent);color:#e91e63;"><strong>■</strong> inside string</span>
+    <span class="bd-mt-ann-chip" style="background:color-mix(in srgb,#ff5722 22%,transparent);color:#ff5722;"><strong>■</strong> false positive ← suppressed</span>
+    <span class="bd-mt-ann-chip" style="background:color-mix(in srgb,#4caf50 15%,transparent);color:#4caf50;"><strong>1</strong> real structural char</span>
+  </div>
+</div>
 
-raw_struct:     1    1  0  0  0  0  1  0  0  0  1  1  0  1
-                                    ↑ false positive: : inside string
-clean_struct:   1    1  0  0  0  0  0  0  0  0  1  1  0  1
-                                    ↑ correctly suppressed
-```
+Byte 5 (`:` inside the string): `raw_struct=1` → `in_string=1` → `clean_struct=0`. Correctly suppressed in one bitwise AND NOT operation.
 
 ---
 

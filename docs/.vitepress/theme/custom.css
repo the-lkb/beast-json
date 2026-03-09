@@ -670,7 +670,7 @@ img:hover {
     flex-shrink: 0;
 }
 
-/* ── Mask / bit row ── */
+/* ── Mask / bit row (legacy) ── */
 .bd-mask-row {
     display: flex;
     gap: 0;
@@ -691,6 +691,97 @@ img:hover {
 }
 .bd-mask-cell--1 { background: var(--vp-c-brand-1); color: #fff; font-weight: 700; border-color: var(--vp-c-brand-1); }
 .bd-mask-cell--str { background: #e91e6330; color: #e91e63; border-color: #e91e6360; }
+
+/* ── Byte / structural mask table (.bd-mask-table) ── */
+.bd-mask-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--vp-c-bg-soft);
+    border: 1px solid var(--vp-c-divider);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    margin: 1rem 0;
+    font-family: var(--vp-font-family-mono);
+}
+.bd-mt-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 3px;
+    min-width: max-content;
+}
+.bd-mt-row--spacer { height: 8px; }
+.bd-mt-label {
+    width: 96px;
+    flex-shrink: 0;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--vp-c-text-2);
+    text-align: right;
+    padding-right: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.bd-mt-cell {
+    width: 28px;
+    height: 26px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    border-radius: 3px;
+    margin: 0 1px;
+    color: var(--vp-c-text-3);
+    background: transparent;
+    border: 1px solid transparent;
+}
+.bd-mt-cell--idx  { font-size: 0.58rem; color: var(--vp-c-text-3); }
+.bd-mt-cell--struct {
+    background: color-mix(in srgb, var(--vp-c-brand-1) 18%, transparent);
+    color: var(--vp-c-brand-1);
+    border-color: color-mix(in srgb, var(--vp-c-brand-1) 40%, transparent);
+    font-weight: 700;
+}
+.bd-mt-cell--one {
+    background: color-mix(in srgb, #4caf50 18%, transparent);
+    color: #4caf50;
+    border-color: color-mix(in srgb, #4caf50 40%, transparent);
+    font-weight: 700;
+}
+.bd-mt-cell--zero { color: var(--vp-c-text-3); }
+.bd-mt-cell--in-str {
+    background: color-mix(in srgb, #e91e63 10%, transparent);
+    color: var(--vp-c-text-2);
+    border-color: color-mix(in srgb, #e91e63 25%, transparent);
+}
+.bd-mt-cell--false-pos {
+    background: color-mix(in srgb, #ff5722 22%, transparent);
+    color: #ff7043;
+    border-color: color-mix(in srgb, #ff5722 50%, transparent);
+    font-weight: 700;
+}
+.bd-mt-cell--suppressed {
+    background: var(--vp-c-bg-mute);
+    color: var(--vp-c-text-3);
+    text-decoration: line-through;
+}
+.bd-mt-annotation {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.bd-mt-ann-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    font-size: 0.66rem;
+    white-space: nowrap;
+}
 
 /* ── Checklist items — HTML .bd-checklist (no markdown parser dependency) ── */
 .bd-checklist {

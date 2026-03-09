@@ -86,24 +86,22 @@ onUnmounted(() => clearTimer())
     <!-- Jump arc (shown after all nodes appear) -->
     <Transition name="fade">
       <div v-if="done" class="tfd-jump-wrap">
-        <svg class="tfd-jump-svg" viewBox="0 0 680 56" preserveAspectRatio="none">
+        <svg class="tfd-jump-svg" viewBox="0 0 680 40" preserveAspectRatio="none">
           <defs>
             <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
               <path d="M0,0 L0,6 L8,3 z" fill="rgba(0,229,255,0.8)"/>
             </marker>
           </defs>
           <path
-            d="M 57 8 Q 340 52 623 8"
+            d="M 57 8 Q 340 36 623 8"
             stroke="rgba(0,229,255,0.65)"
             stroke-width="2"
             fill="none"
             stroke-dasharray="7 4"
             marker-end="url(#arr)"
           />
-          <text x="340" y="50" text-anchor="middle" fill="rgba(0,229,255,0.9)" font-size="12" font-family="monospace">
-            O(1) skip — one array read: tape[tape[0].jump]
-          </text>
         </svg>
+        <p class="tfd-jump-label">O(1) skip — one array read: <code>tape[tape[0].jump]</code></p>
       </div>
     </Transition>
 
@@ -232,7 +230,24 @@ onUnmounted(() => clearTimer())
 }
 .tfd-jump-svg {
   width: 100%;
-  height: 58px;
+  height: 42px;
+  display: block;
+}
+.tfd-jump-label {
+  text-align: center;
+  font-size: 0.72rem;
+  color: rgba(0, 229, 255, 0.9);
+  margin: 0.15rem 0 0;
+  font-family: var(--vp-font-family-mono);
+  line-height: 1.4;
+}
+.tfd-jump-label code {
+  background: rgba(0, 229, 255, 0.1);
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  color: rgba(0, 229, 255, 1);
+  font-size: 0.72rem;
+  font-family: inherit;
 }
 
 /* ── controls ── */
@@ -270,6 +285,6 @@ onUnmounted(() => clearTimer())
   .tfd-cell { min-width: 78px; padding: 0.4rem 0.5rem; }
   .tfd-cell__tag { font-size: 0.64rem; }
   .tfd-json { font-size: 0.78rem; }
-  .tfd-jump-svg text { font-size: 9px; }
+  .tfd-jump-label { font-size: 0.68rem; }
 }
 </style>
