@@ -1,6 +1,63 @@
-# The Tape Architecture
+# The Lazy Tape Architecture
 
-Beast JSON is built on a **Linear Tape DOM** — a design that fundamentally rejects the conventional tree-of-heap-nodes approach. Every JSON element maps to exactly one 64-bit `TapeNode` written into a single contiguous array. There is **one allocation, one pass, and zero pointer indirection** on the hot path.
+Beast JSON is built on a **Lazy Tape DOM** — a design that fundamentally rejects the conventional tree-of-heap-nodes approach. Every JSON element maps to exactly one 64-bit `TapeNode` written into a single contiguous array. There is **one allocation, one pass, and zero pointer indirection** on the hot path.
+
+The design has two inseparable halves:
+
+| Half | What it means |
+|:---|:---|
+| **Tape** | All nodes stored in one flat contiguous array — no heap scatter, no pointer chasing |
+| **Lazy** | `Value` objects are 16-byte handles; no data is extracted until you call `.as<T>()` |
+
+This is reflected directly in the library namespace: `beast::json::lazy`.
+
+---
+
+## The Two-Part Model: DocumentView + Value
+
+Parsing produces **two objects** with distinct roles:
+
+```mermaid
+flowchart TB
+    subgraph PARSE["beast::parse(doc, json)"]
+        direction TB
+        P1["Stage 1 — SIMD structural scan<br/>(identifies { } [ ] : , positions)"]
+        P2["Stage 2 — Tape generation<br/>(writes one TapeNode per element)"]
+        P1 --> P2
+    end
+
+    subgraph DOC["beast::Document (= DocumentView)"]
+        direction TB
+        D1["TapeArena — owns the flat TapeNode array"]
+        D2["Stage1Index — structural position cache (reused)"]
+        D3["source string_view — pointer into caller's buffer"]
+    end
+
+    subgraph VAL["beast::Value (= lazy::Value)"]
+        direction TB
+        V1["DocumentView* doc_ — pointer to owner"]
+        V2["uint32_t idx_ — tape index (4 bytes)"]
+    end
+
+    PARSE --> DOC
+    DOC -->|"root handle"| VAL
+```
+
+- **`Document`** owns all memory: the tape buffer, the structural index, and the input source view. It is the single allocation for the entire document.
+- **`Value`** is a 16-byte handle — just a pointer + an integer. Navigation (`root["name"]`, `root[0]`) simply advances the tape index without touching data.
+- **Lazy extraction** happens only when you call `.as<T>()`, `.as<std::string_view>()`, or `.as<double>()` — at that point the `TapeNode` is read and the value decoded.
+
+```cpp
+beast::Document doc;                        // owns the tape
+beast::Value root = beast::parse(doc, json); // builds tape eagerly
+
+// These two lines touch NO memory beyond the tape node itself:
+beast::Value name_node = root["name"];      // tape index walk — O(N keys)
+std::string_view sv = name_node.as<std::string_view>(); // lazy decode — O(1)
+```
+
+> **Why "lazy"?**
+> The tape is built *eagerly* (full parse in one or two passes). But every `Value` is a *lazy view* — it holds no extracted data. The value is only materialised when you ask for it. This eliminates all intermediate copies and allocations at query time.
 
 ---
 

@@ -8,7 +8,7 @@ Beast JSON is the flagship JSON engine for modern C++. It is engineered to deliv
 
 ### Design Priorities:
 1. **Speed First**: Outperform all competitors in real-world workloads.
-2. **Zero Overhead**: Eliminate pointer chasing and small allocations (the "Tape" model).
+2. **Zero Overhead**: Eliminate pointer chasing and small allocations (the **Lazy Tape DOM** model).
 3. **C++20 Native**: Clean code over legacy SFINAE madness.
 4. **Safety**: 100% sanitizer-clean code with transactional safety.
 
