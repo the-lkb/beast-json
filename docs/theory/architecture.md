@@ -76,22 +76,7 @@ The namespace `beast::json::lazy` directly names this principle.
 
 Parsing produces a `DocumentView` — a single heap object that owns everything.
 
-```mermaid
-flowchart TB
-    subgraph INPUT["Caller-owned input buffer (never copied)"]
-        RAW["{ #quot;user#quot;: { #quot;name#quot;: #quot;Alice#quot;, #quot;age#quot;: 30 } }"]
-    end
-
-    subgraph DOC["beast::Document  (= beast::json::lazy::DocumentView)"]
-        direction TB
-        TAPE["TapeArena<br/>─────────────────────────────<br/>tape[0]  OBJ_START  jump→8<br/>tape[1]  KEY        →'user'<br/>tape[2]  OBJ_START  jump→7<br/>tape[3]  KEY        →'name'<br/>tape[4]  STRING     →'Alice'<br/>tape[5]  KEY        →'age'<br/>tape[6]  INT64      30<br/>tape[7]  OBJ_END    jump→2<br/>tape[8]  OBJ_END    jump→0<br/>─────────────────────────────<br/>one contiguous allocation"]
-        IDX["Stage1Index<br/>structural positions<br/>(reused across parses)"]
-        SRC["string_view<br/>→ points into INPUT<br/>(zero copy)"]
-    end
-
-    INPUT -->|"string_view (not copied)"| SRC
-    SRC -.->|"KEY/STRING nodes point back"| INPUT
-```
+<TapeFlowDiagram />
 
 - `TapeArena` is a single `malloc`. On repeated parses it is **reused in-place** (reset cursor, keep capacity).
 - `Stage1Index` is the SIMD-produced structural position list. Also reused without reallocation.
@@ -115,34 +100,7 @@ This is the "lazy" half of the design. A `Value` is not a value — it is a **po
 
 ### The Three-Phase Lifecycle
 
-```mermaid
-flowchart LR
-    subgraph PHASE1["① PARSE  (eager, once)"]
-        direction TB
-        P1["SIMD Stage 1:<br/>scan 64 bytes/cycle<br/>find structural chars"]
-        P2["Stage 2:<br/>write TapeNodes<br/>into TapeArena"]
-        P1 --> P2
-    end
-
-    subgraph PHASE2["② NAVIGATE  (zero cost)"]
-        direction TB
-        N1["root[#quot;user#quot;]<br/>→ walks tape keys<br/>returns Value{doc, 2}"]
-        N2["root[#quot;user#quot;][#quot;name#quot;]<br/>→ jumps into sub-object<br/>returns Value{doc, 4}"]
-        N3["No memory read<br/>beyond TapeNode.meta<br/>No allocation ever"]
-        N1 --> N2 --> N3
-    end
-
-    subgraph PHASE3["③ EXTRACT  (lazy, on demand)"]
-        direction TB
-        E1[".as&lt;std::string_view&gt;()<br/>reads tape[4].offset<br/>returns string_view into input"]
-        E2[".as&lt;int&gt;()<br/>reads tape[6].meta<br/>returns inline integer"]
-        E3["one array read<br/>zero allocation<br/>zero copy"]
-        E1 & E2 --> E3
-    end
-
-    PHASE1 -->|"Document ready"| PHASE2
-    PHASE2 -->|"Value handle"| PHASE3
-```
+<LazyLifecycle />
 
 **The key insight:** the caller controls when extraction happens.
 If you navigate to `root["user"]["name"]` and never call `.as<>()`,
@@ -155,26 +113,7 @@ every eager parser — you pay only for what you read.
 
 A tree-based DOM allocates one heap node per JSON element. For a document with 10,000 elements, that means 10,000 `malloc` calls and 10,000 scattered heap objects — guaranteed cache misses on every traversal.
 
-```mermaid
-flowchart TB
-    subgraph TREE["Tree DOM — scattered heap layout"]
-        direction TB
-        ROOT["Object node (heap malloc 1)<br/>ptr → children list"]
-        N1["String node (heap malloc 2)<br/>'Alice' copy (heap malloc 3)"]
-        N2["Int node (heap malloc 4)<br/>value: 30"]
-        ROOT --> N1 --> N2
-    end
-
-    subgraph TAPE["Lazy Tape DOM — one contiguous array"]
-        direction TB
-        T0["[0] OBJ_START"]
-        T1["[1] KEY 'name'"]
-        T2["[2] STRING → input buffer (zero copy)"]
-        T3["[3] INT64 30 (inline)"]
-        T4["[4] OBJ_END"]
-        T0 --- T1 --- T2 --- T3 --- T4
-    end
-```
+<TreeVsTape />
 
 | | Tree DOM | Lazy Tape DOM |
 |:---|:---|:---|

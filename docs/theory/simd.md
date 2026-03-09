@@ -27,59 +27,19 @@ Beast JSON's SIMD path achieves **64 bytes per cycle** on AVX-512 — a 64× imp
 
 ---
 
-## Stage 1: Loading the 512-bit Window
+## Stage 1 → Stage 2: Interactive Pipeline Walkthrough
 
-The parser slides a 64-byte window across the input. Each iteration loads one 512-bit ZMM register:
+Step through the SIMD pipeline interactively — from raw bytes to TapeNodes:
 
-```mermaid
-flowchart TB
-    subgraph BUF["Input Buffer (arbitrary length)"]
-        direction LR
-        W1["bytes 0–63"]
-        W2["bytes 64–127"]
-        W3["bytes 128–191"]
-        WN["..."]
-        W1 --- W2 --- W3 --- WN
-    end
+<SimdPipeline />
 
-    LOAD["VMOVDQU64 zmm0, [buf + offset]<br/>load 64 bytes unaligned (1 cycle)"]
-
-    ZMM["zmm0 register — 512 bits<br/>[ b0 | b1 | b2 | ... | b62 | b63 ]<br/>each slot = 1 byte"]
-
-    W1 -->|"one load per window"| LOAD
-    LOAD --> ZMM
-```
-
-On Intel Ice Lake and later, this load has 1 cycle latency and can be pipelined — the CPU overlaps loading window N+1 while processing window N.
+On Intel Ice Lake and later, `VMOVDQU64` has 1 cycle latency and can be pipelined — the CPU overlaps loading window N+1 while processing window N.
 
 ---
 
 ## Stage 1a: Parallel Structural Character Detection
 
-Instead of eight `if` branches, Beast JSON runs eight `VPCMPEQB` instructions. Each compares all 64 bytes against one target character and produces a 64-bit bitmask:
-
-```mermaid
-flowchart TB
-    ZMM["zmm0 — 64 bytes of JSON"]
-
-    subgraph CMP["8 parallel VPCMPEQB instructions"]
-        direction TB
-        M1["VPCMPEQB zmm0, '{' → 64-bit mask k1<br/>bit[i]=1 iff input[i]=='{'"]
-        M2["VPCMPEQB zmm0, '}' → 64-bit mask k2"]
-        M3["VPCMPEQB zmm0, '[' → 64-bit mask k3"]
-        M4["VPCMPEQB zmm0, ']' → 64-bit mask k4"]
-        M5["VPCMPEQB zmm0, ':' → 64-bit mask k5"]
-        M6["VPCMPEQB zmm0, ',' → 64-bit mask k6"]
-        M7["VPCMPEQB zmm0, '\"' → 64-bit mask k7"]
-        M8["VPCMPEQB zmm0, '\\' → 64-bit mask k8"]
-    end
-
-    OR["KORQ k0, k1..k8 — OR all 8 masks<br/>→ structural_mask: 64-bit integer<br/>bit[i]=1 means input[i] is a structural character"]
-
-    ZMM --> CMP --> OR
-```
-
-For a 64-byte window, this produces a **64-bit integer** (`structural_mask`) identifying every structural character in **~8 cycles total**.
+Instead of eight `if` branches, Beast JSON runs eight `VPCMPEQB` instructions. Each compares all 64 bytes against one target character and produces a 64-bit bitmask. For a 64-byte window, this produces a **64-bit integer** (`structural_mask`) identifying every structural character in **~8 cycles total**.
 
 ### What the mask looks like
 

@@ -1,4 +1,4 @@
-/* 
+/*
    LKB CORPORATE BRANDING SYNC
    Matches the "THE LKB" Banner Aesthetic
 */
@@ -100,8 +100,7 @@ img:hover {
     box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
 }
 
-/* Center the SVG inside its scrollable wrapper; max-width: none lets the
-   diagram render at full natural width instead of being squashed/clipped. */
+/* Center the SVG inside its scrollable wrapper */
 .mermaid {
     text-align: center;
 }
@@ -110,20 +109,58 @@ img:hover {
     display: inline-block;
     max-width: none;
     height: auto;
-    /* overflow: visible prevents node labels from being clipped when the
-       rendered font is wider than mermaid's server-side size estimate */
     overflow: visible;
 }
 
-/* Force mermaid node rect/polygon elements to have adequate padding so
-   labels with long text have breathing room */
+/* Force mermaid node elements to have adequate padding */
 .mermaid .node rect,
 .mermaid .node polygon,
 .mermaid .node circle,
 .mermaid .node ellipse {
     padding: 4px;
 }
-/* ── Hero image: desktop baseline (≥ 960px) ──────────────────────────────── */
+
+/* ══════════════════════════════════════════════════════════════════
+   NAVBAR LOGO – prevent logo from overlapping site title on mobile
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Constrain the logo image inside the navbar to a fixed height so it
+   never grows large enough to push the "Beast JSON" title off-screen. */
+.VPNavBarTitle .logo,
+.VPNavBar .logo {
+    height: 26px !important;
+    width: 26px !important;
+    max-width: 26px !important;
+    max-height: 26px !important;
+    object-fit: contain !important;
+    flex-shrink: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    display: block !important;
+}
+
+/* Make the title link a proper flex row so logo + text sit side-by-side */
+.VPNavBarTitle {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    min-width: 0 !important;
+}
+
+.VPNavBarTitle .title {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    flex-shrink: 1 !important;
+    min-width: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   HERO IMAGE – desktop baseline (≥ 960 px)
+   ══════════════════════════════════════════════════════════════════ */
 .VPHero .image-src {
     max-width: 320px;
     max-height: 320px;
@@ -132,66 +169,90 @@ img:hover {
     object-fit: contain;
 }
 
-/* ── Hero image: fix overlap on mobile (< 960px) ─────────────────────────
-   VitePress gives .VPHero .image large negative margins on mobile so the
-   logo acts as a faded background behind the text. We override that to
-   render it as a normal block below the copy instead. */
+/* ══════════════════════════════════════════════════════════════════
+   HERO MOBILE FIX (< 960 px)
+   ──────────────────────────────────────────────────────────────────
+   VitePress's default mobile hero places the .image-container with
+   absolute-style transforms so the logo appears as a background
+   watermark overlapping the copy. We force a proper stacked column
+   layout: text first, logo below, no overlap, no watermark.
+   ══════════════════════════════════════════════════════════════════ */
 @media (max-width: 959px) {
-    /* Make the hero container a column so image sits below text */
+    /* 1. Force column layout on the hero container */
     .VPHero .container {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
+        gap: 0 !important;
+        /* Remove any padding that shifts the image into the text area */
+        padding-top: 40px !important;
+        padding-bottom: 40px !important;
     }
 
-    /* Push image section below the text */
+    /* 2. Text block: first in the column, full width, centred */
     .VPHero .main {
         order: 1 !important;
         width: 100% !important;
-        max-width: 100% !important;
+        max-width: 540px !important;
+        padding: 0 !important;
+        margin: 0 auto !important;
         text-align: center !important;
-        padding-bottom: 0 !important;
+        /* Stay on top of the image */
+        position: relative !important;
+        z-index: 2 !important;
     }
 
+    /* 3. Image block: second in the column, no overlap */
     .VPHero .image {
         order: 2 !important;
-        /* Reset VitePress's negative margins that cause the overlap */
-        margin: 1.5rem 0 0 !important;
+        /* Clear every dimension/offset VitePress may have set */
         position: static !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
         width: auto !important;
+        height: auto !important;
         min-height: unset !important;
-        flex: unset !important;
+        flex: none !important;
+        /* Space between text and logo */
+        margin: 2rem auto 0 !important;
+        padding: 0 !important;
+        z-index: 1 !important;
     }
 
+    /* 4. Inner container: static, no transforms that would overlap text */
     .VPHero .image-container {
         position: static !important;
         transform: none !important;
+        top: auto !important;
+        left: auto !important;
+        /* Remove any negative margins VitePress injects */
+        margin: 0 !important;
         display: flex !important;
         justify-content: center !important;
+        align-items: center !important;
+        width: fit-content !important;
     }
 
+    /* 5. Hide the decorative blurred background disc behind the logo */
     .VPHero .image-bg {
         display: none !important;
     }
 }
 
-/* ── Tablet (769px – 959px) ──────────────────────────────────────────────── */
+/* ── Tablet (769 px – 959 px) ──────────────────────────────────────── */
 @media (min-width: 769px) and (max-width: 959px) {
     .VPHero .image-src {
-        max-width: 220px;
-        max-height: 220px;
+        max-width: 200px;
+        max-height: 200px;
     }
 }
 
-/* ── Mobile responsive overrides (≤ 768px) ───────────────────────────────── */
+/* ── Mobile (≤ 768 px) ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
     .VPHero .image-src {
-        max-width: 160px;
-        max-height: 160px;
-    }
-
-    .VPHero .image-container {
-        margin-bottom: 1.5rem;
+        max-width: 140px;
+        max-height: 140px;
     }
 
     .VPHero .name {
@@ -219,9 +280,14 @@ img:hover {
         padding: 0.75rem;
         margin: 1rem 0;
     }
+
+    /* Vision/Direction cards in index.md */
+    div[style*="display: flex"] {
+        flex-direction: column !important;
+    }
 }
 
-/* ── Small mobile (≤ 480px) ──────────────────────────────────────────────── */
+/* ── Small mobile (≤ 480 px) ───────────────────────────────────────── */
 @media (max-width: 480px) {
     .VPHero .name {
         font-size: 1.6rem;
@@ -232,19 +298,16 @@ img:hover {
     }
 
     .VPHero .image-src {
-        max-width: 120px;
-        max-height: 120px;
+        max-width: 110px;
+        max-height: 110px;
     }
 
-    /* Sidebar and nav on mobile */
-    .VPNav .title {
-        font-size: 0.9rem;
+    .VPNavBarTitle .title {
+        font-size: 0.85rem;
     }
 }
 
-/* ── Tables: horizontally scrollable on mobile ───────────────────────────── */
-/* VitePress renders doc tables inside .vp-doc; make them scroll rather than  */
-/* overflow hidden or break layout on narrow viewports.                        */
+/* ── Tables: horizontally scrollable on mobile ───────────────────────── */
 .vp-doc table {
     display: block;
     overflow-x: auto;
@@ -252,16 +315,8 @@ img:hover {
     max-width: 100%;
 }
 
-/* ── Code blocks: ensure long lines scroll, not clip ─────────────────────── */
+/* ── Code blocks: ensure long lines scroll, not clip ─────────────────── */
 .vp-doc div[class*="language-"] {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-}
-
-/* ── Home page sections: stack on mobile ─────────────────────────────────── */
-@media (max-width: 768px) {
-    /* Vision/Direction cards in index.md */
-    div[style*="display: flex"] {
-        flex-direction: column !important;
-    }
 }
