@@ -50,23 +50,28 @@ it must visit all 5,000. There is no way to say "skip this subtree in O(1)".
 Beast JSON resolves all three problems with a single unified design built on two
 inseparable principles:
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                     LAZY TAPE DOM                                │
-│                                                                  │
-│  ┌─────────────────────────┐   ┌──────────────────────────────┐  │
-│  │         TAPE            │   │           LAZY               │  │
-│  │                         │   │                              │  │
-│  │  All nodes in one flat  │   │  Value = handle only.        │  │
-│  │  contiguous array.      │   │  No data extracted until     │  │
-│  │  One malloc. Zero       │   │  you call .as<T>().          │  │
-│  │  pointer chasing.       │   │  Navigate costs nothing.     │  │
-│  │  Jump indices for O(1)  │   │  Extract costs one array     │  │
-│  │  subtree skip.          │   │  read.                       │  │
-│  └─────────────────────────┘   └──────────────────────────────┘  │
-│       solves Problem 1 & 3          solves Problem 2             │
-└──────────────────────────────────────────────────────────────────┘
-```
+<div class="bd-principle-pair">
+  <div class="bd-principle-header">LAZY TAPE DOM</div>
+  <div class="bd-principle bd-principle--left">
+    <div class="bd-principle__title">TAPE</div>
+    <ul class="bd-principle__points">
+      <li>All nodes in one flat contiguous array</li>
+      <li>One malloc. Zero pointer chasing.</li>
+      <li>Jump indices for O(1) subtree skip</li>
+    </ul>
+    <div class="bd-principle__solves">solves Problem 1 &amp; 3</div>
+  </div>
+  <div class="bd-principle">
+    <div class="bd-principle__title">LAZY</div>
+    <ul class="bd-principle__points">
+      <li>Value = handle only</li>
+      <li>No data extracted until you call .as&lt;T&gt;()</li>
+      <li>Navigate costs nothing</li>
+      <li>Extract costs one array read</li>
+    </ul>
+    <div class="bd-principle__solves">solves Problem 2</div>
+  </div>
+</div>
 
 The namespace `beast::json::lazy` directly names this principle.
 
@@ -136,21 +141,23 @@ Given this input:
 
 Beast JSON performs one pass and writes 6 sequential 8-byte slots:
 
-```mermaid
-flowchart TB
-    JSON["{ #quot;id#quot;: 101, #quot;active#quot;: true }"]
-    JSON -->|"single-pass parse"| T0
-
-    T0["tape[0] — OBJ_START — jump: 5"]
-    T1["tape[1] — KEY — 'id'"]
-    T2["tape[2] — INT64 — 101"]
-    T3["tape[3] — KEY — 'active'"]
-    T4["tape[4] — BOOL_TRUE"]
-    T5["tape[5] — OBJ_END — jump: 0"]
-
-    T0 --- T1 --- T2 --- T3 --- T4 --- T5
-    T0 ---|"O(1) skip ↕"| T5
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-box bd-box--brand" style="max-width:340px;">{ &quot;id&quot;: 101, &quot;active&quot;: true }</div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">single-pass SIMD parse</div></div>
+    <div class="bd-tape-strip">
+      <div class="bd-tape-cell bd-tape-cell--obj"><span class="bd-tape-cell__idx">tape[0]</span><span class="bd-tape-cell__tag">OBJ_START</span><span class="bd-tape-cell__val">jump: 5</span></div>
+      <div class="bd-tape-cell bd-tape-cell--key"><span class="bd-tape-cell__idx">tape[1]</span><span class="bd-tape-cell__tag">KEY</span><span class="bd-tape-cell__val">"id"</span></div>
+      <div class="bd-tape-cell bd-tape-cell--int"><span class="bd-tape-cell__idx">tape[2]</span><span class="bd-tape-cell__tag">INT64</span><span class="bd-tape-cell__val">101</span></div>
+      <div class="bd-tape-cell bd-tape-cell--key"><span class="bd-tape-cell__idx">tape[3]</span><span class="bd-tape-cell__tag">KEY</span><span class="bd-tape-cell__val">"active"</span></div>
+      <div class="bd-tape-cell bd-tape-cell--bool"><span class="bd-tape-cell__idx">tape[4]</span><span class="bd-tape-cell__tag">BOOL_TRUE</span><span class="bd-tape-cell__val">—</span></div>
+      <div class="bd-tape-cell bd-tape-cell--obj"><span class="bd-tape-cell__idx">tape[5]</span><span class="bd-tape-cell__tag">OBJ_END</span><span class="bd-tape-cell__val">jump: 0</span></div>
+    </div>
+    <div class="bd-callout" style="font-size:0.8rem;margin:0.5rem 0 0;">
+      <strong>O(1) skip:</strong> <code>tape[tape[0].jump]</code> → jumps from tape[0] to tape[5] in one array read
+    </div>
+  </div>
+</div>
 
 Reading this diagram:
 - `tape[0]` stores `5` in its payload — the index of the matching `OBJ_END`. Skipping the entire object is a single array read: `tape[tape[0].jump]`.
@@ -164,15 +171,26 @@ Reading this diagram:
 
 Every element — object, array, string, integer, float, bool, null — is encoded in exactly **8 bytes**:
 
-```mermaid
-flowchart LR
-    subgraph NODE["TapeNode — 64 bits (8 bytes)"]
-        direction LR
-        TAG["bits 63–56<br/>────────<br/>Type Tag<br/>(8 bits)"]
-        PAY["bits 55–0<br/>────────<br/>Payload<br/>(56 bits)"]
-        TAG --- PAY
-    end
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-bits">
+      <div class="bd-bit-seg" style="width:90px;flex-shrink:0;background:color-mix(in srgb,var(--vp-c-brand-1) 20%,transparent);border-radius:4px 0 0 4px;">
+        <span class="bd-bit-seg__range">bits 63–56</span>
+        <span class="bd-bit-seg__val">Type Tag</span>
+        <span class="bd-bit-seg__name">(8 bits)</span>
+      </div>
+      <div class="bd-bit-seg" style="flex:1;background:color-mix(in srgb,var(--vp-c-brand-1) 9%,transparent);border:1px solid var(--vp-c-divider);border-radius:0 4px 4px 0;">
+        <span class="bd-bit-seg__range">bits 55–0</span>
+        <span class="bd-bit-seg__val">Payload</span>
+        <span class="bd-bit-seg__name">(56 bits)</span>
+      </div>
+    </div>
+    <div class="bd-row" style="gap:2rem;margin-top:0.5rem;font-size:0.78rem;color:var(--vp-c-text-2);font-family:var(--vp-font-family-mono);">
+      <span>0x01–0x0C = node type</span>
+      <span>jump index / ptr+len / inline value</span>
+    </div>
+  </div>
+</div>
 
 **Type tag values:**
 
@@ -199,25 +217,33 @@ The 8-bit type tag is handled by a branch-predictor-friendly `switch`. The 56-bi
 
 String data is **never copied**. KEY and STRING nodes store a `string_view` pointing directly into the caller's input buffer:
 
-```mermaid
-flowchart TB
-    subgraph BUF["Input Buffer — caller-owned, never touched by the parser"]
-        RAW["{ #quot;name#quot;: #quot;Bob#quot; }"]
-    end
-
-    subgraph TAPE["Document Tape (TapeArena)"]
-        TN1["tape[1] KEY<br/>string_view { &amp;buf[2], len=4 } → 'name'"]
-        TN2["tape[2] STRING<br/>string_view { &amp;buf[9], len=3 } → 'Bob'"]
-    end
-
-    subgraph VAL["beast::Value  (lazy handle)"]
-        V["doc=&amp;document, idx=2<br/>— nothing extracted yet —"]
-    end
-
-    TN1 -->|"zero-copy pointer"| BUF
-    TN2 -->|"zero-copy pointer"| BUF
-    VAL -->|".as&lt;string_view&gt;() reads TapeNode → returns string_view into BUF"| TN2
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-group" style="width:100%;max-width:480px;">
+      <div class="bd-group__title">Input Buffer — caller-owned, never copied</div>
+      <div class="bd-group__body">
+        <div class="bd-box bd-box--blue" style="font-size:0.85rem;">{ &quot;name&quot;: &quot;Bob&quot; }</div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">zero-copy pointer</div></div>
+    <div class="bd-group" style="width:100%;max-width:480px;">
+      <div class="bd-group__title">Document Tape (TapeArena)</div>
+      <div class="bd-group__body">
+        <div class="bd-tape-strip" style="justify-content:center;">
+          <div class="bd-tape-cell bd-tape-cell--key"><span class="bd-tape-cell__idx">tape[1] KEY</span><span class="bd-tape-cell__tag">string_view</span><span class="bd-tape-cell__val">&amp;buf[2], len=4 → "name"</span></div>
+          <div class="bd-tape-cell bd-tape-cell--str"><span class="bd-tape-cell__idx">tape[2] STRING</span><span class="bd-tape-cell__tag">string_view</span><span class="bd-tape-cell__val">&amp;buf[9], len=3 → "Bob"</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">.as&lt;string_view&gt;() reads TapeNode → returns string_view into BUF</div></div>
+    <div class="bd-group" style="width:100%;max-width:480px;">
+      <div class="bd-group__title">beast::Value (lazy handle)</div>
+      <div class="bd-group__body">
+        <div class="bd-box" style="font-size:0.78rem;">doc=&amp;document, idx=2<br><small>— nothing extracted yet —</small></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 `string_view` lifetime: valid as long as both the `Document` and the input buffer are alive.
 The input buffer must not be modified or freed while any `Value` referencing it exists.
@@ -228,32 +254,37 @@ The input buffer must not be modified or freed while any `Value` referencing it 
 
 Parsing runs in two tightly coupled stages across the same input buffer:
 
-```mermaid
-flowchart TB
-    RAW["Raw JSON bytes"]
-
-    subgraph S1["Stage 1 — Structural Indexing (SIMD)"]
-        direction TB
-        AVX["AVX-512<br/>64 bytes/cycle (Intel Ice Lake+)"]
-        NEON["NEON<br/>16 bytes/cycle (ARM / Apple Silicon)"]
-        BITS["Structural Bitset<br/>one bit per input byte<br/>1 = structural char, 0 = inside string or data"]
-        AVX --> BITS
-        NEON --> BITS
-    end
-
-    subgraph S2["Stage 2 — Tape Generation (scalar)"]
-        direction TB
-        WALK["Walk bitset — iterate set bits only"]
-        STR["Strings → string_view (zero copy)"]
-        NUM["Numbers → Russ Cox algorithm (no strtod)"]
-        BOOL["Bool / Null → type tag only"]
-        OUT["tape[] — TapeNode array, ready for query"]
-        WALK --> STR & NUM & BOOL --> OUT
-    end
-
-    RAW --> S1
-    S1 -->|"sparse bitset"| S2
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-box bd-box--brand">Raw JSON bytes</div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-group" style="width:100%;max-width:520px;">
+      <div class="bd-group__title">Stage 1 — Structural Indexing (SIMD)</div>
+      <div class="bd-group__body">
+        <div class="bd-row">
+          <div class="bd-box bd-box--teal">AVX-512<br><small>64 bytes/cycle (Intel Ice Lake+)</small></div>
+          <div class="bd-box bd-box--teal">NEON<br><small>16 bytes/cycle (ARM / Apple Silicon)</small></div>
+        </div>
+        <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+        <div class="bd-box bd-box--brand" style="max-width:360px;">Structural Bitset<br><small>one bit per input byte — 1 = structural char, 0 = data</small></div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">sparse bitset</div></div>
+    <div class="bd-group" style="width:100%;max-width:520px;">
+      <div class="bd-group__title">Stage 2 — Tape Generation (scalar)</div>
+      <div class="bd-group__body">
+        <div class="bd-box" style="max-width:300px;">Walk bitset — iterate set bits only<br><small>(5–15% of input)</small></div>
+        <div class="bd-row" style="gap:0.5rem;">
+          <div class="bd-box bd-box--purple">Strings<br><small>→ string_view (zero copy)</small></div>
+          <div class="bd-box bd-box--green">Numbers<br><small>→ Russ Cox (no strtod)</small></div>
+          <div class="bd-box bd-box--orange">Bool/Null<br><small>→ type tag only</small></div>
+        </div>
+        <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+        <div class="bd-box bd-box--brand">tape[] — TapeNode array, ready for query</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 Stage 1 runs at near-memory-bandwidth speed by processing 64 bytes per instruction.
 Stage 2 only visits structural positions (5–15% of the input), making it branch-prediction-friendly and cache-hot.
@@ -264,26 +295,35 @@ Stage 2 only visits structural positions (5–15% of the input), making it branc
 
 Jump pointers in `OBJ_START` / `OBJ_END` and `ARR_START` / `ARR_END` enable sub-linear traversal:
 
-```mermaid
-flowchart TB
-    subgraph DOC["Tape for: { a: [1,2,3], b: true }"]
-        direction TB
-        I0["[0] OBJ_START — jump: 9"]
-        I1["[1] KEY 'a'"]
-        I2["[2] ARR_START — jump: 6"]
-        I3["[3] UINT64 1"]
-        I4["[4] UINT64 2"]
-        I5["[5] UINT64 3"]
-        I6["[6] ARR_END — jump: 2"]
-        I7["[7] KEY 'b'"]
-        I8["[8] BOOL_TRUE"]
-        I9["[9] OBJ_END — jump: 0"]
-        I0 --- I1 --- I2 --- I3 --- I4 --- I5 --- I6 --- I7 --- I8 --- I9
-    end
-
-    I2 ---|"O(1) skip array ↕"| I6
-    I0 ---|"O(1) skip object ↕"| I9
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-group" style="width:100%;">
+      <div class="bd-group__title">Tape for: { "a": [1, 2, 3], "b": true }</div>
+      <div class="bd-group__body">
+        <div class="bd-tape-strip">
+          <div class="bd-tape-cell bd-tape-cell--obj"><span class="bd-tape-cell__idx">tape[0]</span><span class="bd-tape-cell__tag">OBJ_START</span><span class="bd-tape-cell__val">jump→9</span></div>
+          <div class="bd-tape-cell bd-tape-cell--key"><span class="bd-tape-cell__idx">tape[1]</span><span class="bd-tape-cell__tag">KEY</span><span class="bd-tape-cell__val">"a"</span></div>
+          <div class="bd-tape-cell bd-tape-cell--arr"><span class="bd-tape-cell__idx">tape[2]</span><span class="bd-tape-cell__tag">ARR_START</span><span class="bd-tape-cell__val">jump→6</span></div>
+          <div class="bd-tape-cell bd-tape-cell--int"><span class="bd-tape-cell__idx">tape[3]</span><span class="bd-tape-cell__tag">UINT64</span><span class="bd-tape-cell__val">1</span></div>
+          <div class="bd-tape-cell bd-tape-cell--int"><span class="bd-tape-cell__idx">tape[4]</span><span class="bd-tape-cell__tag">UINT64</span><span class="bd-tape-cell__val">2</span></div>
+          <div class="bd-tape-cell bd-tape-cell--int"><span class="bd-tape-cell__idx">tape[5]</span><span class="bd-tape-cell__tag">UINT64</span><span class="bd-tape-cell__val">3</span></div>
+          <div class="bd-tape-cell bd-tape-cell--arr"><span class="bd-tape-cell__idx">tape[6]</span><span class="bd-tape-cell__tag">ARR_END</span><span class="bd-tape-cell__val">jump→2</span></div>
+          <div class="bd-tape-cell bd-tape-cell--key"><span class="bd-tape-cell__idx">tape[7]</span><span class="bd-tape-cell__tag">KEY</span><span class="bd-tape-cell__val">"b"</span></div>
+          <div class="bd-tape-cell bd-tape-cell--bool"><span class="bd-tape-cell__idx">tape[8]</span><span class="bd-tape-cell__tag">BOOL_TRUE</span><span class="bd-tape-cell__val">—</span></div>
+          <div class="bd-tape-cell bd-tape-cell--obj"><span class="bd-tape-cell__idx">tape[9]</span><span class="bd-tape-cell__tag">OBJ_END</span><span class="bd-tape-cell__val">jump→0</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="bd-row" style="gap:1rem;">
+      <div class="bd-callout bd-callout--green" style="flex:1;margin:0;font-size:0.78rem;">
+        <strong>Skip array:</strong> tape[2].jump = 6 → jump from ARR_START to ARR_END in <strong>1 read (O(1))</strong>
+      </div>
+      <div class="bd-callout" style="flex:1;margin:0;font-size:0.78rem;">
+        <strong>Skip object:</strong> tape[0].jump = 9 → jump from OBJ_START to OBJ_END in <strong>1 read (O(1))</strong>
+      </div>
+    </div>
+  </div>
+</div>
 
 Use case: querying only key `"b"` in an object with a huge nested array under `"a"`. The parser jumps from `ARR_START` directly to `ARR_END` in one step — O(1) regardless of array size.
 
@@ -305,11 +345,11 @@ Every decision in the Lazy Tape DOM traces directly to one of the three original
 
 Taken together:
 
-```
-You pay the cost of parsing exactly once.
-You pay the cost of navigation never.
-You pay the cost of extraction only for the fields you actually read.
-```
+<div class="bd-callout bd-callout--green">
+  <strong>You pay the cost of parsing exactly once.</strong><br>
+  You pay the cost of navigation <strong>never</strong>.<br>
+  You pay the cost of extraction <strong>only for the fields you actually read</strong>.
+</div>
 
 ---
 

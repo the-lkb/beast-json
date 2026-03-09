@@ -6,23 +6,26 @@ Standard library functions like `strtod` and `atof` are notoriously slow for hig
 
 ## Why `strtod` Is Slow
 
-```mermaid
-flowchart TB
-    CALL["strtod(str, &end) called"]
-
-    subgraph COST["Hidden costs inside strtod"]
-        direction TB
-        C1["1. STMXCSR — save FPU rounding mode<br/>(serializing instruction: stalls entire CPU pipeline)"]
-        C2["2. LDMXCSR — set IEEE round-to-nearest<br/>(another pipeline flush)"]
-        C3["3. Sequential digit accumulation<br/>result = result × 10.0 + digit<br/>(7–17 floating-point multiplies)"]
-        C4["4. FPU rounding error accumulates each step<br/>(may require expensive correction loop)"]
-        C5["5. LDMXCSR — restore original rounding mode<br/>(third pipeline flush)"]
-        C1 --> C2 --> C3 --> C4 --> C5
-    end
-
-    RET["double returned<br/>(after ~80–200 ns)"]
-    CALL --> COST --> RET
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-box bd-box--red">strtod(str, &amp;end) called</div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-group" style="width:100%;max-width:500px;">
+      <div class="bd-group__title">Hidden costs inside strtod</div>
+      <div class="bd-group__body">
+        <div class="bd-steps">
+          <div class="bd-step"><div class="bd-step__num">1</div><div class="bd-step__body"><div class="bd-step__title">STMXCSR — save FPU rounding mode</div><div class="bd-step__desc">Serializing instruction: stalls the entire CPU pipeline</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">2</div><div class="bd-step__body"><div class="bd-step__title">LDMXCSR — set IEEE round-to-nearest</div><div class="bd-step__desc">Another pipeline flush</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">3</div><div class="bd-step__body"><div class="bd-step__title">Sequential digit accumulation</div><div class="bd-step__desc">result = result × 10.0 + digit (7–17 floating-point multiplies)</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">4</div><div class="bd-step__body"><div class="bd-step__title">FPU rounding error accumulates</div><div class="bd-step__desc">Each step adds error — may require expensive correction loop</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">5</div><div class="bd-step__body"><div class="bd-step__title">LDMXCSR — restore original rounding mode</div><div class="bd-step__desc">Third pipeline flush</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-box bd-box--orange">double returned<br><small>(after ~80–200 ns)</small></div>
+  </div>
+</div>
 
 `STMXCSR` / `LDMXCSR` are **serializing instructions** — they prevent the CPU from executing any subsequent instruction until the FPU state is written back to memory. For a parser targeting 2.7 GB/s, even a single `strtod` call per number would destroy all SIMD gains.
 
@@ -32,16 +35,33 @@ flowchart TB
 
 Before understanding the algorithm, it helps to see the target bit pattern:
 
-```mermaid
-flowchart TB
-    subgraph IEEE["IEEE-754 double — 64 bits total"]
-        direction TB
-        S["bit 63 — Sign (1 bit)<br/>0 = positive, 1 = negative"]
-        E["bits 62–52 — Biased Exponent (11 bits)<br/>e_stored = E_actual + 1023<br/>range: −1022 to +1023"]
-        M["bits 51–0 — Mantissa (52 explicit bits)<br/>implicit leading 1.0<br/>value = 1.mantissa × 2^E"]
-        S --- E --- M
-    end
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-group" style="max-width:560px;width:100%;">
+      <div class="bd-group__title">IEEE-754 double — 64 bits total</div>
+      <div class="bd-group__body">
+        <div class="bd-bits" style="max-width:520px;width:100%;">
+          <div class="bd-bit-seg" style="width:60px;flex-shrink:0;background:rgba(244,67,54,0.15);border:1px solid rgba(244,67,54,0.4);border-radius:4px 0 0 4px;">
+            <span class="bd-bit-seg__range">bit 63</span>
+            <span class="bd-bit-seg__val" style="color:#f44336;">Sign</span>
+            <span class="bd-bit-seg__name">1 bit</span>
+          </div>
+          <div class="bd-bit-seg" style="width:130px;flex-shrink:0;background:rgba(255,152,0,0.12);border:1px solid rgba(255,152,0,0.4);">
+            <span class="bd-bit-seg__range">bits 62–52</span>
+            <span class="bd-bit-seg__val" style="color:#ff9800;">Exponent</span>
+            <span class="bd-bit-seg__name">11 bits · bias 1023</span>
+          </div>
+          <div class="bd-bit-seg" style="flex:1;background:color-mix(in srgb,var(--vp-c-brand-1) 10%,transparent);border:1px solid color-mix(in srgb,var(--vp-c-brand-1) 40%,transparent);border-radius:0 4px 4px 0;">
+            <span class="bd-bit-seg__range">bits 51–0</span>
+            <span class="bd-bit-seg__val">Mantissa</span>
+            <span class="bd-bit-seg__name">52 bits · implicit 1.0</span>
+          </div>
+        </div>
+        <div style="font-size:0.78rem;color:var(--vp-c-text-2);font-family:var(--vp-font-family-mono);margin-top:0.5rem;">value = (−1)^sign × 1.mantissa × 2^(exponent − 1023)</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 The goal of float parsing: compute these three fields from a decimal string using **only integer arithmetic**.
 
@@ -51,42 +71,44 @@ The goal of float parsing: compute these three fields from a decimal string usin
 
 Beast JSON never calls `strtod`. Every decimal string goes through two integer-only stages:
 
-```mermaid
-flowchart TB
-    INPUT["Decimal string: '3.141592653589793'"]
-
-    subgraph EXTRACT["Extraction — SIMD-assisted"]
-        direction LR
-        EM["Integer mantissa m<br/>3141592653589793"]
-        EE["Decimal exponent e<br/>−15 (15 digits after point)"]
-        EM --- EE
-    end
-
-    subgraph T1["Stage 1 — Eisel-Lemire (64-bit fast path)"]
-        direction TB
-        EL1["Look up 64-bit approximation of 10^e"]
-        EL2["64 × 64 → 128-bit multiply (MULQ, 3 cycles)"]
-        EL3["Inspect top 53 bits: are they unambiguous?"]
-        EL1 --> EL2 --> EL3
-    end
-
-    subgraph T2["Stage 2 — Russ Cox 128-bit Exact Path"]
-        direction TB
-        RC1["Look up 128-bit exact multiplier C_e"]
-        RC2["64 × 128 → 192-bit multiply (2× MULQ + ADCQ)"]
-        RC3["Extract top 53 bits as mantissa"]
-        RC4["Inspect round bit and sticky bits"]
-        RC5["Assemble IEEE-754 bit pattern"]
-        RC1 --> RC2 --> RC3 --> RC4 --> RC5
-    end
-
-    RESULT["Exact double result<br/>(no FPU, no rounding mode changes)"]
-
-    INPUT --> EXTRACT --> T1
-    T1 -->|"unambiguous (~99% of inputs)"| RESULT
-    T1 -->|"half-way case (~1%)"| T2
-    T2 --> RESULT
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-box bd-box--brand" style="max-width:340px;">Decimal string: "3.141592653589793"</div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">SIMD-assisted extraction</div></div>
+    <div class="bd-row" style="gap:1rem;">
+      <div class="bd-box bd-box--teal" style="min-width:140px;">Integer mantissa m<br><small>3141592653589793</small></div>
+      <div class="bd-box bd-box--teal" style="min-width:140px;">Decimal exponent e<br><small>−15 (15 digits after point)</small></div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-group" style="width:100%;max-width:520px;">
+      <div class="bd-group__title">Stage 1 — Eisel-Lemire (64-bit fast path)</div>
+      <div class="bd-group__body">
+        <div class="bd-steps">
+          <div class="bd-step"><div class="bd-step__num">1</div><div class="bd-step__body"><div class="bd-step__title">Look up 64-bit approximation of 10^e</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">2</div><div class="bd-step__body"><div class="bd-step__title">64 × 64 → 128-bit multiply (MULQ, 3 cycles)</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">3</div><div class="bd-step__body"><div class="bd-step__title">Inspect top 53 bits: unambiguous?</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bd-row" style="gap:1rem;align-items:flex-start;">
+      <div class="bd-col" style="flex:1;">
+        <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">unambiguous (~99%)</div></div>
+        <div class="bd-box bd-box--green" style="font-size:0.78rem;">Exact IEEE-754 result<br><small>no FPU · no rounding mode</small></div>
+      </div>
+      <div class="bd-col" style="flex:1;">
+        <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">half-way case (~1%)</div></div>
+        <div class="bd-group">
+          <div class="bd-group__title">Stage 2 — Russ Cox 128-bit Exact</div>
+          <div class="bd-group__body">
+            <div class="bd-box bd-box--orange" style="font-size:0.75rem;">64 × 128 → 192-bit multiply</div>
+            <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+            <div class="bd-box bd-box--green" style="font-size:0.75rem;">Exact IEEE-754 result</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 There is **no third stage**. Beast JSON never falls back to `strtod`.
 
@@ -96,26 +118,26 @@ There is **no third stage**. Beast JSON never falls back to `strtod`.
 
 For a decimal string like `"1.23456789"`:
 
-```mermaid
-flowchart TB
-    subgraph SCAN["SIMD digit scan"]
-        direction TB
-        S1["Load up to 16 chars into NEON/SSE register"]
-        S2["VPCMPEQB: detect non-digit chars (. e E + -)"]
-        S3["VPSUBB: subtract '0' from each digit byte"]
-        S4["VPMULLW + VPHADDD: fused multiply-accumulate<br/>d0×10^8 + d1×10^7 + ... + d8×10^0"]
-        S1 --> S2 --> S3 --> S4
-    end
-
-    subgraph OUT["Output"]
-        direction LR
-        M["m = 123456789<br/>(integer mantissa)"]
-        EX["e = −8<br/>(8 decimal places)"]
-        M --- EX
-    end
-
-    SCAN --> OUT
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-group" style="width:100%;max-width:520px;">
+      <div class="bd-group__title">SIMD digit scan — "1.23456789"</div>
+      <div class="bd-group__body">
+        <div class="bd-steps">
+          <div class="bd-step"><div class="bd-step__num">1</div><div class="bd-step__body"><div class="bd-step__title">Load up to 16 chars into NEON/SSE register</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">2</div><div class="bd-step__body"><div class="bd-step__title">VPCMPEQB: detect non-digit chars (. e E + -)</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">3</div><div class="bd-step__body"><div class="bd-step__title">VPSUBB: subtract '0' from each digit byte</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">4</div><div class="bd-step__body"><div class="bd-step__title">VPMULLW + VPHADDD: fused multiply-accumulate</div><div class="bd-step__desc">d0×10^8 + d1×10^7 + … + d8×10^0</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-row" style="gap:1rem;">
+      <div class="bd-box bd-box--teal" style="min-width:140px;">m = 123456789<br><small>(integer mantissa)</small></div>
+      <div class="bd-box bd-box--teal" style="min-width:140px;">e = −8<br><small>(8 decimal places)</small></div>
+    </div>
+  </div>
+</div>
 
 Up to 18 significant digits can be packed into a 64-bit integer without overflow (`2^63 ≈ 9.2 × 10^18`).
 
@@ -125,33 +147,33 @@ Up to 18 significant digits can be packed into a 64-bit integer without overflow
 
 The precomputed table stores a 64-bit approximation of `10^e`. The product `m × approx(10^e)` yields a 128-bit integer:
 
-```mermaid
-flowchart TB
-    subgraph MUL["64 × 64 → 128-bit product (MULQ instruction)"]
-        direction LR
-        HI["High 64 bits<br/>integer part of m × 10^e<br/>(contains the mantissa)"]
-        LO["Low 64 bits<br/>fractional precision indicator<br/>(tells us if result is exact)"]
-        HI --- LO
-    end
-
-    subgraph CHECK["Ambiguity test"]
-        direction TB
-        T1["Find bit position P (leading-zero count of high 64 bits)"]
-        T2["Extract bits [P, P−52] = candidate 52-bit mantissa"]
-        T3["Are all remaining low bits = 0x800...0?<br/>(exactly halfway between two representable values)"]
-        T1 --> T2 --> T3
-    end
-
-    subgraph DEC["Decision"]
-        direction LR
-        YES["Unambiguous<br/>emit IEEE-754 directly<br/>(~99% of inputs)"]
-        NO["Half-way case<br/>fall through to Stage 2<br/>(~1% of inputs)"]
-    end
-
-    MUL --> CHECK
-    T3 -->|"not exactly halfway"| YES
-    T3 -->|"exactly halfway"| NO
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-group" style="width:100%;max-width:540px;">
+      <div class="bd-group__title">64 × 64 → 128-bit product (MULQ instruction)</div>
+      <div class="bd-group__body bd-group__body--row">
+        <div class="bd-box bd-box--brand" style="flex:1;">High 64 bits<br><small>integer part of m × 10^e<br>(contains the mantissa)</small></div>
+        <div class="bd-box" style="flex:1;">Low 64 bits<br><small>fractional precision indicator<br>(tells us if result is exact)</small></div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-group" style="width:100%;max-width:540px;">
+      <div class="bd-group__title">Ambiguity test</div>
+      <div class="bd-group__body">
+        <div class="bd-steps">
+          <div class="bd-step"><div class="bd-step__num">1</div><div class="bd-step__body"><div class="bd-step__title">Find bit position P</div><div class="bd-step__desc">Leading-zero count of high 64 bits</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">2</div><div class="bd-step__body"><div class="bd-step__title">Extract bits [P, P−52]</div><div class="bd-step__desc">Candidate 52-bit mantissa</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">3</div><div class="bd-step__body"><div class="bd-step__title">Are remaining low bits exactly 0x800…0?</div><div class="bd-step__desc">Checks if result is exactly halfway between two representable values</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-row" style="gap:1rem;">
+      <div class="bd-box bd-box--green" style="flex:1;">Not halfway<br><small>→ emit IEEE-754 directly (~99%)</small></div>
+      <div class="bd-box bd-box--orange" style="flex:1;">Exactly halfway<br><small>→ fall through to Stage 2 (~1%)</small></div>
+    </div>
+  </div>
+</div>
 
 "Unambiguous" means the product's mantissa bits are the same regardless of whether we round the approximation up or down.
 
@@ -161,35 +183,39 @@ flowchart TB
 
 For the ~1% of inputs where Eisel-Lemire is ambiguous, Beast JSON uses a precomputed **128-bit exact multiplier** for each power of 10:
 
-```mermaid
-flowchart TB
-    subgraph TABLE["Precomputed table: pow10_exact[e + 342]"]
-        direction TB
-        TE1["e = −342: 0xFA8FD5A0081C0288 9F0B8A2E0E0FF381"]
-        TE2["e =    0: 0x8000000000000000 0000000000000000"]
-        TE3["e =  308: 0xE8D4A51000000000 0000000000000000"]
-        TE4["651 entries total — 10.2 KB (fits in L1 cache)"]
-        TE1 --- TE2 --- TE3 --- TE4
-    end
-
-    subgraph MUL192["64-bit m × 128-bit C_e → 192-bit product"]
-        direction TB
-        PH["bits 191–128 (high)"]
-        PM["bits 127–64 (middle)"]
-        PL["bits 63–0 (low)"]
-        PH --- PM --- PL
-    end
-
-    subgraph EXTRACT["Mantissa extraction"]
-        direction TB
-        E1["Find P = position of highest set bit"]
-        E2["Extract bits [P, P−52]: the 52-bit mantissa"]
-        E3["Round bit = bit P−53<br/>Sticky bits = OR of all bits below P−53"]
-        E1 --> E2 --> E3
-    end
-
-    TABLE --> MUL192 --> EXTRACT
-```
+<div class="bd-diagram">
+  <div class="bd-col">
+    <div class="bd-group" style="width:100%;max-width:540px;">
+      <div class="bd-group__title">Precomputed table: pow10_exact[e + 342]</div>
+      <div class="bd-group__body">
+        <div class="bd-box" style="font-size:0.75rem;font-family:monospace;">e = −342: 0xFA8FD5A0081C0288 9F0B8A2E0E0FF381</div>
+        <div class="bd-box" style="font-size:0.75rem;font-family:monospace;">e =    0: 0x8000000000000000 0000000000000000</div>
+        <div class="bd-box" style="font-size:0.75rem;font-family:monospace;">e =  308: 0xE8D4A51000000000 0000000000000000</div>
+        <div class="bd-badge bd-badge--brand" style="margin-top:0.3rem;">651 entries · 10.2 KB · fits in L1 cache</div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">64-bit m × 128-bit C_e → 192-bit product</div></div>
+    <div class="bd-group" style="width:100%;max-width:540px;">
+      <div class="bd-group__title">192-bit product layout</div>
+      <div class="bd-group__body bd-group__body--row">
+        <div class="bd-box bd-box--brand" style="flex:1;">bits 191–128<br><small>high</small></div>
+        <div class="bd-box bd-box--teal" style="flex:1;">bits 127–64<br><small>middle</small></div>
+        <div class="bd-box" style="flex:1;">bits 63–0<br><small>low</small></div>
+      </div>
+    </div>
+    <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
+    <div class="bd-group" style="width:100%;max-width:540px;">
+      <div class="bd-group__title">Mantissa extraction</div>
+      <div class="bd-group__body">
+        <div class="bd-steps">
+          <div class="bd-step"><div class="bd-step__num">1</div><div class="bd-step__body"><div class="bd-step__title">Find P = position of highest set bit</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">2</div><div class="bd-step__body"><div class="bd-step__title">Extract bits [P, P−52]: the 52-bit mantissa</div></div></div>
+          <div class="bd-step"><div class="bd-step__num">3</div><div class="bd-step__body"><div class="bd-step__title">Round bit + Sticky bits</div><div class="bd-step__desc">Round bit = bit P−53 · Sticky = OR of all bits below P−53</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 ### The 192-bit Multiplication
 
