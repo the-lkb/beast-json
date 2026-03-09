@@ -472,34 +472,42 @@ Use this when an error occurs and you're not sure where to start:
 
 ### Parse errors
 
-- [ ] Is the JSON syntactically valid? Test with `jq . < input.json` or an online validator.
-- [ ] Does the input have trailing commas? (JSON disallows them; JavaScript allows them.)
-- [ ] Are all strings closed with a matching `"`?
-- [ ] Are all `{` matched with `}` and `[` matched with `]`?
-- [ ] Are escape sequences valid? (`\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, `\uXXXX` only)
-- [ ] Does any integer exceed 2⁵⁶ − 1? Use double or string instead.
-- [ ] Is the input null-terminated, or is the length passed correctly?
+<div class="bd-checklist">
+  <div class="bd-checklist-item">Is the JSON syntactically valid? Test with <code>jq . &lt; input.json</code> or an online validator.</div>
+  <div class="bd-checklist-item">Does the input have trailing commas? (JSON disallows them; JavaScript allows them.)</div>
+  <div class="bd-checklist-item">Are all strings closed with a matching <code>"</code>?</div>
+  <div class="bd-checklist-item">Are all <code>{</code> matched with <code>}</code> and <code>[</code> matched with <code>]</code>?</div>
+  <div class="bd-checklist-item">Are escape sequences valid? (<code>\"</code>, <code>\\</code>, <code>\/</code>, <code>\b</code>, <code>\f</code>, <code>\n</code>, <code>\r</code>, <code>\t</code>, <code>\uXXXX</code> only)</div>
+  <div class="bd-checklist-item">Does any integer exceed 2⁵⁶ − 1? Use double or string instead.</div>
+  <div class="bd-checklist-item">Is the input null-terminated, or is the length passed correctly?</div>
+</div>
 
 ### Type errors
 
-- [ ] What does `dump_tape()` show as the actual type tag?
-- [ ] Did you call `.as<int>()` on a float like `1.0`? Use `.as<double>()` instead.
-- [ ] Did you call `.as<string_view>()` on a key that might not exist? Use `.find()` first.
-- [ ] Are array indices zero-based and within range?
+<div class="bd-checklist">
+  <div class="bd-checklist-item">What does <code>dump_tape()</code> show as the actual type tag?</div>
+  <div class="bd-checklist-item">Did you call <code>.as&lt;int&gt;()</code> on a float like <code>1.0</code>? Use <code>.as&lt;double&gt;()</code> instead.</div>
+  <div class="bd-checklist-item">Did you call <code>.as&lt;string_view&gt;()</code> on a key that might not exist? Use <code>.find()</code> first.</div>
+  <div class="bd-checklist-item">Are array indices zero-based and within range?</div>
+</div>
 
 ### Lifetime / crash
 
-- [ ] Is the input buffer still alive when you access `string_view` values?
-- [ ] Is the `Document` still alive when you use any `Value` from it?
-- [ ] Did you return a `Value` or `string_view` from a function where the `Document` was local?
-- [ ] Did you move the `Document` after parsing (moving invalidates all `Value` handles)?
-- [ ] Run with `-fsanitize=address` — is there a use-after-free report?
+<div class="bd-checklist">
+  <div class="bd-checklist-item">Is the input buffer still alive when you access <code>string_view</code> values?</div>
+  <div class="bd-checklist-item">Is the <code>Document</code> still alive when you use any <code>Value</code> from it?</div>
+  <div class="bd-checklist-item">Did you return a <code>Value</code> or <code>string_view</code> from a function where the <code>Document</code> was local?</div>
+  <div class="bd-checklist-item">Did you move the <code>Document</code> after parsing (moving invalidates all <code>Value</code> handles)?</div>
+  <div class="bd-checklist-item">Run with <code>-fsanitize=address</code> — is there a use-after-free report?</div>
+</div>
 
 ### Serialization errors
 
-- [ ] Are you passing a fixed-size `char[]` buffer? Use `std::string` with `reserve()` instead.
-- [ ] Is the `write_to` return value checked for overflow errors?
-- [ ] Are custom serialization macros (`BEAST_SERIALIZE`) matching the struct fields exactly?
+<div class="bd-checklist">
+  <div class="bd-checklist-item">Are you passing a fixed-size <code>char[]</code> buffer? Use <code>std::string</code> with <code>reserve()</code> instead.</div>
+  <div class="bd-checklist-item">Is the <code>write_to</code> return value checked for overflow errors?</div>
+  <div class="bd-checklist-item">Are custom serialization macros (<code>BEAST_SERIALIZE</code>) matching the struct fields exactly?</div>
+</div>
 
 ---
 
