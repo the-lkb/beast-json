@@ -93,10 +93,17 @@ jobs:
             ser_vals   = re.findall(r'\d+\.\d+', parts[2])
             if not parse_vals or not ser_vals:
                 continue
+            # Alloc field (integer KB) — present in Alloc: format, 0 if absent
+            alloc_kb = 0
+            if len(parts) >= 4:
+                alloc_vals = re.findall(r'\d+', parts[3])
+                if alloc_vals:
+                    alloc_kb = int(alloc_vals[0])
             results.append({
                 "library":      lib,
                 "parse_us":     float(parse_vals[0]),
                 "serialize_us": float(ser_vals[0]),
+                "alloc_kb":     alloc_kb,
             })
 
         data = {
@@ -174,15 +181,22 @@ jobs:
                     (r["serialize_us"] for r in results if r["serialize_us"] > 0),
                     default=float("inf"),
                 )
-                lines.append("| Library | Parse (μs) | Serialize (μs) |")
-                lines.append("|:--------|----------:|---------------:|")
+                min_m = min(
+                    (r.get("alloc_kb", 0) for r in results if r.get("alloc_kb", 0) > 0),
+                    default=0,
+                )
+                lines.append("| Library | Parse (μs) | Serialize (μs) | Alloc (KB) |")
+                lines.append("|:--------|----------:|---------------:|-----------:|")
                 for r in results:
                     pv, sv = r["parse_us"], r["serialize_us"]
+                    mk = r.get("alloc_kb", 0)
                     pb = "**" if pv == min_p else ""
                     sb = "**" if sv > 0 and sv == min_s else ""
+                    mb = "**" if mk > 0 and mk == min_m else ""
                     s_str = f"{sv:.1f}" if sv > 0 else "—"
+                    m_str = str(mk) if mk > 0 else "—"
                     lines.append(
-                        f"| {pb}{r['library']}{pb} | {pb}{pv:.1f}{pb} | {sb}{s_str}{sb} |"
+                        f"| {pb}{r['library']}{pb} | {pb}{pv:.1f}{pb} | {sb}{s_str}{sb} | {mb}{m_str}{mb} |"
                     )
             else:
                 lines.append("_No data collected for this platform._")

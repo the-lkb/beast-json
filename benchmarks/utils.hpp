@@ -7,17 +7,32 @@
 #include <string>
 #include <vector>
 
-#include <sys/resource.h>
+#if defined(__APPLE__)
+#  include <mach/mach.h>
+#else
+#  include <unistd.h>
+#endif
 
 namespace bench {
 
-inline size_t get_peak_rss_kb() {
-  struct rusage ru;
-  getrusage(RUSAGE_SELF, &ru);
+// Current (not peak) RSS in KB.
+// Each library sub-process reads this before and after one cold parse;
+// the delta is the heap committed to hold the parsed document.
+inline size_t get_current_rss_kb() {
 #if defined(__APPLE__)
-  return ru.ru_maxrss / 1024;
+  struct mach_task_basic_info info;
+  mach_msg_type_number_t n = MACH_TASK_BASIC_INFO_COUNT;
+  if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO,
+                (task_info_t)&info, &n) == KERN_SUCCESS)
+    return static_cast<size_t>(info.resident_size / 1024);
+  return 0;
 #else
-  return ru.ru_maxrss;
+  std::ifstream f("/proc/self/statm");
+  if (!f) return 0;
+  long dummy, rss_pages;
+  f >> dummy >> rss_pages;
+  long page_kb = sysconf(_SC_PAGE_SIZE) / 1024;
+  return static_cast<size_t>(rss_pages * page_kb);
 #endif
 }
 
@@ -50,7 +65,6 @@ public:
   }
 
   double elapsed_us() const { return elapsed_ns() / 1000.0; }
-
   double elapsed_ms() const { return elapsed_ns() / 1000000.0; }
 
 private:
@@ -63,15 +77,16 @@ struct Result {
   double parse_time_ns;
   double serialize_time_ns;
   bool correctness_check;
+  size_t alloc_kb; // RSS delta during a single cold parse (document live)
 
   void print() const {
     std::cout << std::left << std::setw(15) << library
               << " | Parse: " << std::right << std::setw(9) << std::fixed
-              << std::setprecision(2) << (parse_time_ns / 1000.0) << " μs"
+              << std::setprecision(2) << (parse_time_ns / 1000.0) << " \xce\xbcs"
               << " | Serialize: " << std::setw(9) << std::fixed
-              << std::setprecision(2) << (serialize_time_ns / 1000.0) << " μs"
-              << " | Mem: " << std::setw(6) << get_peak_rss_kb() << " KB"
-              << " | ✓ " << (correctness_check ? "PASS" : "FAIL") << "\n";
+              << std::setprecision(2) << (serialize_time_ns / 1000.0) << " \xce\xbcs"
+              << " | Alloc: " << std::setw(6) << alloc_kb << " KB"
+              << " | \xe2\x9c\x93 " << (correctness_check ? "PASS" : "FAIL") << "\n";
   }
 };
 

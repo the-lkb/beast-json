@@ -76,9 +76,12 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
 
   // ── 1. beast::json::lazy (production path) ──────────────────────────────
   if (lib_filter == "beast::lazy") {
+    // Memory: RSS before vs after cold parse — measures tape arena size
+    size_t rss0 = bench::get_current_rss_kb();
     beast::Document ctx;
-    // Warm-up: size the tape
-    beast::parse(ctx, content);
+    beast::parse(ctx, content); // cold parse: allocates and sizes the tape
+    size_t rss1 = bench::get_current_rss_kb();
+    size_t alloc_kb = (rss1 > rss0) ? rss1 - rss0 : 0;
 
     bench::Timer pt, st;
     pt.start();
@@ -101,13 +104,19 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
       ok = !out.empty();
     }
 
-    bench::Result{"beast::lazy", p_ns, s_ns, ok}.print();
+    bench::Result{"beast::lazy", p_ns, s_ns, ok, alloc_kb}.print();
   }
 
   // ── 1.5 simdjson ─────────────────────────────────────────────────────────
   if (lib_filter == "simdjson") {
+    // Memory: padded input copy + parser internal tape
+    size_t rss0 = bench::get_current_rss_kb();
     simdjson::padded_string padded(content);
     simdjson::dom::parser parser;
+    auto doc_mem = parser.parse(padded); // cold parse: sizes internal buffers
+    (void)doc_mem;
+    size_t rss1 = bench::get_current_rss_kb();
+    size_t alloc_kb = (rss1 > rss0) ? rss1 - rss0 : 0;
 
     bench::Timer pt, st;
     pt.start();
@@ -128,11 +137,18 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
       s_ns = st.elapsed_ns() / N;
     }
 
-    bench::Result{"simdjson", p_ns, s_ns, true}.print();
+    bench::Result{"simdjson", p_ns, s_ns, true, alloc_kb}.print();
   }
 
   // ── 2. yyjson ────────────────────────────────────────────────────────────
   if (lib_filter == "yyjson") {
+    // Memory: one cold parse, document kept live while measuring
+    size_t rss0 = bench::get_current_rss_kb();
+    yyjson_doc *d_mem = yyjson_read(content.c_str(), content.size(), 0);
+    size_t rss1 = bench::get_current_rss_kb();
+    size_t alloc_kb = (rss1 > rss0) ? rss1 - rss0 : 0;
+    yyjson_doc_free(d_mem);
+
     bench::Timer pt, st;
     pt.start();
     for (size_t i = 0; i < N; ++i) {
@@ -154,84 +170,110 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
       yyjson_doc_free(d);
     }
 
-    bench::Result{"yyjson", p_ns, s_ns, true}.print();
+    bench::Result{"yyjson", p_ns, s_ns, true, alloc_kb}.print();
   }
 
   // ── 3. RapidJSON ─────────────────────────────────────────────────────────
   if (lib_filter == "RapidJSON") {
-    bench::Timer pt, st;
-    pt.start();
-    for (size_t i = 0; i < N; ++i) {
-      rapidjson::Document d;
-      d.Parse(content.c_str());
-    }
-    double p_ns = pt.elapsed_ns() / N;
+    // Memory: one cold parse, document kept live while measuring
+    size_t rss0 = bench::get_current_rss_kb();
+    {
+      rapidjson::Document d_mem;
+      d_mem.Parse(content.c_str());
+      size_t rss1 = bench::get_current_rss_kb();
+      size_t alloc_kb = (rss1 > rss0) ? rss1 - rss0 : 0;
 
-    double s_ns = 0.0;
-    if (!parse_only) {
-      rapidjson::Document d;
-      d.Parse(content.c_str());
-      rapidjson::StringBuffer buffer;
-      st.start();
+      bench::Timer pt, st;
+      pt.start();
       for (size_t i = 0; i < N; ++i) {
-        buffer.Clear();
-        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-        d.Accept(writer);
+        rapidjson::Document d;
+        d.Parse(content.c_str());
       }
-      s_ns = st.elapsed_ns() / N;
-    }
+      double p_ns = pt.elapsed_ns() / N;
 
-    bench::Result{"RapidJSON", p_ns, s_ns, true}.print();
+      double s_ns = 0.0;
+      if (!parse_only) {
+        rapidjson::Document d;
+        d.Parse(content.c_str());
+        rapidjson::StringBuffer buffer;
+        st.start();
+        for (size_t i = 0; i < N; ++i) {
+          buffer.Clear();
+          rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+          d.Accept(writer);
+        }
+        s_ns = st.elapsed_ns() / N;
+      }
+
+      bench::Result{"RapidJSON", p_ns, s_ns, true, alloc_kb}.print();
+    }
   }
 
   // ── 4. Glaze (DOM glz::json_t) ───────────────────────────────────────────
 #ifdef BEAST_HAS_GLAZE
   if (lib_filter == "Glaze DOM") {
-    bench::Timer pt, st;
-    pt.start();
-    for (size_t i = 0; i < N; ++i) {
-      glz::json_t d;
-      auto ec = glz::read_json(d, content);
-      (void)ec;
-    }
-    double p_ns = pt.elapsed_ns() / N;
+    // Memory: one cold parse, document kept live while measuring
+    size_t rss0 = bench::get_current_rss_kb();
+    {
+      glz::json_t d_mem;
+      (void)glz::read_json(d_mem, content);
+      size_t rss1 = bench::get_current_rss_kb();
+      size_t alloc_kb = (rss1 > rss0) ? rss1 - rss0 : 0;
 
-    double s_ns = 0.0;
-    if (!parse_only) {
-      glz::json_t d;
-      (void)glz::read_json(d, content);
-      std::string out;
-      st.start();
+      bench::Timer pt, st;
+      pt.start();
       for (size_t i = 0; i < N; ++i) {
-        out.clear();
-        (void)glz::write_json(d, out);
+        glz::json_t d;
+        auto ec = glz::read_json(d, content);
+        (void)ec;
       }
-      s_ns = st.elapsed_ns() / N;
-    }
+      double p_ns = pt.elapsed_ns() / N;
 
-    bench::Result{"Glaze DOM", p_ns, s_ns, true}.print();
+      double s_ns = 0.0;
+      if (!parse_only) {
+        glz::json_t d;
+        (void)glz::read_json(d, content);
+        std::string out;
+        st.start();
+        for (size_t i = 0; i < N; ++i) {
+          out.clear();
+          (void)glz::write_json(d, out);
+        }
+        s_ns = st.elapsed_ns() / N;
+      }
+
+      bench::Result{"Glaze DOM", p_ns, s_ns, true, alloc_kb}.print();
+    }
   }
 #endif
 
   // ── 5. nlohmann/json (baseline) ──────────────────────────────────────────
   if (lib_filter == "nlohmann") {
-    bench::Timer pt, st;
-    pt.start();
-    for (size_t i = 0; i < N; ++i) {
-      [[maybe_unused]] auto j = nlohmann::json::parse(content);
-    }
-    double p_ns = pt.elapsed_ns() / N;
+    // Memory: one cold parse, document kept live while measuring
+    size_t rss0 = bench::get_current_rss_kb();
+    {
+      [[maybe_unused]] auto j_mem = nlohmann::json::parse(content);
+      size_t rss1 = bench::get_current_rss_kb();
+      size_t alloc_kb = (rss1 > rss0) ? rss1 - rss0 : 0;
 
-    double s_ns = 0.0;
-    if (!parse_only) {
-      nlohmann::json j = nlohmann::json::parse(content);
-      st.start();
-      for (size_t i = 0; i < N; ++i)
-        (void)j.dump();
-      s_ns = st.elapsed_ns() / N;
-    }
+      bench::Timer pt, st;
+      pt.start();
+      for (size_t i = 0; i < N; ++i) {
+        [[maybe_unused]] auto j = nlohmann::json::parse(content);
+      }
+      double p_ns = pt.elapsed_ns() / N;
 
-    bench::Result{"nlohmann", p_ns, s_ns, true}.print();
+      double s_ns = 0.0;
+      if (!parse_only) {
+        nlohmann::json j = nlohmann::json::parse(content);
+        st.start();
+        for (size_t i = 0; i < N; ++i)
+          (void)j.dump();
+        s_ns = st.elapsed_ns() / N;
+      }
+
+      bench::Result{"nlohmann", p_ns, s_ns, true, alloc_kb}.print();
+    }
   }
 }
 

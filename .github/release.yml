@@ -1,0 +1,48 @@
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+      - skip-release-notes
+      - dependencies
+
+  categories:
+    - title: "💥 Breaking Changes"
+      labels:
+        - breaking-change
+        - breaking
+
+    - title: "✨ New Features"
+      labels:
+        - enhancement
+        - feature
+        - new-feature
+
+    - title: "🐛 Bug Fixes"
+      labels:
+        - bug
+        - fix
+        - bugfix
+        - regression
+
+    - title: "⚡ Performance"
+      labels:
+        - performance
+        - benchmark
+        - optimization
+        - simd
+
+    - title: "📚 Documentation"
+      labels:
+        - documentation
+        - docs
+
+    - title: "🔧 CI / Infrastructure"
+      labels:
+        - ci
+        - infrastructure
+        - build
+        - tooling
+
+    - title: "🧹 Other Changes"
+      labels:
+        - "*"
