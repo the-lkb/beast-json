@@ -773,7 +773,20 @@ public:
   void set(const std::string &s) { set(std::string_view(s)); }
   void set(const char *s) { set(std::string_view(s)); }
 
-  // Erase a previously set() mutation, restoring the original parsed value.
+  // unset() — undo a previous set() and revert to the original parsed value.
+  //
+  // Removes the mutation overlay for this tape position so that subsequent
+  // reads (as<T>(), type_name(), dump()) return the value that was present
+  // in the original parsed JSON.
+  //
+  // Important: this is NOT a "reset to null".  After unset():
+  //   - type_name() reflects the *original* parsed type (e.g. still "bool"
+  //     if the parsed value was a boolean)
+  //   - as<T>() returns the original parsed value
+  //
+  // unset() only affects the scalar mutation overlay (mutations_).  Keys
+  // added via insert() or elements added via push_back() are unaffected.
+  // On an invalid Value (doc_=nullptr) this is a no-op.
   void unset() {
     if (!doc_)
       return;
@@ -864,11 +877,14 @@ public:
   // ── Navigation: operator[] and find
   //
   // Beast API philosophy:
-  //   operator[](key/idx)   — throws on miss (like STL at())
+  //   operator[](key/idx)   — non-throwing: returns an invalid Value{}
+  //                           (is_valid() == false) when the key or index is
+  //                           absent.  Use if(v) / v.is_valid() to check.
+  //                           Use find() when you need an explicit optional.
   //   find(key)             — returns std::optional<Value> (no-throw)
   //
-  // This is our own pattern: subscript for confident access, find() for
-  // conditional access — both composable and explicit about failure mode.
+  // This is our own pattern: subscript for convenient chained access, find()
+  // for conditional access — both non-throwing and composable.
 
   // const char* overload — exact match for string literals, avoids ambiguity
   // with built-in operator[](long, const char*) that would otherwise be

@@ -1,6 +1,8 @@
 #include <beast_json/beast_json.hpp>
 #include <gtest/gtest.h>
 #include <iostream>
+#include <map>
+#include <optional>
 #include <set>
 #include <string>
 
@@ -209,6 +211,130 @@ TEST(ReproBugs2, ItemsValuesOfInsertedKeys) {
   EXPECT_EQ(got["x"], 10);
   EXPECT_EQ(got["y"], 20);
   EXPECT_EQ(got["z"], 30);
+}
+
+// ── OBS-1: unset() reverts to original parsed value, NOT null reset ──────────
+//
+// unset() removes the mutation overlay so as<T>() and type_name() return the
+// original parsed value/type. It does NOT reset the value to null.
+TEST(Observations, UnsetRevertsToOriginalValue) {
+  Document doc;
+  Value root = parse(doc, R"({"n":42,"s":"hello","flag":true})");
+
+  // Mutate, then revert
+  root["n"].set(999);
+  EXPECT_EQ(root["n"].as<int>(), 999);
+  root["n"].unset();
+  EXPECT_EQ(root["n"].as<int>(), 42); // original value restored
+
+  root["s"].set("world");
+  EXPECT_EQ(root["s"].as<std::string>(), "world");
+  root["s"].unset();
+  EXPECT_EQ(root["s"].as<std::string>(), "hello"); // original restored
+
+  root["flag"].set(false);
+  EXPECT_FALSE(root["flag"].as<bool>());
+  root["flag"].unset();
+  EXPECT_TRUE(root["flag"].as<bool>()); // original true restored
+}
+
+TEST(Observations, UnsetTypeNameRetainsOriginalType) {
+  Document doc;
+  Value root = parse(doc, R"({"b":false,"n":10})");
+
+  // Set bool to bool — after unset, still bool (original type preserved)
+  root["b"].set(true);
+  EXPECT_EQ(root["b"].type_name(), "bool");
+  root["b"].unset();
+  // type_name() returns original parsed type, not "null"
+  EXPECT_EQ(root["b"].type_name(), "bool");
+  EXPECT_FALSE(root["b"].as<bool>()); // original value: false
+
+  // Set int to int — after unset, still int
+  root["n"].set(99);
+  root["n"].unset();
+  EXPECT_EQ(root["n"].type_name(), "int");
+  EXPECT_EQ(root["n"].as<int>(), 10);
+}
+
+// ── OBS-2: operator[] returns invalid Value on miss, does NOT throw ───────────
+//
+// The API documentation previously said "throws on miss (like STL at())".
+// The actual behavior is non-throwing: a miss returns an invalid Value{}.
+// Only calling as<T>() on that invalid Value subsequently throws.
+TEST(Observations, SubscriptMissReturnsInvalidNotThrow) {
+  Document doc;
+  Value root = parse(doc, R"({"a":1})");
+
+  // Object miss — must not throw; must return invalid Value
+  Value miss_obj = root["nonexistent"];
+  EXPECT_FALSE(miss_obj.is_valid());
+
+  // Array miss — must not throw; must return invalid Value
+  Value arr = parse(doc, "[1,2,3]");
+  Value miss_arr = arr[99];
+  EXPECT_FALSE(miss_arr.is_valid());
+
+  // Chained miss — each level is a no-throw invalid Value
+  Value deep = root["x"]["y"]["z"];
+  EXPECT_FALSE(deep.is_valid());
+}
+
+TEST(Observations, AsOnInvalidValueThrows) {
+  Document doc;
+  Value root = parse(doc, R"({"a":1})");
+
+  // operator[] itself does not throw, but as<T>() on the result does
+  Value miss = root["nonexistent"];
+  EXPECT_FALSE(miss.is_valid());
+  EXPECT_THROW(miss.as<int>(), std::runtime_error);
+  EXPECT_THROW(miss.as<std::string>(), std::runtime_error);
+}
+
+// ── OBS-3: as_array<T>() throws on type mismatch; try_as_array<T>() is safe ──
+//
+// as_array<T>() throws std::runtime_error when an element cannot be converted
+// to T. try_as_array<T>() returns std::optional<T> and never throws.
+TEST(Observations, AsArrayThrowsOnTypeMismatch) {
+  Document doc;
+  Value v = parse(doc, R"([1,"two",3])");
+
+  bool threw = false;
+  try {
+    for (int x : v.as_array<int>()) {
+      (void)x; // suppress unused warning
+    }
+  } catch (const std::runtime_error &) {
+    threw = true;
+  }
+  EXPECT_TRUE(threw); // throws when reaching "two"
+}
+
+TEST(Observations, TryAsArrayHandlesMixedTypes) {
+  Document doc;
+  Value v = parse(doc, R"([1,"two",3])");
+
+  std::vector<int> ints;
+  for (auto maybe : v.try_as_array<int>()) {
+    if (maybe.has_value())
+      ints.push_back(maybe.value());
+  }
+
+  // Only integer elements are collected; "two" silently skipped
+  ASSERT_EQ(ints.size(), 2u);
+  EXPECT_EQ(ints[0], 1);
+  EXPECT_EQ(ints[1], 3);
+}
+
+TEST(Observations, TryAsArrayNeverThrows) {
+  Document doc;
+  Value v = parse(doc, R"([true,42,"text",null,3.14])");
+
+  // Mixed type array — try_as_array<int> never throws regardless of types
+  EXPECT_NO_THROW({
+    for ([[maybe_unused]] auto maybe : v.try_as_array<int>()) {
+    }
+  });
 }
 
 int main(int argc, char **argv) {
