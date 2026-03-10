@@ -66,7 +66,14 @@ export default withMermaid(
                 { text: 'Guide', link: '/guide/introduction' },
                 { text: 'Architecture', link: '/theory/architecture' },
                 { text: 'Benchmarks', link: '/guide/benchmarks' },
-                { text: 'API Reference', link: '/api/index' }
+                { text: 'API Reference', link: '/api/index' },
+                {
+                    text: 'v1.0.5',
+                    items: [
+                        { text: 'Release Notes', link: 'https://github.com/qbuem/beast-json/releases/tag/v1.0.5' },
+                        { text: 'All Releases', link: 'https://github.com/qbuem/beast-json/releases' }
+                    ]
+                }
             ],
 
             sidebar: {

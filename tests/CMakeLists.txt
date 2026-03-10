@@ -52,7 +52,10 @@ function(add_beast_gtest name)
         target_compile_options(${name} PRIVATE -O1 -g -Wall -Wextra)
     endif()
 
-    gtest_discover_tests(${name} DISCOVERY_TIMEOUT 60 DISCOVERY_MODE PRE_TEST)
+    # POST_BUILD discovers tests once at build time by running the binary on the
+    # build host, which is deterministic and avoids running each binary twice
+    # (once for discovery, once for execution) under PRE_TEST mode.
+    gtest_discover_tests(${name} DISCOVERY_TIMEOUT 90 DISCOVERY_MODE POST_BUILD)
 endfunction()
 
 # ── Core correctness tests ─────────────────────────────────────────────────

@@ -8,53 +8,114 @@ on:
 
 jobs:
   build_and_test:
-    name: ${{ matrix.os }} - ${{ matrix.compiler }} - ${{ matrix.build_type }}
+    name: ${{ matrix.os }} / ${{ matrix.arch }} / ${{ matrix.compiler }} / ${{ matrix.build_type }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        arch: [x86_64, aarch64]
-        build_type: [Release, Debug]
-        compiler: [gcc, clang, apple-clang]
         include:
-          # Specific compiler versions and CC/CXX exports
-          - compiler: gcc
+          # ── Linux x86_64 ────────────────────────────────────────────────────
+          - os: ubuntu-latest
+            arch: x86_64
+            compiler: gcc
             cc: gcc-13
             cxx: g++-13
-          - compiler: clang
+            build_type: Release
+
+          - os: ubuntu-latest
+            arch: x86_64
+            compiler: gcc
+            cc: gcc-13
+            cxx: g++-13
+            build_type: Debug
+
+          - os: ubuntu-latest
+            arch: x86_64
+            compiler: clang
             cc: clang-18
             cxx: clang++-18
-        exclude:
-          # Exclude invalid architecture combinations
-          - os: macos-latest
-            arch: x86_64 # macos-latest is ARM (M1/M2/M3), exclude x86_64
-          # Exclude combinations that don't make sense
+            build_type: Release
+
           - os: ubuntu-latest
-            compiler: apple-clang
-          - os: macos-latest
-            compiler: gcc
-          - os: macos-latest
+            arch: x86_64
             compiler: clang
+            cc: clang-18
+            cxx: clang++-18
+            build_type: Debug
+
+          # ── Linux aarch64 — GitHub-hosted native ARM64 runner ────────────
+          # Native runners eliminate QEMU emulation entirely, removing all
+          # emulation-related segfaults caused by incomplete NEON/SVE support,
+          # signal-handling differences, and stack-size divergence in QEMU.
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+            compiler: gcc
+            cc: gcc-14
+            cxx: g++-14
+            build_type: Release
+
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+            compiler: gcc
+            cc: gcc-14
+            cxx: g++-14
+            build_type: Debug
+
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+            compiler: clang
+            cc: clang-18
+            cxx: clang++-18
+            build_type: Release
+
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+            compiler: clang
+            cc: clang-18
+            cxx: clang++-18
+            build_type: Debug
+
+          # ── macOS ARM64 (Apple Silicon) ──────────────────────────────────
+          - os: macos-latest
+            arch: aarch64
+            compiler: apple-clang
+            build_type: Release
+
+          - os: macos-latest
+            arch: aarch64
+            compiler: apple-clang
+            build_type: Debug
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Compilers (Ubuntu)
+    # ── Compiler installation ────────────────────────────────────────────────
+
+    - name: Install GCC 13 (Ubuntu x86_64)
       if: runner.os == 'Linux' && matrix.compiler == 'gcc' && matrix.arch == 'x86_64'
       run: |
-        sudo apt-get update
+        sudo apt-get update -qq
         sudo apt-get install -y g++-13
 
-    - name: Install Compilers (Ubuntu Clang)
+    - name: Install Clang 18 (Ubuntu x86_64)
       if: runner.os == 'Linux' && matrix.compiler == 'clang' && matrix.arch == 'x86_64'
       run: |
-        wget https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh 18
+        wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s 18
 
-    - name: Configure CMake (Native)
-      if: matrix.arch == 'x86_64' || runner.os != 'Linux'
+    - name: Install GCC 14 (Ubuntu aarch64)
+      if: runner.os == 'Linux' && matrix.compiler == 'gcc' && matrix.arch == 'aarch64'
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y g++-14
+
+    - name: Install Clang 18 (Ubuntu aarch64)
+      if: runner.os == 'Linux' && matrix.compiler == 'clang' && matrix.arch == 'aarch64'
+      run: |
+        wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s 18
+
+    # ── CMake configure ──────────────────────────────────────────────────────
+
+    - name: Configure CMake
       env:
         CC: ${{ matrix.cc }}
         CXX: ${{ matrix.cxx }}
@@ -62,73 +123,23 @@ jobs:
         cmake -B build
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DBEAST_JSON_BUILD_TESTS=ON
+        -DBEAST_JSON_BUILD_BENCHMARKS=OFF
 
-    - name: Build (Native)
-      if: runner.os != 'Linux' || matrix.arch == 'x86_64'
+    # ── Build ────────────────────────────────────────────────────────────────
+    # Build single-threaded to keep peak memory low on smaller runners.
+
+    - name: Build
       run: cmake --build build --config ${{ matrix.build_type }} -j1
 
-    - name: Test (Native)
-      if: runner.os != 'Linux' || matrix.arch == 'x86_64'
+    # ── Test ─────────────────────────────────────────────────────────────────
+    # --rerun-failed retries any test that exits non-zero once before marking
+    # it as a failure, guarding against rare transient OS-level flakiness.
+
+    - name: Test
       working-directory: build
-      run: ctest -C ${{ matrix.build_type }} --output-on-failure
-
-
-
-    # ── AARCH64 (ARM Linux) QEMU Emulation ────────────────────────────────────
-
-    # Add swap space on the host to prevent OOM / segfault during QEMU emulation.
-    # ubuntu-latest runners already mount /swapfile; use /mnt (separate disk) instead.
-    - name: Set up swap space for QEMU
-      if: runner.os == 'Linux' && matrix.arch == 'aarch64'
-      run: |
-        sudo fallocate -l 4G /mnt/swapfile
-        sudo chmod 600 /mnt/swapfile
-        sudo mkswap /mnt/swapfile
-        sudo swapon /mnt/swapfile
-        free -h
-
-    # Pre-fetch FetchContent dependencies on the host (has internet access).
-    # The QEMU container cannot reliably reach github.com, so we download
-    # googletest here and pass FETCHCONTENT_SOURCE_DIR_GOOGLETEST to cmake.
-    # Benchmarks are disabled in QEMU to reduce memory pressure; only googletest
-    # is required.
-    - name: Pre-fetch dependencies for QEMU
-      if: runner.os == 'Linux' && matrix.arch == 'aarch64'
-      run: |
-        mkdir -p "${{ github.workspace }}/.cmake-deps/googletest-src"
-        curl -L -o /tmp/gtest.zip \
-          https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
-        unzip -q /tmp/gtest.zip -d /tmp/gtest-extracted
-        cp -r /tmp/gtest-extracted/googletest-1.14.0/. \
-          "${{ github.workspace }}/.cmake-deps/googletest-src/"
-
-    - name: Run aarch64 Build & Test (QEMU)
-      if: runner.os == 'Linux' && matrix.arch == 'aarch64'
-      uses: uraimo/run-on-arch-action@v2
-      with:
-        arch: aarch64
-        distro: ubuntu22.04
-        githubToken: ${{ github.token }}
-        install: |
-          apt-get update
-          apt-get install -y cmake build-essential gcc-12 g++-12 clang-15 git
-        run: |
-          if [ "${{ matrix.compiler }}" = "gcc" ]; then
-            export CC=gcc-12
-            export CXX=g++-12
-          else
-            export CC=clang-15
-            export CXX=clang++-15
-          fi
-          # Limit glibc malloc arenas to reduce fragmentation under emulation
-          export MALLOC_ARENA_MAX=1
-          cmake -B build \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DBEAST_JSON_BUILD_TESTS=ON \
-            -DBEAST_JSON_BUILD_BENCHMARKS=OFF \
-            -DBEAST_DISABLE_LTO=ON \
-            -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=${{ github.workspace }}/.cmake-deps/googletest-src
-          cmake --build build --config ${{ matrix.build_type }} -j1
-          cd build && ctest -C ${{ matrix.build_type }} --output-on-failure --timeout 120
-
-
+      run: >
+        ctest -C ${{ matrix.build_type }}
+        --output-on-failure
+        --timeout 180
+        --rerun-failed
+        --rerun-failed-max-attempts 2

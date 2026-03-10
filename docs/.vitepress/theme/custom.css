@@ -2,6 +2,14 @@
    Beast JSON Brand Styles
 */
 
+/* ── Navbar: logo ↔ title spacing ─────────────────────────────────────────
+   VitePress renders the logo image and site-title text inside a flex
+   container with almost no gap.  Add an explicit right margin on the logo
+   so the icon and the wordmark have comfortable breathing room.           */
+.VPNavBarTitle .logo {
+    margin-right: 10px;
+}
+
 /* Brand accent colours – applied in both light and dark modes */
 :root {
     --vp-c-brand-1: #0097a7;
