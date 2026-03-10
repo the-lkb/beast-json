@@ -32,6 +32,10 @@ canada.json
 citm_catalog.json
 gsoc-2018.json
 
+# Doxygen generated output (built during CI, not committed)
+docs/api/html/
+docs/api/reference/
+
 # Temporary Scripts
 *.py
 # CTest temporary output

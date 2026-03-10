@@ -115,7 +115,13 @@ Peak Resident Set Size (RSS) while parsing `twitter.json` (631.5 KB), measured v
 ## 🔄 Live CI Benchmarks
 
 Automatically updated on every push to `main` that touches `include/` or `benchmarks/`.
-Runs on `ubuntu-latest` (x86_64, GCC 13, Release, `--quick` mode) — reflects relative library
-ordering on shared GitHub Actions runners, not absolute throughput.
+Runs in parallel on three native GitHub-hosted runners — results reflect relative ordering on
+shared VMs, not absolute throughput. For tuned numbers see the reference tables above.
+
+| Runner | Architecture | Compiler |
+|:---|:---|:---|
+| `ubuntu-latest` | x86_64 | GCC 13, Release |
+| `ubuntu-24.04-arm` | Linux aarch64 | GCC 14, Release |
+| `macos-latest` | Apple Silicon | Apple Clang, Release |
 
 <BenchmarkCi />
