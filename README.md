@@ -1,12 +1,12 @@
   <p>
-    <a href="https://github.com/the-lkb/beast-json/actions/workflows/ci.yml"><img src="https://github.com/the-lkb/beast-json/actions/workflows/ci.yml/badge.svg" alt="C++20 CI"></a>
-    <a href="https://github.com/the-lkb/beast-json/actions/workflows/codeql.yml"><img src="https://github.com/the-lkb/beast-json/actions/workflows/codeql.yml/badge.svg" alt="CodeQL Static Analysis"></a>
-    <a href="https://github.com/the-lkb/beast-json/releases"><img src="https://img.shields.io/badge/Version-v1.0.5-blue" alt="Version 1.0.5"></a>
+    <a href="https://github.com/qbuem/beast-json/actions/workflows/ci.yml"><img src="https://github.com/qbuem/beast-json/actions/workflows/ci.yml/badge.svg" alt="C++20 CI"></a>
+    <a href="https://github.com/qbuem/beast-json/actions/workflows/codeql.yml"><img src="https://github.com/qbuem/beast-json/actions/workflows/codeql.yml/badge.svg" alt="CodeQL Static Analysis"></a>
+    <a href="https://github.com/qbuem/beast-json/releases"><img src="https://img.shields.io/badge/Version-v1.0.5-blue" alt="Version 1.0.5"></a>
     <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
   </p>
 
   <p>
-    <a href="https://the-lkb.github.io/beast-json/">
+    <a href="https://qbuem.github.io/beast-json/">
       <img src="https://img.shields.io/badge/Documentation-Premium%20Hub-orange?style=for-the-badge&logo=vitepress" alt="Premium Documentation Hub">
     </a>
   </p>
@@ -137,14 +137,14 @@ Performance under extreme stress: measuring a massive 5.5MB file containing 50,0
 
 ## 📖 Documentation Hub
 
-For a deep dive into the engineering behind Beast JSON, visit our **[Premium Documentation Hub](https://the-lkb.github.io/beast-json/)**.
+For a deep dive into the engineering behind Beast JSON, visit our **[Premium Documentation Hub](https://qbuem.github.io/beast-json/)**.
 
 | Category | Topics |
 | :--- | :--- |
-| **Engineering Theory** | [Tape Architecture](https://the-lkb.github.io/beast-json/theory/architecture), [SIMD Acceleration](https://the-lkb.github.io/beast-json/theory/simd), [Russ Cox Algorithm](https://the-lkb.github.io/beast-json/theory/russ-cox) |
-| **Advanced Usage** | [HFT Optimization Patterns](https://the-lkb.github.io/beast-json/guide/hft-patterns), [Custom Allocators](https://the-lkb.github.io/beast-json/guide/allocators), [Language Bindings](https://the-lkb.github.io/beast-json/guide/bindings) |
-| **Guides** | [Getting Started](https://the-lkb.github.io/beast-json/guide/getting-started), [Object Mapping](https://the-lkb.github.io/beast-json/guide/mapping), [Error Handling](https://the-lkb.github.io/beast-json/guide/errors) |
-| **API Reference** | [Full C++ Doxygen Reference](https://the-lkb.github.io/beast-json/api/reference/index.html) |
+| **Engineering Theory** | [Tape Architecture](https://qbuem.github.io/beast-json/theory/architecture), [SIMD Acceleration](https://qbuem.github.io/beast-json/theory/simd), [Russ Cox Algorithm](https://qbuem.github.io/beast-json/theory/russ-cox) |
+| **Advanced Usage** | [HFT Optimization Patterns](https://qbuem.github.io/beast-json/guide/hft-patterns), [Custom Allocators](https://qbuem.github.io/beast-json/guide/allocators), [Language Bindings](https://qbuem.github.io/beast-json/guide/bindings) |
+| **Guides** | [Getting Started](https://qbuem.github.io/beast-json/guide/getting-started), [Object Mapping](https://qbuem.github.io/beast-json/guide/mapping), [Error Handling](https://qbuem.github.io/beast-json/guide/errors) |
+| **API Reference** | [Full C++ Doxygen Reference](https://qbuem.github.io/beast-json/api/reference/index.html) |
 
 ---
 
@@ -186,4 +186,4 @@ Beast JSON is licensed under the **Apache License 2.0**.
 
 * **Independent Implementation**: Beast JSON is a clean-room C++20 implementation of the referenced algorithms. It does not contain code copied from the referenced libraries.
 * **Fair Use & Citation**: Citations of academic papers and technical blogs are provided for educational and attribution purposes under fair use.
-* **Corporate Branding**: "THE LKB" branding and associated logos are used with permission by LKB Innovations.
+* **Corporate Branding**: "qbuem" branding and associated logos are the property of qbuem.

@@ -1,6 +1,5 @@
 /*
-   LKB CORPORATE BRANDING SYNC
-   Matches the "THE LKB" Banner Aesthetic
+   Beast JSON Brand Styles
 */
 
 /* Brand accent colours – applied in both light and dark modes */
@@ -26,7 +25,7 @@
     --vp-home-hero-name-background: linear-gradient(135deg, #00e5ff 0%, #00d2ff 100%);
 }
 
-/* THE LKB Signature Tech Grid – dark mode only */
+/* Tech Grid – dark mode only */
 .dark .VPApp {
     background-image:
         linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),

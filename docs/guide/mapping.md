@@ -247,7 +247,7 @@ int main() {
         "id": 123456, "name": "DragonSlayer", "level": 87,
         "stats": {"kills": 500, "deaths": 42, "kd_ratio": 11.9},
         "equip": {"weapon": "Excalibur", "armor": "Dragon Mail", "consumables": ["Potion", "Elixir"]},
-        "guild": "Knights of LKB",
+        "guild": "Knights of qbuem",
         "achievements": ["First Blood", "Legend"]
     })";
 

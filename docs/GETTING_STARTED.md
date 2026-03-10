@@ -48,7 +48,7 @@ g++ -std=c++20 -O3 main.cpp -o main
 include(FetchContent)
 FetchContent_Declare(
     beast_json
-    GIT_REPOSITORY https://github.com/the-lkb/beast-json
+    GIT_REPOSITORY https://github.com/qbuem/beast-json
     GIT_TAG        main
 )
 FetchContent_MakeAvailable(beast_json)
@@ -59,7 +59,7 @@ target_link_libraries(your_target PRIVATE beast_json)
 ### Option C: Clone & Build
 
 ```bash
-git clone https://github.com/the-lkb/beast-json.git
+git clone https://github.com/qbuem/beast-json.git
 cd beast-json
 
 # Release build with tests

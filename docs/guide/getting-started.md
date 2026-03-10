@@ -8,7 +8,7 @@ Beast JSON is a **single-header library**. Just download `beast_json.hpp` and in
 
 ```bash
 # Clone the repo or just grab the header
-wget https://raw.githubusercontent.com/the-lkb/beast-json/main/include/beast_json/beast_json.hpp
+wget https://raw.githubusercontent.com/qbuem/beast-json/main/include/beast_json/beast_json.hpp
 ```
 
 ## 🚀 Quick Usage

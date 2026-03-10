@@ -3,7 +3,7 @@
 A complete reference for all public APIs in Beast JSON v1.0.5.
 
 > [!TIP]
-> Can't find what you need here? Check the full <a href="https://the-lkb.github.io/beast-json/api/reference/index.html" target="_blank" rel="noopener noreferrer">Doxygen Reference</a> for auto-generated C++ class documentation.
+> Can't find what you need here? Check the full <a href="https://qbuem.github.io/beast-json/api/reference/index.html" target="_blank" rel="noopener noreferrer">Doxygen Reference</a> for auto-generated C++ class documentation.
 
 ---
 
