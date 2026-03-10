@@ -8,6 +8,7 @@ export default withMermaid(
         base: '/beast-json/',
         lang: 'en-US',
         appearance: false,
+        ignoreDeadLinks: [/\/api\/reference/],
         sitemap: {
             hostname: 'https://qbuem.github.io/beast-json/'
         },
