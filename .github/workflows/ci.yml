@@ -3,6 +3,8 @@ name: C++20 CI
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - 'docs/public/benchmark-results.json'
   pull_request:
     branches: [ "main" ]
 

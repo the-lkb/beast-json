@@ -1,0 +1,141 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'include/**'
+      - 'benchmarks/**'
+      - '.github/workflows/benchmark.yml'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: x86_64 / gcc-13 / Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install GCC 13
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y g++-13
+
+    # Cache downloaded sources + compiled dep artifacts to avoid full rebuilds
+    - name: Cache FetchContent dependencies
+      uses: actions/cache@v4
+      with:
+        path: build_bench/_deps
+        key: bench-deps-${{ runner.os }}-gcc13-${{ hashFiles('benchmarks/CMakeLists.txt') }}
+        restore-keys: bench-deps-${{ runner.os }}-gcc13-
+
+    - name: Configure CMake
+      env:
+        CC: gcc-13
+        CXX: g++-13
+      run: >
+        cmake -B build_bench
+        -DCMAKE_BUILD_TYPE=Release
+        -DBEAST_JSON_BUILD_TESTS=OFF
+        -DBEAST_JSON_BUILD_BENCHMARKS=ON
+
+    - name: Build
+      run: cmake --build build_bench --config Release -j2
+
+    # bench_all uses system() to call itself per-library, so working-directory
+    # must be the benchmarks binary dir (where twitter.json is also placed).
+    - name: Run benchmarks
+      working-directory: build_bench/benchmarks
+      run: ./bench_all --quick twitter.json 2>&1 | tee bench_output.txt
+
+    - name: Parse results and write step summary
+      run: |
+        python3 << 'PYEOF'
+        import re, json, os, datetime
+
+        with open("build_bench/benchmarks/bench_output.txt", encoding="utf-8") as f:
+            text = f.read()
+
+        results = []
+        for line in text.splitlines():
+            if "| Parse:" not in line:
+                continue
+            parts = line.split("|")
+            if len(parts) < 3:
+                continue
+            lib = parts[0].strip()
+            if not lib:
+                continue
+            # Extract the single float from each timing field (setprecision(2) always gives X.XX)
+            parse_vals = re.findall(r'\d+\.\d+', parts[1])
+            ser_vals   = re.findall(r'\d+\.\d+', parts[2])
+            if not parse_vals or not ser_vals:
+                continue
+            results.append({
+                "library":      lib,
+                "parse_us":     float(parse_vals[0]),
+                "serialize_us": float(ser_vals[0]),
+            })
+
+        # ── Step summary ───────────────────────────────────────────────────────
+        sha   = os.environ.get("GITHUB_SHA", "")[:8]
+        ref   = os.environ.get("GITHUB_REF_NAME", "")
+        lines = []
+        lines.append("## Benchmark — `twitter.json`")
+        lines.append("")
+        lines.append(f"> `ubuntu-latest` · GCC 13 · Release · `--quick` (15 iterations) · "
+                     f"commit `{sha}` on `{ref}`")
+        lines.append("")
+
+        if results:
+            min_parse = min(r["parse_us"]     for r in results)
+            min_ser   = min(r["serialize_us"] for r in results if r["serialize_us"] > 0)
+            lines.append("| Library | Parse (μs) | Serialize (μs) |")
+            lines.append("|:--------|----------:|---------------:|")
+            for r in results:
+                p = r["parse_us"]
+                s = r["serialize_us"]
+                pb = "**" if p == min_parse else ""
+                sb = "**" if s == min_ser and s > 0 else ""
+                s_str = f"{s:.1f}" if s > 0 else "—"
+                lines.append(f"| {pb}{r['library']}{pb} | {pb}{p:.1f}{pb} | {sb}{s_str}{sb} |")
+        else:
+            lines.append("_No results parsed — check the bench_output.txt artifact._")
+
+        summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
+        with open(summary_path, "a", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+
+        # ── JSON for Pages ─────────────────────────────────────────────────────
+        data = {
+            "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "commit":    sha,
+            "runner":    "ubuntu-latest · x86_64 · GCC 13 · Release · --quick",
+            "file":      "twitter.json",
+            "results":   results,
+        }
+        os.makedirs("docs/public", exist_ok=True)
+        with open("docs/public/benchmark-results.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+        print(f"Parsed {len(results)} libraries.")
+        PYEOF
+      env:
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+
+    - name: Commit benchmark results to main
+      run: |
+        git config user.name  "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add docs/public/benchmark-results.json
+        if git diff --cached --quiet; then
+          echo "No changes — benchmark results unchanged."
+        else
+          git pull --rebase origin main
+          git commit -m "chore: update CI benchmark results"
+          git push origin main
+        fi

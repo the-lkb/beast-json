@@ -109,3 +109,13 @@ Peak Resident Set Size (RSS) while parsing `twitter.json` (631.5 KB), measured v
 | **All** | SWAR (SIMD Within A Register) | 8 bytes/cycle string scan using 64-bit GPR — no SIMD required for short strings |
 | **All** | KeyLenCache | O(1) key lookup for repeated object schemas (e.g., JSON arrays of same-shape objects) |
 | **All** | Russ Cox float printer | Shortest round-trip decimal — 20-30% faster than `printf("%.17g")` |
+
+---
+
+## 🔄 Live CI Benchmarks
+
+Automatically updated on every push to `main` that touches `include/` or `benchmarks/`.
+Runs on `ubuntu-latest` (x86_64, GCC 13, Release, `--quick` mode) — reflects relative library
+ordering on shared GitHub Actions runners, not absolute throughput.
+
+<BenchmarkCi />

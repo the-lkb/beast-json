@@ -6,6 +6,7 @@ import SimdPipeline from './components/SimdPipeline.vue'
 import TreeVsTape from './components/TreeVsTape.vue'
 import TapeInspector from './components/TapeInspector.vue'
 import ParseErrorMap from './components/ParseErrorMap.vue'
+import BenchmarkCi from './components/BenchmarkCi.vue'
 import type { Theme } from 'vitepress'
 
 export default {
@@ -17,5 +18,6 @@ export default {
     app.component('TreeVsTape', TreeVsTape)
     app.component('TapeInspector', TapeInspector)
     app.component('ParseErrorMap', ParseErrorMap)
+    app.component('BenchmarkCi', BenchmarkCi)
   }
 } satisfies Theme
