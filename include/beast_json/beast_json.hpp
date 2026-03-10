@@ -773,7 +773,20 @@ public:
   void set(const std::string &s) { set(std::string_view(s)); }
   void set(const char *s) { set(std::string_view(s)); }
 
-  // Erase a previously set() mutation, restoring the original parsed value.
+  // unset() — undo a previous set() and revert to the original parsed value.
+  //
+  // Removes the mutation overlay for this tape position so that subsequent
+  // reads (as<T>(), type_name(), dump()) return the value that was present
+  // in the original parsed JSON.
+  //
+  // Important: this is NOT a "reset to null".  After unset():
+  //   - type_name() reflects the *original* parsed type (e.g. still "bool"
+  //     if the parsed value was a boolean)
+  //   - as<T>() returns the original parsed value
+  //
+  // unset() only affects the scalar mutation overlay (mutations_).  Keys
+  // added via insert() or elements added via push_back() are unaffected.
+  // On an invalid Value (doc_=nullptr) this is a no-op.
   void unset() {
     if (!doc_)
       return;
@@ -864,11 +877,14 @@ public:
   // ── Navigation: operator[] and find
   //
   // Beast API philosophy:
-  //   operator[](key/idx)   — throws on miss (like STL at())
+  //   operator[](key/idx)   — non-throwing: returns an invalid Value{}
+  //                           (is_valid() == false) when the key or index is
+  //                           absent.  Use if(v) / v.is_valid() to check.
+  //                           Use find() when you need an explicit optional.
   //   find(key)             — returns std::optional<Value> (no-throw)
   //
-  // This is our own pattern: subscript for confident access, find() for
-  // conditional access — both composable and explicit about failure mode.
+  // This is our own pattern: subscript for convenient chained access, find()
+  // for conditional access — both non-throwing and composable.
 
   // const char* overload — exact match for string literals, avoids ambiguity
   // with built-in operator[](long, const char*) that would otherwise be
@@ -921,6 +937,10 @@ public:
   Value operator[](int index) const noexcept {
     if (index < 0)
       return {};
+    return (*this)[static_cast<size_t>(index)];
+  }
+  // unsigned int overload — resolves ambiguity between int and size_t
+  Value operator[](unsigned int index) const noexcept {
     return (*this)[static_cast<size_t>(index)];
   }
 
@@ -1019,6 +1039,12 @@ public:
         auto iit = doc_->array_insertions_.find(idx_);
         if (iit != doc_->array_insertions_.end())
           count += iit->second.size();
+      }
+      // push_back() appends to additions_; count those too
+      if (!doc_->additions_.empty()) {
+        auto ait = doc_->additions_.find(idx_);
+        if (ait != doc_->additions_.end())
+          count += ait->second.size();
       }
       return count;
     }
@@ -1810,6 +1836,8 @@ public:
       return erase(static_cast<size_t>(idx));
     return false;
   }
+  // unsigned int overload — resolves ambiguity between int and size_t
+  bool erase(unsigned int idx) { return erase(static_cast<size_t>(idx)); }
 
   // ── Structural insert API ────────────────────────────────────────────────
   //
@@ -1907,26 +1935,35 @@ public:
   // Forward iterator over object key-value pairs.
   // Yields std::pair<std::string_view, Value> — structured bindings work:
   //   for (auto [key, val] : root["obj"].items()) { ... }
+  // Iterates original tape keys first, then any inserted additions.
   class ObjectIterator {
     DocumentState *doc_;
-    uint32_t key_idx_; // UINT32_MAX = end sentinel
+    uint32_t key_idx_; // UINT32_MAX = tape exhausted
+    // additions_ pointer + index for iterating inserted key-value pairs
+    const ::std::vector<::std::pair<::std::string, ::std::string>> *adds_ =
+        nullptr;
+    size_t add_idx_ = ::std::numeric_limits<size_t>::max(); // max = done
+
     void skip_deleted_() noexcept {
       const size_t tape_sz = doc_->tape.size();
       while (key_idx_ != UINT32_MAX) {
         // Bounds guard: malformed tape may lack an ObjectEnd sentinel.
         if (BEAST_UNLIKELY(key_idx_ >= tape_sz)) {
           key_idx_ = UINT32_MAX;
-          return;
+          break;
         }
         const auto t = doc_->tape[key_idx_].type();
         if (t == TapeNodeType::ObjectEnd) {
           key_idx_ = UINT32_MAX;
-          return;
+          break;
         }
         if (doc_->deleted_.empty() || !doc_->deleted_.count(key_idx_))
           return;
         key_idx_ = skip_val_s_(doc_, key_idx_ + 1); // skip deleted key+value
       }
+      // Tape exhausted — transition to additions if available
+      if (key_idx_ == UINT32_MAX && adds_ != nullptr)
+        add_idx_ = 0;
     }
 
   public:
@@ -1936,21 +1973,41 @@ public:
     using value_type = std::pair<std::string_view, Value>;
     using iterator_category = std::forward_iterator_tag;
 
-    ObjectIterator() noexcept : doc_(nullptr), key_idx_(UINT32_MAX) {}
-    ObjectIterator(DocumentState *doc, uint32_t key_idx) noexcept
-        : doc_(doc), key_idx_(key_idx) {
+    // End sentinel: key_idx_=UINT32_MAX, add_idx_=SIZE_MAX
+    ObjectIterator() noexcept
+        : doc_(nullptr), key_idx_(UINT32_MAX), adds_(nullptr),
+          add_idx_(::std::numeric_limits<size_t>::max()) {}
+    ObjectIterator(DocumentState *doc, uint32_t key_idx,
+                   const ::std::vector<::std::pair<::std::string,
+                                                   ::std::string>> *adds) noexcept
+        : doc_(doc), key_idx_(key_idx), adds_(adds),
+          add_idx_(::std::numeric_limits<size_t>::max()) {
       skip_deleted_();
     }
 
     // Returns {key_string_view, Value} — Value is constructed on demand
     std::pair<std::string_view, Value> operator*() const noexcept {
-      const TapeNode &kn = doc_->tape[key_idx_];
-      return {std::string_view(doc_->source.data() + kn.offset, kn.length()),
-              Value(doc_, key_idx_ + 1)};
+      if (key_idx_ != UINT32_MAX) {
+        // Tape entry
+        const TapeNode &kn = doc_->tape[key_idx_];
+        return {std::string_view(doc_->source.data() + kn.offset, kn.length()),
+                Value(doc_, key_idx_ + 1)};
+      }
+      // Addition entry: parse value via synthetic document
+      const auto &p = (*adds_)[add_idx_];
+      DocumentState *synth = doc_->get_synthetic(p.second);
+      return {std::string_view(p.first), Value(synth, 0)};
     }
     ObjectIterator &operator++() noexcept {
-      key_idx_ = skip_val_s_(doc_, key_idx_ + 1); // skip value
-      skip_deleted_();
+      if (key_idx_ != UINT32_MAX) {
+        key_idx_ = skip_val_s_(doc_, key_idx_ + 1); // skip value
+        skip_deleted_();
+      } else if (adds_ != nullptr &&
+                 add_idx_ != ::std::numeric_limits<size_t>::max()) {
+        ++add_idx_;
+        if (add_idx_ >= adds_->size())
+          add_idx_ = ::std::numeric_limits<size_t>::max(); // mark done
+      }
       return *this;
     }
     ObjectIterator operator++(int) noexcept {
@@ -1959,11 +2016,11 @@ public:
       return t;
     }
     bool operator==(const ObjectIterator &o) const noexcept {
-      return key_idx_ == o.key_idx_;
+      return key_idx_ == o.key_idx_ && add_idx_ == o.add_idx_;
     }
   };
 
-  // Range-compatible proxy for object iteration (also includes additions)
+  // Range-compatible proxy for object iteration (includes additions)
   class ObjectRange : public std::ranges::view_base {
     DocumentState *doc_;
     uint32_t obj_idx_; // ObjectStart tape index
@@ -1980,10 +2037,11 @@ public:
           adds_ = &it->second;
       }
     }
-    ObjectIterator begin() const noexcept { return {doc_, obj_idx_ + 1}; }
+    ObjectIterator begin() const noexcept {
+      return {doc_, obj_idx_ + 1, adds_};
+    }
     ObjectIterator end() const noexcept { return {}; }
-    // additions are accessed separately via added_items()
-    // (they have no tape index; expose as string pairs)
+    // additions are accessible via added_items() for legacy callers
     const ::std::vector<::std::pair<::std::string, ::std::string>> *
     added_items() const noexcept {
       return adds_;
@@ -5656,12 +5714,18 @@ public:
       return {};
     return val_.get(static_cast<size_t>(idx));
   }
+  // unsigned int overload — resolves ambiguity between int and size_t
+  SafeValue operator[](unsigned int idx) const noexcept {
+    return (*this)[static_cast<size_t>(idx)];
+  }
 
   // Alias for further chaining (same as operator[]):
   SafeValue get(std::string_view key) const noexcept { return (*this)[key]; }
   SafeValue get(const char *key) const noexcept { return (*this)[key]; }
   SafeValue get(size_t idx) const noexcept { return (*this)[idx]; }
   SafeValue get(int idx) const noexcept { return (*this)[idx]; }
+  // unsigned int overload — resolves ambiguity between int and size_t
+  SafeValue get(unsigned int idx) const noexcept { return (*this)[static_cast<size_t>(idx)]; }
 
   // ── Terminal: typed extraction ────────────────────────────────────────────
 
@@ -6586,6 +6650,10 @@ using SafeValue = json::SafeValue;
 namespace rfc8259 = json::rfc8259;
 
 inline Value parse(Document &doc, ::std::string_view json) {
+  return json::parse_reuse(doc, json);
+}
+
+inline Value parse_reuse(Document &doc, ::std::string_view json) {
   return json::parse_reuse(doc, json);
 }
 
