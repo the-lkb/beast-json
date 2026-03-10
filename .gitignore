@@ -23,6 +23,7 @@ compile_commands.json
 !**/package.json
 !tests/small.json
 !tests/test_*.json
+!docs/public/benchmark-results.json
 # Specifically ignore large benchmark/test files
 tests/test_large.json
 tests/test_uint64.json
@@ -30,6 +31,10 @@ twitter.json
 canada.json
 citm_catalog.json
 gsoc-2018.json
+
+# Doxygen generated output (built during CI, not committed)
+docs/api/html/
+docs/api/reference/
 
 # Temporary Scripts
 *.py

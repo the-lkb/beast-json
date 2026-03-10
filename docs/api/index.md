@@ -3,7 +3,7 @@
 A complete reference for all public APIs in Beast JSON v1.0.5.
 
 > [!TIP]
-> Can't find what you need here? Check the full <a href="https://qbuem.github.io/beast-json/api/reference/index.html" target="_blank" rel="noopener noreferrer">Doxygen Reference</a> for auto-generated C++ class documentation.
+> Looking for auto-generated class/struct documentation? The **[Doxygen Reference](/beast-json/api/reference/index.html)** is rebuilt automatically whenever `beast_json.hpp` changes and deployed to Pages alongside this guide.
 
 ---
 
