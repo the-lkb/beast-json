@@ -2,37 +2,40 @@
   <div class="ci-bench">
     <div v-if="loading" class="ci-bench-state">Loading CI benchmark data…</div>
 
-    <template v-else-if="data && data.results && data.results.length">
+    <template v-else-if="data && data.platforms && data.platforms.length">
       <p class="ci-bench-meta">
-        Runner: <code>{{ data.runner }}</code><br/>
         Commit: <code>{{ data.commit }}</code> &nbsp;·&nbsp; {{ data.timestamp }}
       </p>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Library</th>
-            <th>Parse (μs)</th>
-            <th>Serialize (μs)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in data.results" :key="r.library">
-            <td>{{ r.library }}</td>
-            <td :class="{ best: r.parse_us === minParse }">
-              {{ r.parse_us.toFixed(1) }}
-            </td>
-            <td :class="{ best: r.serialize_us > 0 && r.serialize_us === minSer }">
-              {{ r.serialize_us > 0 ? r.serialize_us.toFixed(1) : '—' }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <template v-for="p in data.platforms" :key="p.arch">
+        <h4 class="ci-bench-platform">{{ p.label }}</h4>
+        <table v-if="p.results && p.results.length">
+          <thead>
+            <tr>
+              <th>Library</th>
+              <th>Parse (μs)</th>
+              <th>Serialize (μs)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in p.results" :key="r.library">
+              <td>{{ r.library }}</td>
+              <td :class="{ best: r.parse_us === minParse(p.results) }">
+                {{ r.parse_us.toFixed(1) }}
+              </td>
+              <td :class="{ best: r.serialize_us > 0 && r.serialize_us === minSer(p.results) }">
+                {{ r.serialize_us > 0 ? r.serialize_us.toFixed(1) : '—' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-else class="ci-bench-state">No data for this platform.</p>
+      </template>
 
       <p class="ci-bench-note">
-        Quick mode (15 iterations), unoptimised build (no PGO/LTO tuning). Numbers
-        reflect relative ordering on shared GitHub Actions runners — not absolute
-        throughput. See the tables above for PGO-optimised reference figures.
+        Quick mode (15 iterations), Release build without PGO/LTO tuning.
+        Numbers reflect relative ordering on shared GitHub Actions runners —
+        not absolute throughput. See the reference tables above for PGO-optimised figures.
       </p>
     </template>
 
@@ -43,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 
 interface BenchResult {
   library: string
@@ -51,34 +54,37 @@ interface BenchResult {
   serialize_us: number
 }
 
-interface BenchData {
-  timestamp: string | null
-  commit: string | null
-  runner: string | null
-  file: string | null
+interface PlatformData {
+  arch: string
+  label: string
   results: BenchResult[]
+}
+
+interface BenchData {
+  timestamp: string
+  commit: string
+  file: string
+  platforms: PlatformData[]
 }
 
 const loading = ref(true)
 const data = ref<BenchData | null>(null)
 
-const minParse = computed(() =>
-  data.value?.results.length
-    ? Math.min(...data.value.results.map(r => r.parse_us))
-    : Infinity
-)
-const minSer = computed(() =>
-  data.value?.results.length
-    ? Math.min(...data.value.results.filter(r => r.serialize_us > 0).map(r => r.serialize_us))
-    : Infinity
-)
+function minParse(results: BenchResult[]): number {
+  return results.length ? Math.min(...results.map(r => r.parse_us)) : Infinity
+}
+
+function minSer(results: BenchResult[]): number {
+  const vals = results.filter(r => r.serialize_us > 0).map(r => r.serialize_us)
+  return vals.length ? Math.min(...vals) : Infinity
+}
 
 onMounted(async () => {
   try {
     const res = await fetch('/beast-json/benchmark-results.json')
     if (res.ok) {
       const json: BenchData = await res.json()
-      if (json.results?.length) data.value = json
+      if (json.platforms?.length) data.value = json
     }
   } catch {
     // network or parse error — show "no data" state
@@ -97,10 +103,17 @@ onMounted(async () => {
   margin-bottom: 0.75rem;
 }
 
+.ci-bench-platform {
+  margin-top: 1.25rem;
+  margin-bottom: 0.4rem;
+  font-size: 1em;
+  font-weight: 600;
+}
+
 .ci-bench-note {
   font-size: 0.8em;
   color: var(--vp-c-text-3);
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .ci-bench-state {

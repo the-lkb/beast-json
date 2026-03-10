@@ -10,32 +10,52 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ── Per-platform benchmark ────────────────────────────────────────────────
   benchmark:
-    name: x86_64 / gcc-13 / Release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x86_64
+            label: "x86_64 · GCC 13 · Ubuntu"
+            cc: gcc-13
+            cxx: g++-13
+            install_cmd: sudo apt-get update -qq && sudo apt-get install -y g++-13
+
+          - os: ubuntu-24.04-arm
+            arch: linux-aarch64
+            label: "Linux aarch64 · GCC 14 · Ubuntu"
+            cc: gcc-14
+            cxx: g++-14
+            install_cmd: sudo apt-get update -qq && sudo apt-get install -y g++-14
+
+          - os: macos-latest
+            arch: apple-aarch64
+            label: "Apple Silicon · Apple Clang · macOS"
+            cc: clang
+            cxx: clang++
+            install_cmd: echo "Apple Clang pre-installed"
 
     steps:
     - uses: actions/checkout@v6
 
-    - name: Install GCC 13
-      run: |
-        sudo apt-get update -qq
-        sudo apt-get install -y g++-13
+    - name: Install compiler
+      run: ${{ matrix.install_cmd }}
 
-    # Cache downloaded sources + compiled dep artifacts to avoid full rebuilds
     - name: Cache FetchContent dependencies
       uses: actions/cache@v4
       with:
         path: build_bench/_deps
-        key: bench-deps-${{ runner.os }}-gcc13-${{ hashFiles('benchmarks/CMakeLists.txt') }}
-        restore-keys: bench-deps-${{ runner.os }}-gcc13-
+        key: bench-deps-${{ runner.os }}-${{ runner.arch }}-${{ matrix.cc }}-${{ hashFiles('benchmarks/CMakeLists.txt') }}
+        restore-keys: bench-deps-${{ runner.os }}-${{ runner.arch }}-${{ matrix.cc }}-
 
     - name: Configure CMake
       env:
-        CC: gcc-13
-        CXX: g++-13
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cxx }}
       run: >
         cmake -B build_bench
         -DCMAKE_BUILD_TYPE=Release
@@ -45,16 +65,16 @@ jobs:
     - name: Build
       run: cmake --build build_bench --config Release -j2
 
-    # bench_all uses system() to call itself per-library, so working-directory
-    # must be the benchmarks binary dir (where twitter.json is also placed).
+    # bench_all uses system() to re-invoke itself per library, so the working
+    # directory must be where both the binary and twitter.json reside.
     - name: Run benchmarks
       working-directory: build_bench/benchmarks
       run: ./bench_all --quick twitter.json 2>&1 | tee bench_output.txt
 
-    - name: Parse results and write step summary
+    - name: Parse results into JSON artifact
       run: |
         python3 << 'PYEOF'
-        import re, json, os, datetime
+        import re, json, os
 
         with open("build_bench/benchmarks/bench_output.txt", encoding="utf-8") as f:
             text = f.read()
@@ -69,7 +89,6 @@ jobs:
             lib = parts[0].strip()
             if not lib:
                 continue
-            # Extract the single float from each timing field (setprecision(2) always gives X.XX)
             parse_vals = re.findall(r'\d+\.\d+', parts[1])
             ser_vals   = re.findall(r'\d+\.\d+', parts[2])
             if not parse_vals or not ser_vals:
@@ -80,48 +99,111 @@ jobs:
                 "serialize_us": float(ser_vals[0]),
             })
 
-        # ── Step summary ───────────────────────────────────────────────────────
-        sha   = os.environ.get("GITHUB_SHA", "")[:8]
-        ref   = os.environ.get("GITHUB_REF_NAME", "")
-        lines = []
-        lines.append("## Benchmark — `twitter.json`")
-        lines.append("")
-        lines.append(f"> `ubuntu-latest` · GCC 13 · Release · `--quick` (15 iterations) · "
-                     f"commit `{sha}` on `{ref}`")
-        lines.append("")
+        data = {
+            "arch":    "${{ matrix.arch }}",
+            "label":   "${{ matrix.label }}",
+            "results": results,
+        }
+        os.makedirs("bench_artifacts", exist_ok=True)
+        out = "bench_artifacts/results-${{ matrix.arch }}.json"
+        with open(out, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        print(f"Wrote {len(results)} results to {out}")
+        PYEOF
 
-        if results:
-            min_parse = min(r["parse_us"]     for r in results)
-            min_ser   = min(r["serialize_us"] for r in results if r["serialize_us"] > 0)
-            lines.append("| Library | Parse (μs) | Serialize (μs) |")
-            lines.append("|:--------|----------:|---------------:|")
-            for r in results:
-                p = r["parse_us"]
-                s = r["serialize_us"]
-                pb = "**" if p == min_parse else ""
-                sb = "**" if s == min_ser and s > 0 else ""
-                s_str = f"{s:.1f}" if s > 0 else "—"
-                lines.append(f"| {pb}{r['library']}{pb} | {pb}{p:.1f}{pb} | {sb}{s_str}{sb} |")
-        else:
-            lines.append("_No results parsed — check the bench_output.txt artifact._")
+    - name: Upload results artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: bench-results-${{ matrix.arch }}
+        path: bench_artifacts/results-${{ matrix.arch }}.json
+        retention-days: 7
+
+  # ── Aggregate all platforms → step summary + Pages JSON ──────────────────
+  aggregate:
+    name: Aggregate and publish
+    runs-on: ubuntu-latest
+    # Run even if some benchmark jobs failed so we get partial results
+    if: ${{ !cancelled() }}
+    needs: benchmark
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Download all per-platform results
+      uses: actions/download-artifact@v4
+      with:
+        pattern: bench-results-*
+        path: bench_artifacts
+        merge-multiple: true
+
+    - name: Build step summary and docs JSON
+      run: |
+        python3 << 'PYEOF'
+        import re, json, os, datetime, glob
+
+        files = sorted(glob.glob("bench_artifacts/results-*.json"))
+        platforms = []
+        for f in files:
+            with open(f, encoding="utf-8") as fp:
+                platforms.append(json.load(fp))
+
+        # Canonical display order
+        ORDER = {"x86_64": 0, "apple-aarch64": 1, "linux-aarch64": 2}
+        platforms.sort(key=lambda p: ORDER.get(p.get("arch", ""), 99))
+
+        sha = os.environ.get("GITHUB_SHA", "")[:8]
+        ref = os.environ.get("GITHUB_REF_NAME", "")
+
+        # ── Step summary ───────────────────────────────────────────────────
+        lines = [
+            f"## Benchmark · `twitter.json` · commit `{sha}` on `{ref}`",
+            "",
+            "> Quick mode — 15 iterations per library, Release, no PGO/LTO.",
+            "",
+        ]
+
+        for p in platforms:
+            results = p.get("results", [])
+            lines.append(f"### {p.get('label', p.get('arch', '?'))}")
+            lines.append("")
+            if results:
+                min_p = min(r["parse_us"] for r in results)
+                min_s = min(
+                    (r["serialize_us"] for r in results if r["serialize_us"] > 0),
+                    default=float("inf"),
+                )
+                lines.append("| Library | Parse (μs) | Serialize (μs) |")
+                lines.append("|:--------|----------:|---------------:|")
+                for r in results:
+                    pv, sv = r["parse_us"], r["serialize_us"]
+                    pb = "**" if pv == min_p else ""
+                    sb = "**" if sv > 0 and sv == min_s else ""
+                    s_str = f"{sv:.1f}" if sv > 0 else "—"
+                    lines.append(
+                        f"| {pb}{r['library']}{pb} | {pb}{pv:.1f}{pb} | {sb}{s_str}{sb} |"
+                    )
+            else:
+                lines.append("_No data collected for this platform._")
+            lines.append("")
 
         summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
         with open(summary_path, "a", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")
 
-        # ── JSON for Pages ─────────────────────────────────────────────────────
+        # ── JSON for Pages ─────────────────────────────────────────────────
         data = {
             "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "commit":    sha,
-            "runner":    "ubuntu-latest · x86_64 · GCC 13 · Release · --quick",
-            "file":      "twitter.json",
-            "results":   results,
+            "commit": sha,
+            "file": "twitter.json",
+            "platforms": platforms,
         }
         os.makedirs("docs/public", exist_ok=True)
         with open("docs/public/benchmark-results.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
-        print(f"Parsed {len(results)} libraries.")
+        print(f"Aggregated {len(platforms)} platform(s).")
         PYEOF
       env:
         GITHUB_SHA: ${{ github.sha }}
@@ -133,7 +215,7 @@ jobs:
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git add docs/public/benchmark-results.json
         if git diff --cached --quiet; then
-          echo "No changes — benchmark results unchanged."
+          echo "Benchmark results unchanged — nothing to commit."
         else
           git pull --rebase origin main
           git commit -m "chore: update CI benchmark results"
