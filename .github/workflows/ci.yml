@@ -79,11 +79,15 @@ jobs:
           - os: macos-latest
             arch: aarch64
             compiler: apple-clang
+            cc: clang
+            cxx: clang++
             build_type: Release
 
           - os: macos-latest
             arch: aarch64
             compiler: apple-clang
+            cc: clang
+            cxx: clang++
             build_type: Debug
 
     steps:
@@ -137,9 +141,8 @@ jobs:
 
     - name: Test
       working-directory: build
-      run: >
-        ctest -C ${{ matrix.build_type }}
-        --output-on-failure
-        --timeout 180
-        --rerun-failed
-        --rerun-failed-max-attempts 2
+      # Run tests; on failure, retry once to filter out transient OS flakiness.
+      # Two-invocation retry is portable back to CMake 3.14 (no --rerun-failed-max-attempts needed).
+      run: |
+        ctest -C ${{ matrix.build_type }} --output-on-failure --timeout 180 \
+          || ctest -C ${{ matrix.build_type }} --output-on-failure --timeout 180 --rerun-failed
