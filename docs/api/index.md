@@ -63,6 +63,24 @@ beast::Value root = beast::parse(doc, R"({"id": 1, "active": true})");
 
 ---
 
+### `beast::parse_reuse(doc, json)` — Explicit Hot-Loop Reuse
+
+Identical to `beast::parse()` — resets the tape and mutation overlays, then parses. Provided as a self-documenting alias to make reuse intent explicit in high-frequency parsing loops.
+
+```cpp
+beast::Document doc;
+doc.reserve(4 * 1024); // optional: pre-warm
+
+while (running) {
+    auto msg = source.receive();
+    beast::Value root = beast::parse_reuse(doc, msg); // zero malloc after warmup
+    if (!root.is_valid()) continue;
+    dispatch(root);
+}
+```
+
+---
+
 ### `beast::parse_strict(doc, json)` — RFC 8259 Strict Parse
 
 Performs strict RFC 8259 validation before parsing. Rejects trailing commas, leading zeros, lone surrogates, and more.
@@ -310,10 +328,15 @@ auto title = root.at("/store/books/0/title"_jptr).as<std::string>();
 
 ### `operator[](index)` — Index Access
 
+Accepts `size_t` or `unsigned int`. Returns an invalid `Value{}` if the index is out of range (never throws).
+
 ```cpp
 auto root = beast::parse(doc, R"({"tags": ["cpp", "simd", "hft"]})");
-std::string first = root["tags"][0u].as<std::string>(); // "cpp"
+std::string first = root["tags"][0u].as<std::string>(); // "cpp" (unsigned int)
 std::string third = root["tags"][2u].as<std::string>(); // "hft"
+// For signed int variable: cast to size_t
+int i = 1;
+std::string second = root["tags"][size_t(i)].as<std::string>(); // "simd"
 ```
 
 ### `.size()` — Element Count
@@ -334,11 +357,15 @@ bool is_empty = root["tags"].empty(); // false
 
 ### `.items()` — Object Key-Value Pairs
 
+Iterates all key-value pairs, including keys added via `insert()` after parsing.
+
 ```cpp
-auto root = beast::parse(doc, R"({"a": 1, "b": 2, "c": 3})");
+auto root = beast::parse(doc, R"({"a": 1, "b": 2})");
+root.insert("c", 3); // structural addition
 
 for (auto [key, val] : root.items()) {
     std::cout << key << " = " << val.as<int>() << "\n";
+    // outputs: a=1, b=2, c=3  (insert()ed key is included)
 }
 
 // Keys and values separately
@@ -358,6 +385,8 @@ for (auto elem : root["scores"].elements()) {
 
 ### `.as_array<T>()` — Typed Array View (Zero Allocation)
 
+Iterates the array, casting each element to `T`. **Throws `std::runtime_error`** if an element cannot be cast to `T`. Use when you know all elements have a uniform type.
+
 ```cpp
 for (int score : root["scores"].as_array<int>()) {
     std::cout << score << "\n";
@@ -366,9 +395,11 @@ for (int score : root["scores"].as_array<int>()) {
 
 ### `.try_as_array<T>()` — Optional Typed Array (Non-Throwing)
 
+Returns `std::optional<T>` per element — **never throws**. Use when the array may contain mixed types or elements that might not match `T`.
+
 ```cpp
 for (auto v : root["scores"].try_as_array<int>()) {
-    if (v) std::cout << *v << "\n";
+    if (v) std::cout << *v << "\n";  // skip elements that can't be cast to int
 }
 ```
 
@@ -443,10 +474,16 @@ std::cout << root.dump() << "\n";
 
 ### `.unset()` — Restore Original Parsed Value
 
+Reverts a scalar mutation back to the **original parsed value**. This is not a "reset to null" — after `unset()`, the value behaves exactly as if it had never been mutated.
+
 ```cpp
 root["id"].unset();
-std::cout << root["id"].as<int>(); // 1 (original restored)
+std::cout << root["id"].as<int>(); // 1 (original restored, NOT null)
+// type_name() also returns the original type ("int", not "null")
 ```
+
+> [!NOTE]
+> `unset()` only removes the scalar mutation overlay. Keys added via `insert()` and array elements added via `push_back()` are **not** affected by `unset()` — those are structural mutations managed separately.
 
 ### `.insert(key, value)` — Add Object Key
 
@@ -466,18 +503,26 @@ root.insert_json("tags", R"(["cpp20", "performance"])");
 
 ### `.erase(key)` / `.erase(idx)` — Remove Key or Element
 
+Accepts `size_t` or `unsigned int` for array indices.
+
 ```cpp
 root.erase("deprecated");       // remove object key
-root["tags"].erase(size_t{0});  // remove first array element
+root["tags"].erase(0u);         // remove first array element (unsigned int)
+root["tags"].erase(size_t{1});  // also valid (size_t)
 ```
 
 ### `.push_back(value)` — Append to Array
+
+Appended elements are immediately visible via `size()`, `elements()`, and `items()`.
 
 ```cpp
 root["tags"].push_back(std::string_view{"new_tag"});
 root["tags"].push_back(true);
 root["tags"].push_back(42);
 root["tags"].push_back(nullptr);
+
+// size() reflects push_back() additions:
+size_t n = root["tags"].size(); // tape count + push_back count
 ```
 
 ### `.push_back_json(raw_json)` — Append from Raw JSON

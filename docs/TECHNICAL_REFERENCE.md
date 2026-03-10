@@ -96,22 +96,37 @@ double s3 = root["score"] | 0.0;
 ```
 
 ### 4.2 Non-Destructive Mutations
-Tape is immutable. Mutations use overlay maps.
+Tape is immutable. Mutations use overlay maps (`mutations_`, `additions_`, `deleted_`, `array_insertions_`).
 ```cpp
-root["score"].set(10.0);           // Scalar override
-root.insert("active", true);       // Structural addition
-root.erase("old_key");             // Structural deletion
-std::cout << root.dump();          // Reflects mutations
+root["score"].set(10.0);           // Scalar override (mutations_ map)
+root.insert("active", true);       // Structural addition (additions_ map)
+root.erase("old_key");             // Structural deletion (deleted_ set)
+root["tags"].push_back("cpp20");   // Array append (array_insertions_ map)
+std::cout << root.dump();          // Reflects all overlay mutations
 ```
+
+**`unset()` semantics**: `unset()` removes only the scalar overlay from `mutations_`. It reverts the value to the **original parsed tape entry** — it does NOT set the value to null. Structural additions (`insert()`, `push_back()`) are unaffected.
+
+**`size()` for arrays**: Returns `tape_count + push_back_additions` — reflects both the original parsed elements and elements appended via `push_back()`.
+
+**`items()` for objects**: Iterates tape keys first, then keys added via `insert()` — so all structural additions are visible.
 
 ### 4.3 Iteration and C++20 Ranges
 ```cpp
-for (auto [key, val] : root.items()) { /* object items */ }
+for (auto [key, val] : root.items()) { /* tape keys + insert() keys */ }
 for (auto elem : root["tags"].elements()) { /* array items */ }
 
 // C++20 views
 auto big = root["scores"].elements() | std::views::filter([](auto v){ return v.as<int>() > 3; });
 ```
+
+### 4.4 Unsigned Integer Overloads
+`operator[](index)` and `erase(idx)` on `Value` and `SafeValue` accept both `size_t` and `unsigned int`, eliminating the need for explicit casts when using unsigned literals:
+```cpp
+auto elem = root["array"][0u];   // unsigned int literal — no cast needed
+root["array"].erase(0u);         // also unsigned int
+```
+Plain `int` still requires a cast to `size_t` to avoid ambiguity with the `const char*` overload.
 
 
 ## 5. Auto-Serialization Macro

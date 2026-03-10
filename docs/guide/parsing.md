@@ -33,20 +33,25 @@ beast::Value root = beast::parse(doc, R"({"key": "value"})");
 > [!IMPORTANT]
 > `Document` must **outlive** all `Value` objects derived from it. Values are lightweight 16-byte handles pointing into the document's tape.
 
-### `beast::parse(doc, json)` — Reuse for Hot Loops
+### `beast::parse_reuse(doc, json)` — Explicit Reuse for Hot Loops
 
-For high-frequency parsing (e.g., JSON streams), re-call `parse()` on the same document. It resets the tape without reallocating heap memory.
+For high-frequency parsing (e.g., JSON streams), use `beast::parse_reuse()` on the same document. It resets the tape and mutation overlays without reallocating heap memory, making the intent self-documenting in hot-loop code.
 
 ```cpp
 beast::Document doc;
+doc.reserve(4 * 1024); // optional: pre-warm to avoid first-parse realloc
 std::string line;
 
 while (std::getline(socket_stream, line)) {
     // Re-uses the previously allocated tape capacity — zero extra malloc
-    beast::Value root = beast::parse(doc, line);
+    beast::Value root = beast::parse_reuse(doc, line);
+    if (!root.is_valid()) continue;
     process(root);
 }
 ```
+
+> [!NOTE]
+> `beast::parse()` and `beast::parse_reuse()` behave identically when called on the same `Document`. `parse_reuse()` is provided as a self-documenting alias that makes reuse intent explicit.
 
 ### `beast::parse_strict(doc, json)` — RFC 8259 Strict Mode
 
@@ -308,10 +313,14 @@ ParseResult good_parse(std::string_view json) {
 }
 ```
 
-### 2. Use `size_t` for Array Indices
+### 2. Use `size_t` or `unsigned int` for Array Indices
 
 ```cpp
-// Ambiguous: literal 0 can be confused with a null pointer (string key)
-auto elem = root["array"][0u];       // ✅ Use unsigned literal
-auto elem2 = root["array"][size_t{0}]; // ✅ Or explicit cast
+// Ambiguous: a plain int literal 0 can be confused with a null pointer (string key)
+auto elem  = root["array"][0u];          // ✅ unsigned int literal — unambiguous
+auto elem2 = root["array"][size_t{0}];   // ✅ explicit size_t cast — also fine
+
+// If you have a signed int variable, cast it explicitly:
+int i = 0;
+auto elem3 = root["array"][size_t(i)];  // ✅ cast required for signed int
 ```

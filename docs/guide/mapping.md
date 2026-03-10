@@ -125,6 +125,10 @@ std::cout << root["user"].dump() << "\n";
 // Restore original parsed value
 root["user"]["id"].unset();
 std::cout << root["user"]["id"].as<int>() << "\n"; // 1 (original restored)
+// ⚠️  unset() reverts to the *original parsed value*, NOT null.
+//     After unset(), type_name() and as<T>() reflect the original tape entry.
+//     unset() only removes the scalar mutation overlay; keys added via insert()
+//     or elements added via push_back() are NOT affected by unset().
 ```
 
 ### Structural Mutations (Add / Remove / Append)
@@ -147,11 +151,15 @@ root.erase("deprecated_field");
 root["tags"].push_back(std::string_view{"simd"});              // "simd"
 root["tags"].push_back_json(R"({"nested": "object"})");        // object element
 
-// Array: remove by index
-root["tags"].erase(0);  // removes "cpp"
+// Array: remove by index (accepts size_t or unsigned int)
+root["tags"].erase(0u);  // removes "cpp"
 
 // All changes reflected immediately
 std::cout << root.dump() << "\n";
+// size() reflects both tape elements AND push_back() additions
+std::cout << root["tags"].size() << "\n"; // 3 (original 2 + 1 push_back)
+// items() includes both tape keys AND insert() additions
+for (auto [k, v] : root.items()) { /* iterates original + inserted keys */ }
 ```
 
 ### Merging JSON (RFC 7396 Merge Patch)

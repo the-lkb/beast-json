@@ -68,7 +68,7 @@ cmake -S . -B build \
       -DBEAST_JSON_BUILD_TESTS=ON
 cmake --build build -j$(nproc)
 
-# Run all 368 tests
+# Run all 507 tests
 ctest --test-dir build --output-on-failure
 ```
 
@@ -480,8 +480,8 @@ beast::Document doc;
 std::string line;
 
 while (std::getline(std::cin, line)) {
-    // parse_reuse() resets tape + clears overlays, reuses malloc'd capacity
-    beast::Value root = beast::parse(doc, line);
+    // beast::parse_reuse() resets tape + clears overlays, reuses malloc'd capacity
+    beast::Value root = beast::parse_reuse(doc, line);
     // process root...
     std::string out;
     root.dump(out);   // reuse out buffer across iterations too
@@ -489,7 +489,10 @@ while (std::getline(std::cin, line)) {
 }
 ```
 
-**What `beast::parse()` does on reuse:**
+> [!TIP]
+> `beast::parse()` and `beast::parse_reuse()` are equivalent — both reset the tape and reuse allocated capacity when called on the same `Document`. `parse_reuse()` is provided as a self-documenting alias that makes the intent explicit in hot-loop code.
+
+**What `beast::parse_reuse()` does on reuse:**
 1. Clears `mutations_`, `deleted_`, `additions_` overlays
 2. Resets `last_dump_size_` to 0
 3. Calls `tape.reserve(n)` — if existing capacity ≥ n, just resets `head` (no malloc)
@@ -528,14 +531,14 @@ cmake -S . -B build-san \
     -DBEAST_JSON_BUILD_TESTS=ON \
     "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer"
 cmake --build build-san
-ctest --test-dir build-san  # 368/368 PASS expected
+ctest --test-dir build-san  # 507/507 PASS expected
 ```
 
 
 ## Running Tests
 
 ```bash
-# Build and run all 368 tests
+# Build and run all 507 tests
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBEAST_JSON_BUILD_TESTS=ON
 cmake --build build -j$(nproc)
 ctest --test-dir build --output-on-failure
@@ -666,15 +669,19 @@ auto root2 = beast::parse(doc, json2);  // ← clears all overlays on doc
 // root2 is valid and points to json2's parsed data
 ```
 
-### 4. int ambiguity — use size_t for array index
+### 4. int ambiguity — use size_t or unsigned int for array index
 
 ```cpp
 // Ambiguous: root["key"] with literal 0
 auto v = root["key"];   // OK — const char* overload
 
-// For integer indices, use size_t explicitly
-auto elem = root["array"][size_t{0}];   // array[0]
-auto elem2 = root["array"][0u];         // also fine
+// For integer indices, use size_t or unsigned int
+auto elem  = root["array"][0u];          // ✅ unsigned int overload
+auto elem2 = root["array"][size_t{0}];   // ✅ or explicit size_t cast
+
+// Plain int still requires a cast to avoid pointer ambiguity
+int i = 0;
+auto elem3 = root["array"][size_t(i)];  // ✅ cast int to size_t
 ```
 
 ### 5. as\<int\> on a double returns a cast, not an error

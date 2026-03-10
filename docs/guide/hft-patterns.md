@@ -10,18 +10,17 @@ Beast JSON's `TapeDOM` is designed to be reuse-friendly. In a hot loop, you shou
 Instead of creating a new document object for every JSON packet, reuse the same workspace:
 
 ```cpp
-beast::json::Document doc; // Pre-allocate on startup
+beast::Document doc; // Pre-allocate on startup
 doc.reserve(1024 * 64);   // Warm up with 64KB
 
 while (running) {
     auto message = socket.receive();
-    if (!beast::json::parse_reuse(doc, message)) {
-        continue;
-    }
-    // Process doc[0]...
+    beast::Value root = beast::parse_reuse(doc, message);
+    if (!root.is_valid()) continue;
+    // Process root["field"]...
 }
 ```
-`parse_reuse` resets the tape head to the beginning without deallocating the underlying vector, effectively making the parser's allocation cost **zero**.
+`beast::parse_reuse()` resets the tape head to the beginning without deallocating the underlying vector, effectively making the parser's allocation cost **zero**.
 
 ## 🧠 Custom Memory Resources (std::pmr)
 

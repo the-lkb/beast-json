@@ -5,6 +5,8 @@ This document outlines the systematic testing methodology and standard complianc
 ## 1. Testing Philosophy
 Beast JSON follows a "Safety First, Performance Second" philosophy. Every feature is validated against memory sanitizers and official RFC test suites to ensure that extreme performance does not come at the cost of correctness or security.
 
+**Total test count: 507** (as of the ReproBugs2 + Observations additions).
+
 ## 2. Core Compliance & Standard Verification
 These tests guarantee that Beast JSON flawlessly adheres to official JSON standards.
 
@@ -62,6 +64,41 @@ Beast JSON adheres to the "Zero-Cost" principle: you don't pay for the mutation 
 | **UBSan** | Undefined Behavior | **PASS** |
 | **TSan** | Data Races | **PASS** |
 | **Leaks** | Memory Leaks | **PASS (0 byte)** |
+
+---
+
+## 6. Regression & Bug-Fix Test Suites
+
+### 6.1 ReproBugs2 Suite — `tests/repro_bugs.cpp`
+
+10 regression tests covering the four bugs fixed in v1.0.x:
+
+| Test | Bug | Description |
+| :--- | :--- | :--- |
+| `ParseReusePublicFacade` | BUG-1 | `beast::parse_reuse()` is available in the public `beast::` namespace without ADL ambiguity |
+| `UnsignedIntSubscriptNoAmbiguity` | BUG-2 | `Value::operator[](unsigned int)` compiles and dispatches correctly |
+| `UnsignedIntEraseNoAmbiguity` | BUG-2 | `Value::erase(unsigned int)` compiles and dispatches correctly |
+| `SafeValueGetUnsignedIntNoAmbiguity` | BUG-2 | `SafeValue::operator[](unsigned int)` and `SafeValue::get(unsigned int)` compile correctly |
+| `PushBackSizeReflectsNewElements` | BUG-3 | `size()` on an array returns `tape_count + push_back_count` |
+| `PushBackOnNonEmptyArraySizeCorrect` | BUG-3 | `size()` correct after `push_back()` on a non-empty parsed array |
+| `PushBackJsonSizeReflectsNewElements` | BUG-3 | `size()` correct after `push_back_json()` |
+| `ItemsIncludesInsertedKeys` | BUG-4 | `items()` iteration yields keys added via `insert()` |
+| `ItemsIncludesInsertedKeysAfterErase` | BUG-4 | `items()` correctly handles erased tape keys mixed with inserted keys |
+| `ItemsValuesOfInsertedKeys` | BUG-4 | Values of `insert()`ed keys are correctly retrieved via `items()` |
+
+### 6.2 Observations Suite — `tests/repro_bugs.cpp`
+
+7 tests covering API behaviour clarifications (OBS-1 to OBS-3):
+
+| Test | OBS | Description |
+| :--- | :--- | :--- |
+| `UnsetRevertsToOriginalValue` | OBS-1 | `unset()` restores the original parsed value, not null |
+| `UnsetTypeNameRetainsOriginalType` | OBS-1 | `type_name()` returns original type after `unset()` |
+| `SubscriptMissReturnsInvalidNotThrow` | OBS-2 | `operator[]` on missing key returns invalid `Value{}`, does not throw |
+| `AsOnInvalidValueThrows` | OBS-2 | `.as<T>()` on an invalid `Value` throws `std::runtime_error` |
+| `AsArrayThrowsOnTypeMismatch` | OBS-3 | `.as_array<T>()` throws on element type mismatch |
+| `TryAsArrayHandlesMixedTypes` | OBS-3 | `.try_as_array<T>()` returns `std::nullopt` on type mismatch (no throw) |
+| `TryAsArrayNeverThrows` | OBS-3 | `.try_as_array<T>()` never throws even with all wrong-type elements |
 
 ### 5.1 Mutation Security Stress Test
 A dedicated stress test (`test_patch_security.cpp`) validates that:

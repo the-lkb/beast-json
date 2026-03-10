@@ -188,7 +188,8 @@ One `Document`, one tape allocation for the entire chunk — regardless of how m
 
 | Technique | Allocation cost | Impact | Best for |
 |:---|:---|:---|:---|
-| `beast::parse(doc, …)` reuse | **Zero** after warmup | ★★★★★ | Any hot loop |
+| `beast::parse_reuse(doc, …)` | **Zero** after warmup | ★★★★★ | Any hot loop (explicit reuse intent) |
+| `beast::parse(doc, …)` reuse | **Zero** after warmup | ★★★★★ | Any hot loop (equivalent to above) |
 | `thread_local Document` | **Zero** per request | ★★★★★ | Web servers, workers |
 | `std::pmr` stack pool | **Zero** (no heap) | ★★★★★ | Embedded, hard RT |
 | `doc.reserve(N)` at startup | One-time only | ★★★★☆ | All of the above |
