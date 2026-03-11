@@ -6672,7 +6672,7 @@ inline void to_json_field(Value &obj, const char *key, const T &val) {
     }                                                                          \
   }                                                                            \
   inline void from_beast_json(const ::beast::json::Value &v, Type &obj) {      \
-    ::beast::json::detail::from_json_field_fallback(v, obj, #__VA_ARGS__);     \
+    BEAST_FOR_EACH(BEAST_JSON_DETAIL_READ, __VA_ARGS__)                        \
   }                                                                            \
   inline void to_beast_json(::beast::json::Value &v, const Type &obj) {        \
     BEAST_FOR_EACH(BEAST_JSON_DETAIL_WRITE, __VA_ARGS__)                       \
@@ -6685,6 +6685,11 @@ inline void to_json_field(Value &obj, const char *key, const T &val) {
       out.pop_back();                                                          \
     out += '}';                                                                \
   }
+
+// Backward-compatibility alias: beast::json::lazy → beast::json
+// Tests and older code may reference types via beast::json::lazy::SafeValue,
+// beast::json::lazy::JsonInteger, etc.
+namespace lazy = ::beast::json;
 
 } // namespace json
 } // namespace beast
