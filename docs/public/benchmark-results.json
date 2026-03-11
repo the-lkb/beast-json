@@ -111,6 +111,47 @@
             { "library": "nlohmann-struct",  "parse_us": 1035.31, "serialize_us": 433.43, "alloc_kb": 116 },
             { "library": "rapidjson-struct", "parse_us": 230.88,  "serialize_us": 284.42, "alloc_kb": 36 }
           ]
+        },
+        {
+          "file": "HFT: L1 Market Tick (94B)",
+          "note": "Latency histogram — 100k samples · units: nanoseconds",
+          "results": [
+            { "library": "Beast Nexus",  "parse_us": 0.214, "p95_ns": 223,  "p99_ns": 363,  "p999_ns": 3216, "serialize_us": 0.247, "alloc_kb": 0 },
+            { "library": "Glaze",        "parse_us": 0.136, "p95_ns": 141,  "p99_ns": 166,  "p999_ns": 2842, "serialize_us": 0.093, "alloc_kb": 0 },
+            { "library": "simdjson",     "parse_us": 0.156, "p95_ns": 177,  "p99_ns": 348,  "p999_ns": 3792, "serialize_us": null,  "alloc_kb": 0 },
+            { "library": "RapidJSON",    "parse_us": 0.460, "p95_ns": 525,  "p99_ns": 3343, "p999_ns": 6354, "serialize_us": 0.352, "alloc_kb": 0 },
+            { "library": "nlohmann",     "parse_us": 1.737, "p95_ns": 4854, "p99_ns": 8166, "p999_ns": 25864,"serialize_us": 1.250, "alloc_kb": 0 }
+          ]
+        },
+        {
+          "file": "HFT: Order (108B)",
+          "note": "Latency histogram — 100k samples · units: nanoseconds",
+          "results": [
+            { "library": "Beast Nexus",  "parse_us": 0.238, "p95_ns": 246,  "p99_ns": 318,  "p999_ns": 2940,  "serialize_us": 0.186, "alloc_kb": 0 },
+            { "library": "Glaze",        "parse_us": 0.156, "p95_ns": 186,  "p99_ns": 258,  "p999_ns": 3142,  "serialize_us": 0.082, "alloc_kb": 0 },
+            { "library": "RapidJSON",    "parse_us": 0.561, "p95_ns": 839,  "p99_ns": 3710, "p999_ns": 11497, "serialize_us": 0.359, "alloc_kb": 0 },
+            { "library": "nlohmann",     "parse_us": 1.934, "p95_ns": 5480, "p99_ns": 9423, "p999_ns": 41293, "serialize_us": 1.486, "alloc_kb": 0 }
+          ]
+        },
+        {
+          "file": "HFT: Trade/Fill (80B)",
+          "note": "Latency histogram — 100k samples · units: nanoseconds",
+          "results": [
+            { "library": "Beast Nexus",  "parse_us": 0.183, "p95_ns": 190,  "p99_ns": 2731, "p999_ns": 4195,  "serialize_us": 0.145, "alloc_kb": 0 },
+            { "library": "Glaze",        "parse_us": 0.124, "p95_ns": 131,  "p99_ns": 210,  "p999_ns": 2876,  "serialize_us": 0.074, "alloc_kb": 0 },
+            { "library": "RapidJSON",    "parse_us": 0.421, "p95_ns": 566,  "p99_ns": 3563, "p999_ns": 8564,  "serialize_us": 0.328, "alloc_kb": 0 },
+            { "library": "nlohmann",     "parse_us": 1.489, "p95_ns": 4782, "p99_ns": 7875, "p999_ns": 29294, "serialize_us": 1.123, "alloc_kb": 0 }
+          ]
+        },
+        {
+          "file": "HFT: L2 Book Snapshot 5×5 (371B)",
+          "note": "Latency histogram — 100k samples · units: nanoseconds",
+          "results": [
+            { "library": "Beast Nexus",  "parse_us": 0.539, "p95_ns": 595,   "p99_ns": 3285,  "p999_ns": 5879,  "serialize_us": null, "alloc_kb": 0 },
+            { "library": "Glaze",        "parse_us": 0.498, "p95_ns": 560,   "p99_ns": 3243,  "p999_ns": 5711,  "serialize_us": null, "alloc_kb": 0 },
+            { "library": "RapidJSON",    "parse_us": 1.548, "p95_ns": 4447,  "p99_ns": 7074,  "p999_ns": 20419, "serialize_us": null, "alloc_kb": 0 },
+            { "library": "nlohmann",     "parse_us": 8.040, "p95_ns": 17751, "p99_ns": 28573, "p999_ns": 67386, "serialize_us": null, "alloc_kb": 0 }
+          ]
         }
       ]
     },
