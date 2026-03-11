@@ -6618,6 +6618,22 @@ inline void to_json_field(Value &obj, const char *key, const T &val) {
 #define BEAST_DETAIL_FE_14(fn, a, ...) fn(a) BEAST_DETAIL_FE_13(fn, __VA_ARGS__)
 #define BEAST_DETAIL_FE_15(fn, a, ...) fn(a) BEAST_DETAIL_FE_14(fn, __VA_ARGS__)
 #define BEAST_DETAIL_FE_16(fn, a, ...) fn(a) BEAST_DETAIL_FE_15(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_17(fn, a, ...) fn(a) BEAST_DETAIL_FE_16(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_18(fn, a, ...) fn(a) BEAST_DETAIL_FE_17(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_19(fn, a, ...) fn(a) BEAST_DETAIL_FE_18(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_20(fn, a, ...) fn(a) BEAST_DETAIL_FE_19(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_21(fn, a, ...) fn(a) BEAST_DETAIL_FE_20(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_22(fn, a, ...) fn(a) BEAST_DETAIL_FE_21(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_23(fn, a, ...) fn(a) BEAST_DETAIL_FE_22(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_24(fn, a, ...) fn(a) BEAST_DETAIL_FE_23(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_25(fn, a, ...) fn(a) BEAST_DETAIL_FE_24(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_26(fn, a, ...) fn(a) BEAST_DETAIL_FE_25(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_27(fn, a, ...) fn(a) BEAST_DETAIL_FE_26(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_28(fn, a, ...) fn(a) BEAST_DETAIL_FE_27(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_29(fn, a, ...) fn(a) BEAST_DETAIL_FE_28(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_30(fn, a, ...) fn(a) BEAST_DETAIL_FE_29(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_31(fn, a, ...) fn(a) BEAST_DETAIL_FE_30(fn, __VA_ARGS__)
+#define BEAST_DETAIL_FE_32(fn, a, ...) fn(a) BEAST_DETAIL_FE_31(fn, __VA_ARGS__)
 
 #define BEAST_FOR_EACH(fn, ...)                                                \
   BEAST_DETAIL_EXPAND(BEAST_DETAIL_CONCAT2(                                    \

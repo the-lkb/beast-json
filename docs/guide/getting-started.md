@@ -11,29 +11,33 @@ Beast JSON is a **single-header library**. Just download `beast_json.hpp` and in
 wget https://raw.githubusercontent.com/qbuem/beast-json/main/include/beast_json/beast_json.hpp
 ```
 
-## 🚀 Quick Usage
+### 1. Choice of Engines
 
-### 1. Parsing JSON
+Beast JSON offers two main ways to parse JSON data:
 
-Beast JSON uses a lazy-DOM approach. Parsing is near-instant, and access is type-safe.
+#### A. Beast (DOM) — For Flexible Throughput
+Best for general-purpose parsing, large files, or when you need a dynamic DOM.
 
 ```cpp
 #include <beast_json/beast_json.hpp>
-#include <iostream>
 
-int main() {
-    std::string json = R"({"name": "Beast", "speed": 2.7})";
+beast::Document doc;
+beast::Value root = beast::parse(doc, json_data);
+auto name = root["name"].as<std::string>();
+```
 
-    // A Document owns the tape; a Value is a lightweight handle into it
-    beast::Document doc;
-    beast::Value root = beast::parse(doc, json);
+#### B. Beast (Nexus) — For Micro-Latency DTOs
+Best for high-frequency objects where every nanosecond counts. It maps JSON **directly** into your struct with **zero intermediate tape**.
 
-    // Type-safe access
-    std::string name = root["name"].as<std::string>();
-    double speed = root["speed"].as<double>();
+```cpp
+struct User {
+    int id;
+    std::string name;
+    BEAST_JSON_FIELDS(User, id, name)
+};
 
-    std::cout << name << " throughput: " << speed << " GB/s" << std::endl;
-}
+// Zero-Tape Fusion
+User u = beast::fuse<User>(json_data);
 ```
 
 ### 2. High-Performance Serialization

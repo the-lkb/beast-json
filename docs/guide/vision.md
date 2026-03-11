@@ -12,8 +12,9 @@ In a world where data is increasingly exchanged via JSON, the efficiency of the 
 
 ### Phase 1: Foundations ✅
 - ✅ Zero-Allocation Tape DOM.
+- ✅ **Nexus Fusion (Zero-Tape)**: Direct JSON-to-struct mapping.
 - ✅ AVX-512 & ARM NEON structural indexing.
-- ✅ Russ Cox unrounded scaling for numbers.
+- ✅ Russ Cox unrounded scaling (2026 update).
 - ✅ C++20 Concepts-based API.
 
 ### Phase 2: Compliance & Reliability ✅

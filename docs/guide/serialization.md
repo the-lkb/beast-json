@@ -45,6 +45,9 @@ BEAST_JSON_FIELDS(Order, id, price, symbol)
 Order o{42, 99.5, "AAPL"};
 std::string json = beast::write(o);         // compact
 std::string pretty = beast::write(o, 2);    // 2-space indented
+
+> [!TIP]
+> `beast::write` is universal. It works perfectly for structs whether you parse them via the **DOM Engine** (`beast::read`) or the **Nexus Engine** (`beast::fuse`).
 ```
 
 **When to use `beast::write()`:**

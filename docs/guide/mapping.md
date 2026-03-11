@@ -29,9 +29,33 @@ You don't need to write any conversion code for standard library containers. Jus
 
 ---
 
-## 🛠️ Custom Structs with `BEAST_JSON_FIELDS`
+## 🛠️ Choice of Engines: DOM vs. Nexus
 
-For your own types, the `BEAST_JSON_FIELDS` macro auto-generates optimized `read` and `write` code at compile time. Place it **outside** the struct definition.
+When mapping JSON to custom structs, Beast JSON allows you to choose your performance profile based on your data scale.
+
+### 1. The Standard Path: `beast::read<T>` (Tape-DOM)
+Best for **general-purpose bulk data**, large arrays, or when schemas are slightly fluid. It uses the Stage 1 SIMD scanner to build a contiguous Tape, which is then mapped to your struct.
+
+```cpp
+// 1. Build Tape (SIMD)
+// 2. Map to Struct
+User u = beast::read<User>(json_str);
+```
+
+### 2. The Nexus Path: `beast::fuse<T>` (Zero-Tape)
+Best for **latency-critical micro-DTOs**. It bypasses the Tape entirely, using **Nexus Fusion** technology to stream JSON directly into your struct members using $O(1)$ perfect-hash dispatch.
+
+```cpp
+// 1. Direct Stream-to-Struct mapping
+// 0.0 Tape Allocation
+User u = beast::fuse<User>(json_str);
+```
+
+---
+
+## 🏗️ Direct Struct Mapping with `BEAST_JSON_FIELDS`
+
+For your own types, the `BEAST_JSON_FIELDS` macro auto-generates optimized metadata used by both engines. Place it **outside** the struct definition.
 
 ```cpp
 struct Address {
@@ -39,7 +63,7 @@ struct Address {
     std::string city;
     std::string country;
 };
-BEAST_JSON_FIELDS(Address, street, city, country)   // ← outside the struct!
+BEAST_JSON_FIELDS(Address, street, city, country)
 
 struct User {
     uint64_t    id;
@@ -52,52 +76,14 @@ struct User {
 BEAST_JSON_FIELDS(User, id, username, address, tags, score, active)
 ```
 
-### Serialization (Struct → JSON)
+> [!IMPORTANT]
+> To use `beast::fuse<T>`, the struct **must** be registered with `BEAST_JSON_FIELDS` and use C++20 standard layout types where possible for maximum speed.
 
-```cpp
-User u{
-    .id = 42,
-    .username = "beast_master",
-    .address = {"123 Main St", "Seoul", "KR"},
-    .tags = {"cpp20", "simd", "hft"},
-    .score = 99.5,
-    .active = true
-};
+### Performance Tip: Perfect Hash Dispatch
+Unlike other libraries that use runtime string comparisons, `BEAST_JSON_FIELDS` computes **FNV-1a hashes at compile-time**. Whether your struct has 3 fields or 30, field lookup is always $O(1)$.
 
-std::string json = beast::write(u);
-// {"id":42,"username":"beast_master","address":{"street":"123 Main St","city":"Seoul","country":"KR"},"tags":["cpp20","simd","hft"],"score":99.5,"active":true}
-
-// Pretty print
-std::string pretty = beast::write(u, 2);
-```
-
-### Deserialization (JSON → Struct)
-
-```cpp
-std::string json = R"({
-    "id": 42,
-    "username": "beast_master",
-    "address": {"street": "123 Main St", "city": "Seoul", "country": "KR"},
-    "tags": ["cpp20", "simd"],
-    "score": 99.5
-})";
-
-// One-call deserialization
-User u = beast::read<User>(json);
-
-std::cout << u.username << "\n";      // beast_master
-std::cout << u.address.city << "\n";  // Seoul
-std::cout << u.tags[0] << "\n";       // cpp20
-```
-
-### Behavior with Missing / Extra Fields
-
-```cpp
-// Missing JSON field → struct member keeps its C++ default value (not an error)
-// JSON null on non-optional → silently skipped
-// Extra JSON fields not in the struct → ignored
-// Supports up to 32 fields per struct
-```
+> [!NOTE]
+> `BEAST_JSON_FIELDS` now supports up to **32 fields** per struct. For larger structures, see the manual ADL hooks section below.
 
 ---
 
@@ -177,7 +163,36 @@ std::cout << root.dump() << "\n";
 
 ---
 
-## 🔧 Third-Party Types via ADL
+## 🔌 Advanced: ADL & Custom Hooks (Nexus Engine)
+
+If you need to support third-party types that cannot be modified with macros, or if your struct exceeds 32 fields, you can manually implement the **ADL Hooks**.
+
+The Nexus Engine (`beast::fuse`) specifically looks for `nexus_pulse` via Argument-Dependent Lookup.
+
+```cpp
+// Manual Nexus Hook for a 3rd party type
+namespace third_party {
+    struct Custom { int x; };
+
+    inline void nexus_pulse(std::string_view key, const char*& p, const char* end, Custom& obj) {
+        // High-performance dispatch using FNV-1a hashes
+        switch (beast::json::detail::fnv1a_hash(key)) {
+            case beast::json::detail::fnv1a_hash_ce("x"):
+                beast::json::detail::from_json_direct(p, end, obj.x);
+                break;
+            default:
+                beast::json::detail::skip_direct(p, end);
+                break;
+        }
+    }
+}
+```
+
+By defining `nexus_pulse` in the same namespace as your type, `beast::fuse<T>` will automatically use it for direct, zero-tape mapping. 
+
+---
+
+## 🔧 Third-Party Types via ADL (DOM Engine)
 
 If you **cannot** modify a struct (e.g., from a library like `glm`), define Argument-Dependent Lookup (ADL) functions in the **same namespace** as the type:
 

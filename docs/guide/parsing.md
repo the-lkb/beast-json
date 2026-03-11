@@ -67,18 +67,21 @@ try {
 }
 ```
 
-### `beast::read<T>(json)` — Deserialize Directly to a C++ Type
+### `beast::read<T>(json)` — Deserialize via Tape-DOM
 
-The most convenient API for known types. Combines parsing and deserialization in one call.
+The standard way to map JSON to types. It first builds a Tape (SIMD) and then maps it to your type `T`. Excellent for large files and general purpose use.
 
 ```cpp
-// STL containers
-auto ids   = beast::read<std::vector<int>>("[1, 2, 3]");
-auto kv    = beast::read<std::map<std::string, int>>(R"({"a":1,"b":2})");
-auto tuple = beast::read<std::tuple<int, std::string, bool>>(R"([42, "hi", true])");
-
-// Custom structs (with BEAST_JSON_FIELDS)
 auto user = beast::read<User>(R"({"name": "Alice", "age": 30})");
+```
+
+### `beast::fuse<T>(json)` — Direct Fusion (Nexus Engine)
+
+The **lowest-latency** way to parse. It bypasses the Tape entirely and streams JSON directly into your struct. Requires your struct to be registered via `BEAST_JSON_FIELDS`.
+
+```cpp
+// 0.0 Tape Allocation. O(1) Perfect Hash Dispatch.
+auto user = beast::fuse<User>(R"({"name": "Alice", "age": 30})");
 ```
 
 ---

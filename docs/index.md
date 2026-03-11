@@ -29,15 +29,13 @@ features:
     details: 100% memory safe. Verified with ASan, UBSan, TSan, and extensive security stress tests.
 ---
 
-<div class="center-content" style="text-align: center; padding: 4rem 2rem;">
-  <h2>Why Beast JSON?</h2>
+  <h2>The Hybrid Strategy</h2>
   <p style="max-width: 800px; margin: 0 auto; line-height: 1.6; font-size: 1.1rem;">
-    In modern high-frequency systems, JSON processing is often the bottleneck. 
-    Beast JSON was engineered from the ground up to solve this using a multi-stage SIMD pipeline 
-    and the Russ Cox unrounded scaling algorithm, delivering absolute peak performance 
-    on both Intel and Apple Silicon.
+    Beast JSON is the only C++ engine providing a **Dual-Engine** strategy. 
+    Choose **Beast (DOM)** for massive throughput using SIMD Stage 1 structural scanning, 
+    or switch to **Beast (Nexus)** for sub-microsecond latency using our Zero-Tape 
+    direct mapping technology. Overcome the "one size fits all" throughput barrier.
   </p>
-</div>
 
 <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 2rem; padding: 2rem;">
   <div style="flex: 1; min-width: 300px;">

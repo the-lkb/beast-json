@@ -12,10 +12,12 @@ Beast JSON is the flagship JSON engine for modern C++. It is engineered to deliv
 3. **C++20 Native**: Clean code over legacy SFINAE madness.
 4. **Safety**: 100% sanitizer-clean code with transactional safety.
 
-## 🚀 Why another JSON library?
+## 🚀 The Dual-Engine Strategy
 
-While libraries like `simdjson` are incredibly fast for parsing, and `nlohmann/json` is incredibly easy to use, Beast JSON was born to bridge that gap: 
-**A library that is as fast as the fastest, but feels as natural as the easiest.**
+Beast JSON is unique in providing a **Hybrid Strategy**. We don't force a single "best" parser; instead, we offer two specialized engines to handle different data scales:
+
+- **Beast (DOM)**: The **High-Throughput Engine**. Optimized for SIMD Stage 1 structural scanning. It excels at massive datasets, skipping whitespace at 64B/cycle.
+- **Beast (Nexus)**: The **Low-Latency Engine**. Optimized for zero-intermediate mapping. By bypassing the Tape/DOM entirely, it delivers the lowest possible latency for structured C++ objects.
 
 By leveraging the latest C++20 features (Concepts, Ranges, `<charconv>`) and multi-architecture SIMD, we've created a tool that allows you to express your logic clearly while the engine handles the extreme optimization under the hood.
 

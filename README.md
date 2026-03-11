@@ -17,21 +17,19 @@
 
 ---
 
-**Beast JSON** is a lazy-DOM C++20 JSON library engineered to be the fastest **C++ JSON parser and serializer** available. Designed for latency-critical applications: High-Frequency Trading, game engines, and extreme-throughput servers.
+**Beast JSON** is a high-performance C++20 JSON engine providing a **Hybrid Strategy** for modern workloads. It offers two specialized engines: **Beast (DOM)** for massive-scale throughput and **Beast (Nexus)** for micro-latency Zero-Tape mapping.
 
-By leveraging **C++20 Concepts**, **SIMD (AVX-512, NEON)**, **SWAR (SIMD Within A Register)**, and a **Zero-Allocation Array-Backed Tape DOM**, Beast JSON eliminates traditional tree-based DOM overhead while retaining a clean API.
+By leveraging **C++20 Concepts**, **SIMD (AVX-512, NEON)**, and **Nexus Fusion (Zero-Tape)** technology, Beast JSON eliminates traditional tree-based DOM overhead while retaining a beautiful, type-safe API.
 
 ---
 
 ## 🚀 Features
 
-* **World-Class Performance** — Outperforms `yyjson`, `simdjson`, `glaze`, and `rapidjson` in parsing and serialization on `x86_64` and `AArch64`.
-* **Zero-Allocation Execution** — Zero-copy strings for parsing; direct-to-buffer stream pushing for serialization.
-* **C++20 Native** — Clean integration via Concepts and fold expressions. No legacy SFINAE.
-* **Auto-Serialization Macro** — One macro (`BEAST_JSON_FIELDS`) generates full struct ↔ JSON mapping.
-* **Safe Monadic Interface** — `SafeValue` propagates `std::optional` through deep traversal without exceptions.
-* **Single Header** — Drop `beast_json.hpp` into your project.
-* **Fuzzed & Hardened** — Passed libFuzzer suites with ASan and UBSan. Fully memory safe.
+* **Dual-Engine Architecture** — Choose between **Beast (DOM)** for bulk processing and **Beast (Nexus)** for sub-microsecond struct mapping.
+* **World-Class Performance** — Outperforms `yyjson`, `simdjson`, and `glaze` in real-world complex STL benchmarks.
+* **Nexus Fusion (Zero-Tape)** — Direct JSON-to-struct mapping in a single pass. Zero Tape allocations.
+* **Zero-Allocation Execution** — Sequential memory layout and zero-copy strings for deterministic performance.
+* **Single Header** — Drop `beast_json.hpp` into your project and you're ready.
 
 ```cpp
 struct User {
@@ -67,7 +65,7 @@ Results cover all standard datasets (`twitter`, `canada`, `citm`, `gsoc`, `harsh
 
 | Category | Topics |
 |:---|:---|
-| **Engineering Theory** | [Tape Architecture](https://qbuem.github.io/beast-json/theory/architecture), [SIMD Acceleration](https://qbuem.github.io/beast-json/theory/simd), [Russ Cox Algorithm](https://qbuem.github.io/beast-json/theory/russ-cox) |
+| **Engineering Theory** | [Tape DOM](https://qbuem.github.io/beast-json/theory/architecture), [Nexus Fusion](https://qbuem.github.io/beast-json/theory/nexus-fusion), [SIMD Acceleration](https://qbuem.github.io/beast-json/theory/simd), [Russ Cox Algorithm](https://qbuem.github.io/beast-json/theory/russ-cox) |
 | **Advanced Usage** | [HFT Optimization Patterns](https://qbuem.github.io/beast-json/guide/hft-patterns), [Custom Allocators](https://qbuem.github.io/beast-json/guide/allocators), [Language Bindings](https://qbuem.github.io/beast-json/guide/bindings) |
 | **Guides** | [Getting Started](https://qbuem.github.io/beast-json/guide/getting-started), [Object Mapping](https://qbuem.github.io/beast-json/guide/mapping), [Error Handling](https://qbuem.github.io/beast-json/guide/errors) |
 | **API Reference** | [Full C++ Doxygen Reference](https://qbuem.github.io/beast-json/api/reference/index.html) |
