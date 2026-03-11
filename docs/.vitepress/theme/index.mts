@@ -11,7 +11,7 @@ import type { Theme } from 'vitepress'
 
 export default {
   extends: DefaultTheme,
-  enhanceApp({ app }) {
+  enhanceApp({ app, router }) {
     app.component('TapeFlowDiagram', TapeFlowDiagram)
     app.component('LazyLifecycle', LazyLifecycle)
     app.component('SimdPipeline', SimdPipeline)
@@ -19,5 +19,19 @@ export default {
     app.component('TapeInspector', TapeInspector)
     app.component('ParseErrorMap', ParseErrorMap)
     app.component('BenchmarkCi', BenchmarkCi)
+
+    // Doxygen pages are static HTML served outside VitePress's route system.
+    // Without this guard, clicking a /api/reference/ link from within
+    // VitePress content causes the SPA router to handle it, fail to find a
+    // matching route, and render a 404. Returning false cancels SPA navigation
+    // and lets the browser make a full HTTP request to the real file.
+    if (typeof window !== 'undefined') {
+      router.onBeforeRouteChange = (to: string) => {
+        if (to.includes('/api/reference/')) {
+          window.location.href = to
+          return false
+        }
+      }
+    }
   }
 } satisfies Theme

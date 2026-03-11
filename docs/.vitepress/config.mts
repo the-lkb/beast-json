@@ -71,7 +71,7 @@ export default withMermaid(
                     text: 'API Reference',
                     items: [
                         { text: 'Manual Reference', link: '/api/index' },
-                        { text: 'Doxygen (Auto-generated)', link: '/api/reference/index.html' }
+                        { text: 'Doxygen (Auto-generated)', link: '/api/reference/index.html', target: '_blank', rel: 'noreferrer' }
                     ]
                 },
                 {
