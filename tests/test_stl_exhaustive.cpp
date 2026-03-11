@@ -71,6 +71,106 @@ struct AppConfig {
 };
 BEAST_JSON_FIELDS(AppConfig, name, servers, primary)
 
+// ─── Struct16: exactly 16 fields — macro boundary ────────────────────────────
+
+struct Struct16 {
+  int f1{}, f2{}, f3{}, f4{};
+  int f5{}, f6{}, f7{}, f8{};
+  int f9{}, f10{}, f11{}, f12{};
+  int f13{}, f14{}, f15{}, f16{};
+};
+BEAST_JSON_FIELDS(Struct16, f1, f2, f3, f4, f5, f6, f7, f8,
+                  f9, f10, f11, f12, f13, f14, f15, f16)
+
+// ─── LargeEvent: 17 fields — manual ADL hooks required ───────────────────────
+
+struct LargeEvent {
+  int64_t     seq{};
+  int64_t     ts{};
+  double      price{};
+  double      qty{};
+  double      bid{};
+  double      ask{};
+  double      bid_qty{};
+  double      ask_qty{};
+  int         side{};
+  int         type{};
+  bool        is_snapshot{};
+  bool        is_last{};
+  std::string symbol;
+  std::string venue;
+  std::string feed;
+  std::string session;
+  std::string trader_id; // 17th field — exceeds macro limit
+};
+
+inline void from_beast_json(const beast::json::Value& v, LargeEvent& o) {
+  ::beast::json::detail::from_json_field(v, "seq",         o.seq);
+  ::beast::json::detail::from_json_field(v, "ts",          o.ts);
+  ::beast::json::detail::from_json_field(v, "price",       o.price);
+  ::beast::json::detail::from_json_field(v, "qty",         o.qty);
+  ::beast::json::detail::from_json_field(v, "bid",         o.bid);
+  ::beast::json::detail::from_json_field(v, "ask",         o.ask);
+  ::beast::json::detail::from_json_field(v, "bid_qty",     o.bid_qty);
+  ::beast::json::detail::from_json_field(v, "ask_qty",     o.ask_qty);
+  ::beast::json::detail::from_json_field(v, "side",        o.side);
+  ::beast::json::detail::from_json_field(v, "type",        o.type);
+  ::beast::json::detail::from_json_field(v, "is_snapshot", o.is_snapshot);
+  ::beast::json::detail::from_json_field(v, "is_last",     o.is_last);
+  ::beast::json::detail::from_json_field(v, "symbol",      o.symbol);
+  ::beast::json::detail::from_json_field(v, "venue",       o.venue);
+  ::beast::json::detail::from_json_field(v, "feed",        o.feed);
+  ::beast::json::detail::from_json_field(v, "session",     o.session);
+  ::beast::json::detail::from_json_field(v, "trader_id",   o.trader_id);
+}
+
+inline void to_beast_json(beast::json::Value& v, const LargeEvent& o) {
+  ::beast::json::detail::to_json_field(v, "seq",         o.seq);
+  ::beast::json::detail::to_json_field(v, "ts",          o.ts);
+  ::beast::json::detail::to_json_field(v, "price",       o.price);
+  ::beast::json::detail::to_json_field(v, "qty",         o.qty);
+  ::beast::json::detail::to_json_field(v, "bid",         o.bid);
+  ::beast::json::detail::to_json_field(v, "ask",         o.ask);
+  ::beast::json::detail::to_json_field(v, "bid_qty",     o.bid_qty);
+  ::beast::json::detail::to_json_field(v, "ask_qty",     o.ask_qty);
+  ::beast::json::detail::to_json_field(v, "side",        o.side);
+  ::beast::json::detail::to_json_field(v, "type",        o.type);
+  ::beast::json::detail::to_json_field(v, "is_snapshot", o.is_snapshot);
+  ::beast::json::detail::to_json_field(v, "is_last",     o.is_last);
+  ::beast::json::detail::to_json_field(v, "symbol",      o.symbol);
+  ::beast::json::detail::to_json_field(v, "venue",       o.venue);
+  ::beast::json::detail::to_json_field(v, "feed",        o.feed);
+  ::beast::json::detail::to_json_field(v, "session",     o.session);
+  ::beast::json::detail::to_json_field(v, "trader_id",   o.trader_id);
+}
+
+inline void append_beast_json(std::string& out, const LargeEvent& o) {
+  out += '{';
+  size_t prev_len = out.size();
+#define BEAST_TEST_APPEND(key, val) \
+  out += "\"" key "\":"; ::beast::json::detail::append_json(out, val); out += ',';
+  BEAST_TEST_APPEND("seq",         o.seq)
+  BEAST_TEST_APPEND("ts",          o.ts)
+  BEAST_TEST_APPEND("price",       o.price)
+  BEAST_TEST_APPEND("qty",         o.qty)
+  BEAST_TEST_APPEND("bid",         o.bid)
+  BEAST_TEST_APPEND("ask",         o.ask)
+  BEAST_TEST_APPEND("bid_qty",     o.bid_qty)
+  BEAST_TEST_APPEND("ask_qty",     o.ask_qty)
+  BEAST_TEST_APPEND("side",        o.side)
+  BEAST_TEST_APPEND("type",        o.type)
+  BEAST_TEST_APPEND("is_snapshot", o.is_snapshot)
+  BEAST_TEST_APPEND("is_last",     o.is_last)
+  BEAST_TEST_APPEND("symbol",      o.symbol)
+  BEAST_TEST_APPEND("venue",       o.venue)
+  BEAST_TEST_APPEND("feed",        o.feed)
+  BEAST_TEST_APPEND("session",     o.session)
+  BEAST_TEST_APPEND("trader_id",   o.trader_id)
+#undef BEAST_TEST_APPEND
+  if (out.size() > prev_len) out.pop_back(); // remove trailing comma
+  out += '}';
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 template <typename T> static T roundtrip(const T &val) {
@@ -697,4 +797,137 @@ TEST(TopLevelAPI, WritePairAndCheckStructure) {
   EXPECT_TRUE(root.is_array());
   EXPECT_EQ(root[0].as<int>(), 7);
   EXPECT_TRUE(root[1].as<bool>());
+}
+
+// ─── BEAST_JSON_FIELDS: 16-field boundary ────────────────────────────────────
+
+// Verify the macro works at its maximum capacity (16 fields).
+TEST(BeastJsonFields, Struct16BoundaryRoundTrip) {
+  Struct16 s;
+  s.f1 = 1; s.f2 = 2; s.f3 = 3; s.f4 = 4;
+  s.f5 = 5; s.f6 = 6; s.f7 = 7; s.f8 = 8;
+  s.f9 = 9; s.f10 = 10; s.f11 = 11; s.f12 = 12;
+  s.f13 = 13; s.f14 = 14; s.f15 = 15; s.f16 = 16;
+
+  auto s2 = roundtrip(s);
+  EXPECT_EQ(s2.f1,  1);
+  EXPECT_EQ(s2.f8,  8);
+  EXPECT_EQ(s2.f16, 16);
+}
+
+// All 16 keys appear in the serialized JSON.
+TEST(BeastJsonFields, Struct16AllKeysPresent) {
+  Struct16 s;
+  s.f1 = 10; s.f16 = 160;
+  std::string json = beast::write(s);
+
+  for (int i = 1; i <= 16; ++i) {
+    std::string key = "\"f" + std::to_string(i) + "\":";
+    EXPECT_NE(json.find(key), std::string::npos) << "Missing key: " << key;
+  }
+}
+
+// Default-constructed struct serializes all fields as 0.
+TEST(BeastJsonFields, Struct16DefaultValues) {
+  Struct16 s{};
+  auto s2 = roundtrip(s);
+  EXPECT_EQ(s2.f1,  0);
+  EXPECT_EQ(s2.f9,  0);
+  EXPECT_EQ(s2.f16, 0);
+}
+
+// Missing JSON fields keep C++ default values (not an error).
+TEST(BeastJsonFields, Struct16MissingFieldsKeepDefaults) {
+  // Only f1 and f16 present in JSON; all others must remain 0.
+  Struct16 s = beast::read<Struct16>(R"({"f1":99,"f16":88})");
+  EXPECT_EQ(s.f1,  99);
+  EXPECT_EQ(s.f16, 88);
+  EXPECT_EQ(s.f2,  0);
+  EXPECT_EQ(s.f8,  0);
+}
+
+// ─── Manual ADL hooks: LargeEvent (17 fields) ────────────────────────────────
+
+// Basic roundtrip via beast::write / beast::read.
+TEST(LargeStructADL, RoundTripAllFields) {
+  LargeEvent e;
+  e.seq        = 1001;
+  e.ts         = 1700000000000LL;
+  e.price      = 42500.5;
+  e.qty        = 1.5;
+  e.bid        = 42500.0;
+  e.ask        = 42501.0;
+  e.bid_qty    = 10.0;
+  e.ask_qty    = 5.0;
+  e.side       = 1;
+  e.type       = 0;
+  e.is_snapshot = true;
+  e.is_last    = false;
+  e.symbol     = "BTCUSDT";
+  e.venue      = "binance";
+  e.feed       = "spot";
+  e.session    = "regular";
+  e.trader_id  = "trader_42";
+
+  auto e2 = roundtrip(e);
+  EXPECT_EQ(e2.seq,         1001);
+  EXPECT_EQ(e2.ts,          1700000000000LL);
+  EXPECT_NEAR(e2.price,     42500.5, 1e-9);
+  EXPECT_NEAR(e2.qty,       1.5, 1e-9);
+  EXPECT_EQ(e2.side,        1);
+  EXPECT_EQ(e2.type,        0);
+  EXPECT_TRUE(e2.is_snapshot);
+  EXPECT_FALSE(e2.is_last);
+  EXPECT_EQ(e2.symbol,      "BTCUSDT");
+  EXPECT_EQ(e2.venue,       "binance");
+  EXPECT_EQ(e2.feed,        "spot");
+  EXPECT_EQ(e2.session,     "regular");
+  EXPECT_EQ(e2.trader_id,   "trader_42");
+}
+
+// All 17 keys must appear in the flat JSON output (no nesting).
+TEST(LargeStructADL, FlatJSONLayoutAllKeysPresent) {
+  LargeEvent e;
+  e.symbol    = "ETHUSDT";
+  e.trader_id = "t1";
+  std::string json = beast::write(e);
+
+  for (const char* key : {"\"seq\":", "\"ts\":", "\"price\":", "\"qty\":",
+                           "\"bid\":", "\"ask\":", "\"bid_qty\":", "\"ask_qty\":",
+                           "\"side\":", "\"type\":", "\"is_snapshot\":", "\"is_last\":",
+                           "\"symbol\":", "\"venue\":", "\"feed\":",
+                           "\"session\":", "\"trader_id\":"}) {
+    EXPECT_NE(json.find(key), std::string::npos) << "Missing key: " << key;
+  }
+}
+
+// write_to buffer-reuse path exercises append_beast_json.
+TEST(LargeStructADL, WriteToBufferReuse) {
+  LargeEvent e;
+  e.seq    = 7;
+  e.symbol = "SOLUSDT";
+
+  std::string buf;
+  buf.reserve(512);
+
+  beast::write_to(buf, e);
+  EXPECT_NE(buf.find("\"seq\":7"),          std::string::npos);
+  EXPECT_NE(buf.find("\"symbol\":\"SOLUSDT\""), std::string::npos);
+
+  // Reuse the buffer — clear and write again.
+  buf.clear();
+  e.seq = 8;
+  beast::write_to(buf, e);
+  EXPECT_NE(buf.find("\"seq\":8"), std::string::npos);
+}
+
+// Missing fields in JSON keep zero/default values.
+TEST(LargeStructADL, MissingFieldsKeepDefaults) {
+  LargeEvent e = beast::read<LargeEvent>(R"({"seq":5,"symbol":"XRPUSDT"})");
+  EXPECT_EQ(e.seq,       5);
+  EXPECT_EQ(e.symbol,    "XRPUSDT");
+  EXPECT_NEAR(e.price,   0.0, 1e-12);
+  EXPECT_EQ(e.side,      0);
+  EXPECT_FALSE(e.is_snapshot);
+  EXPECT_EQ(e.trader_id, "");
 }
