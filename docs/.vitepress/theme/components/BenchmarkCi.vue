@@ -8,8 +8,6 @@
         <span>Commit <code>{{ data.commit }}</code></span>
         <span class="sep">·</span>
         <span>{{ formattedDate }}</span>
-        <span class="sep">·</span>
-        <span>Dataset: <code>{{ data.file }}</code></span>
       </div>
 
       <!-- Architecture tabs -->
@@ -23,6 +21,17 @@
           <span class="arch-icon">{{ archIcon(p.arch) }}</span>
           {{ archLabel(p.arch) }}
         </button>
+      </div>
+
+      <!-- Dataset selector (only shown when multiple files exist) -->
+      <div v-if="availableFiles.length > 1" class="file-tabs">
+        <span class="row-label">Dataset:</span>
+        <button
+          v-for="f in availableFiles"
+          :key="f"
+          :class="['file-tab', { active: selectedFile === f }]"
+          @click="selectedFile = f"
+        >{{ f }}</button>
       </div>
 
       <!-- Metric tabs -->
@@ -67,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 
 interface BenchResult {
   library: string
@@ -84,7 +93,7 @@ interface FileData {
 interface PlatformData {
   arch: string
   label: string
-  files?: FileData[]     // format produced by current benchmark.yml
+  files?: FileData[]      // format produced by current benchmark.yml
   results?: BenchResult[] // legacy flat format (backward compat)
 }
 
@@ -96,9 +105,9 @@ interface BenchData {
 }
 
 const METRICS = [
-  { key: 'parse_us',     label: 'Parse (μs)'     },
-  { key: 'serialize_us', label: 'Serialize (μs)'  },
-  { key: 'alloc_kb',     label: 'Alloc (KB)'      },
+  { key: 'parse_us',     label: 'Parse (μs)'    },
+  { key: 'serialize_us', label: 'Serialize (μs)' },
+  { key: 'alloc_kb',     label: 'Alloc (KB)'     },
 ] as const
 
 type MetricKey = typeof METRICS[number]['key']
@@ -118,6 +127,7 @@ const ARCH_ICON: Record<string, string> = {
 const loading        = ref(true)
 const data           = ref<BenchData | null>(null)
 const selectedArch   = ref('')
+const selectedFile   = ref('')
 const selectedMetric = ref<MetricKey>('parse_us')
 
 const formattedDate = computed(() => {
@@ -128,12 +138,34 @@ const formattedDate = computed(() => {
   })
 })
 
-const currentResults = computed(() => {
-  const p = data.value?.platforms.find(p => p.arch === selectedArch.value)
+const currentPlatform = computed(() =>
+  data.value?.platforms.find(p => p.arch === selectedArch.value) ?? null
+)
+
+// List of dataset filenames for the current platform
+const availableFiles = computed(() => {
+  const p = currentPlatform.value
   if (!p) return []
-  // Current benchmark.yml format: platforms[].files[].results
-  if (p.files?.length) return p.files[0].results ?? []
-  // Legacy flat format: platforms[].results
+  if (p.files?.length) return p.files.map(f => f.file)
+  return []
+})
+
+// When the platform changes, reset selectedFile to the first available dataset
+watch(currentPlatform, () => {
+  const first = availableFiles.value[0] ?? ''
+  if (!availableFiles.value.includes(selectedFile.value)) {
+    selectedFile.value = first
+  }
+}, { immediate: true })
+
+const currentResults = computed(() => {
+  const p = currentPlatform.value
+  if (!p) return []
+  if (p.files?.length) {
+    const fd = p.files.find(f => f.file === selectedFile.value) ?? p.files[0]
+    return fd?.results ?? []
+  }
+  // Legacy flat format
   return p.results ?? []
 })
 
@@ -225,6 +257,42 @@ onMounted(async () => {
 }
 
 .arch-tab.active {
+  border-color: var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+/* ── Dataset tabs ────────────────────────────────────────────────────── */
+.file-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+
+.row-label {
+  font-size: 0.78em;
+  color: var(--vp-c-text-3);
+  margin-right: 0.2rem;
+}
+
+.file-tab {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vp-c-text-2);
+  font-size: 0.78em;
+  font-family: var(--vp-font-family-mono);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.file-tab:hover { color: var(--vp-c-text-1); }
+
+.file-tab.active {
   border-color: var(--vp-c-brand-1);
   background: var(--vp-c-brand-soft);
   color: var(--vp-c-brand-1);
