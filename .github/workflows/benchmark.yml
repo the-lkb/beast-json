@@ -73,13 +73,12 @@ jobs:
     - name: Build
       run: cmake --build build_bench --config Release -j2
 
-    # bench_all uses system() to re-invoke itself per library, so the working
-    # directory must be where both the binary and the JSON data files reside.
+    # bench uses system() to re-invoke itself per library for the general section,
+    # so the working directory must contain both the binary and JSON data files.
     - name: Run benchmarks
       working-directory: build_bench/benchmarks
       run: |
-        ./bench_all --quick --all 2>&1 | tee bench_output.txt
-        ./bench_structs --quick 2>&1 | tee -a bench_output.txt
+        ./bench --quick --all 2>&1 | tee bench_output.txt
 
     - name: Parse results into JSON artifact
       run: |
@@ -89,24 +88,46 @@ jobs:
         with open("build_bench/benchmarks/bench_output.txt", encoding="utf-8") as f:
             text = f.read()
 
-        # Split output into per-file/struct sections.
-        # bench_all prints: "=== bench_all — <filename> ==="
-        # bench_structs prints: "=== Struct: <name> ==="
-        files = []
-        current_file = None
+        # Output format:
+        #   ##section general          ← section switch marker
+        #   ##section structs
+        #   === bench_all — <file> === ← item header (general section)
+        #   === Struct: <name> ===     ← item header (structs section)
+        #   <lib> | Parse: N.N µs | Serialize: N.N µs | Alloc: N KB
+        SECTION_RE = re.compile(r'^##section\s+(\w+)')
+        HEADER_RE  = re.compile(r'^=== (?:bench_all \u2014 |Struct: |HFT: )(.+?) ===')
+
+        general = []
+        structs = []
+        current_section = "general"
+        current_item    = None
         current_results = []
 
-        # Combined regex for both headers
-        HEADER_RE = re.compile(r'^=== (?:bench_all \u2014 |Struct: )(.+?) ===')
+        def flush():
+            nonlocal current_item, current_results
+            if current_item is not None:
+                entry = {"file": current_item, "results": current_results}
+                if current_section == "general":
+                    general.append(entry)
+                else:
+                    structs.append(entry)
+            current_item    = None
+            current_results = []
 
         for line in text.splitlines():
-            m = HEADER_RE.match(line)
-            if m:
-                if current_file is not None:
-                    files.append({"file": current_file, "results": current_results})
-                current_file = m.group(1)
+            sm = SECTION_RE.match(line)
+            if sm:
+                flush()
+                current_section = sm.group(1)
+                continue
+
+            hm = HEADER_RE.match(line)
+            if hm:
+                flush()
+                current_item    = hm.group(1)
                 current_results = []
                 continue
+
             if "| Parse:" not in line:
                 continue
             parts = line.split("|")
@@ -115,8 +136,8 @@ jobs:
             lib = parts[0].strip()
             if not lib:
                 continue
-            parse_vals = re.findall(r'\d+\.\d+', parts[1])
-            ser_vals   = re.findall(r'\d+\.\d+', parts[2])
+            parse_vals = re.findall(r'[\d]+\.[\d]+', parts[1])
+            ser_vals   = re.findall(r'[\d]+\.[\d]+', parts[2])
             if not parse_vals or not ser_vals:
                 continue
             alloc_kb = 0
@@ -131,20 +152,19 @@ jobs:
                 "alloc_kb":     alloc_kb,
             })
 
-        if current_file is not None:
-            files.append({"file": current_file, "results": current_results})
+        flush()
 
         data = {
-            "arch":  "${{ matrix.arch }}",
-            "label": "${{ matrix.label }}",
-            "files": files,
+            "arch":    "${{ matrix.arch }}",
+            "label":   "${{ matrix.label }}",
+            "general": general,
+            "structs": structs,
         }
         os.makedirs("bench_artifacts", exist_ok=True)
         out = "bench_artifacts/results-${{ matrix.arch }}.json"
         with open(out, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-        total = sum(len(fd["results"]) for fd in files)
-        print(f"Wrote {len(files)} file(s), {total} results to {out}")
+        print(f"Wrote {len(general)} general + {len(structs)} struct entries to {out}")
         PYEOF
 
     - name: Upload results artifact
@@ -179,7 +199,7 @@ jobs:
     - name: Build step summary and docs JSON
       run: |
         python3 << 'PYEOF'
-        import re, json, os, datetime, glob
+        import json, os, datetime, glob
 
         files = sorted(glob.glob("bench_artifacts/results-*.json"))
         platforms = []
@@ -195,51 +215,45 @@ jobs:
         ref = os.environ.get("GITHUB_REF_NAME", "")
 
         # ── Step summary ───────────────────────────────────────────────────
+        def make_table(section_items, section_title):
+            out = []
+            if not section_items:
+                out.append(f"_No {section_title} data._\n")
+                return out
+            for fd in section_items:
+                results = fd.get("results", [])
+                out.append(f"#### `{fd['file']}`\n")
+                if not results:
+                    out.append("_No data._\n"); continue
+                min_p = min(r["parse_us"] for r in results)
+                min_s = min((r["serialize_us"] for r in results if r["serialize_us"] > 0), default=float("inf"))
+                out.append("| Library | Parse (μs) | Serialize (μs) | Alloc (KB) |")
+                out.append("|:--------|----------:|---------------:|-----------:|")
+                for r in results:
+                    pv, sv = r["parse_us"], r["serialize_us"]
+                    mk = r.get("alloc_kb", 0)
+                    pb = "**" if pv == min_p else ""
+                    sb = "**" if sv > 0 and sv == min_s else ""
+                    s_str = f"{sv:.2f}" if sv > 0 else "—"
+                    m_str = str(mk) if mk > 0 else "—"
+                    out.append(f"| {pb}{r['library']}{pb} | {pb}{pv:.2f}{pb} | {sb}{s_str}{sb} | {m_str} |")
+                out.append("")
+            return out
+
         lines = [
-            f"## Benchmark · `twitter.json` · commit `{sha}` on `{ref}`",
+            f"## Benchmark · commit `{sha}` on `{ref}`",
             "",
-            "> Quick mode — 15 iterations per library, Release, no PGO/LTO.",
+            "> Quick mode · Release build · no PGO/LTO",
             "",
         ]
-
         for p in platforms:
-            lines.append(f"### {p.get('label', p.get('arch', '?'))}")
+            label = p.get("label", p.get("arch", "?"))
+            lines.append(f"### {label}")
             lines.append("")
-            file_sections = p.get("files", [])
-            if not file_sections:
-                lines.append("_No data collected for this platform._")
-                lines.append("")
-                continue
-            for fd in file_sections:
-                results = fd.get("results", [])
-                lines.append(f"#### `{fd['file']}`")
-                lines.append("")
-                if results:
-                    min_p = min(r["parse_us"] for r in results)
-                    min_s = min(
-                        (r["serialize_us"] for r in results if r["serialize_us"] > 0),
-                        default=float("inf"),
-                    )
-                    min_m = min(
-                        (r.get("alloc_kb", 0) for r in results if r.get("alloc_kb", 0) > 0),
-                        default=0,
-                    )
-                    lines.append("| Library | Parse (μs) | Serialize (μs) | Alloc (KB) |")
-                    lines.append("|:--------|----------:|---------------:|-----------:|")
-                    for r in results:
-                        pv, sv = r["parse_us"], r["serialize_us"]
-                        mk = r.get("alloc_kb", 0)
-                        pb = "**" if pv == min_p else ""
-                        sb = "**" if sv > 0 and sv == min_s else ""
-                        mb = "**" if mk > 0 and mk == min_m else ""
-                        s_str = f"{sv:.1f}" if sv > 0 else "—"
-                        m_str = str(mk) if mk > 0 else "—"
-                        lines.append(
-                            f"| {pb}{r['library']}{pb} | {pb}{pv:.1f}{pb} | {sb}{s_str}{sb} | {mb}{m_str}{mb} |"
-                        )
-                else:
-                    lines.append("_No data._")
-                lines.append("")
+            lines.append("#### 📄 General JSON (DOM parse+serialize)")
+            lines.extend(make_table(p.get("general", []), "general"))
+            lines.append("#### 🧱 Struct Binding (C++ structs ↔ JSON)")
+            lines.extend(make_table(p.get("structs", []), "structs"))
 
         summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
         with open(summary_path, "a", encoding="utf-8") as f:
@@ -249,7 +263,6 @@ jobs:
         data = {
             "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "commit": sha,
-            "file": "twitter.json",
             "platforms": platforms,
         }
         os.makedirs("docs/public", exist_ok=True)

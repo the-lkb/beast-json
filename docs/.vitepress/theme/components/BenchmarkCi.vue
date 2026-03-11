@@ -23,7 +23,20 @@
         </button>
       </div>
 
-      <!-- Dataset selector (only shown when multiple files exist) -->
+      <!-- Section tabs -->
+      <div class="section-tabs">
+        <button
+          v-for="s in SECTIONS"
+          :key="s.key"
+          :class="['section-tab', { active: selectedSection === s.key }]"
+          @click="selectedSection = s.key"
+        >
+          <span class="section-icon">{{ s.icon }}</span>
+          {{ s.label }}
+        </button>
+      </div>
+
+      <!-- Dataset selector -->
       <div v-if="availableFiles.length > 1" class="file-tabs">
         <span class="row-label">Dataset:</span>
         <button
@@ -64,7 +77,7 @@
       </div>
 
       <p class="bench-note">
-        Quick mode · 15 iterations · Release build · no PGO/LTO ·
+        Quick mode · Release build · no PGO/LTO ·
         Relative ordering on shared GitHub Actions runners.
       </p>
     </template>
@@ -93,23 +106,31 @@ interface FileData {
 interface PlatformData {
   arch: string
   label: string
-  files?: FileData[]      // format produced by current benchmark.yml
-  results?: BenchResult[] // legacy flat format (backward compat)
+  // New two-section schema
+  general?: FileData[]
+  structs?: FileData[]
+  // Legacy flat format (backward compat)
+  files?: FileData[]
+  results?: BenchResult[]
 }
 
 interface BenchData {
   timestamp: string
   commit: string
-  file: string
   platforms: PlatformData[]
 }
+
+const SECTIONS = [
+  { key: 'general', label: 'General JSON',    icon: '📄' },
+  { key: 'structs', label: 'Struct Binding',  icon: '🧱' },
+] as const
+type SectionKey = typeof SECTIONS[number]['key']
 
 const METRICS = [
   { key: 'parse_us',     label: 'Parse (μs)'    },
   { key: 'serialize_us', label: 'Serialize (μs)' },
   { key: 'alloc_kb',     label: 'Alloc (KB)'     },
 ] as const
-
 type MetricKey = typeof METRICS[number]['key']
 
 const ARCH_LABEL: Record<string, string> = {
@@ -124,11 +145,12 @@ const ARCH_ICON: Record<string, string> = {
   'linux-aarch64': '🐧',
 }
 
-const loading        = ref(true)
-const data           = ref<BenchData | null>(null)
-const selectedArch   = ref('')
-const selectedFile   = ref('')
-const selectedMetric = ref<MetricKey>('parse_us')
+const loading         = ref(true)
+const data            = ref<BenchData | null>(null)
+const selectedArch    = ref('')
+const selectedSection = ref<SectionKey>('general')
+const selectedFile    = ref('')
+const selectedMetric  = ref<MetricKey>('parse_us')
 
 const formattedDate = computed(() => {
   if (!data.value?.timestamp) return ''
@@ -142,16 +164,34 @@ const currentPlatform = computed(() =>
   data.value?.platforms.find(p => p.arch === selectedArch.value) ?? null
 )
 
-// List of dataset filenames for the current platform
-const availableFiles = computed(() => {
+// Items for the active section on the current platform
+const sectionItems = computed((): FileData[] => {
   const p = currentPlatform.value
   if (!p) return []
-  if (p.files?.length) return p.files.map(f => f.file)
+
+  // New schema: p.general / p.structs
+  if (selectedSection.value === 'general') {
+    if (p.general?.length) return p.general
+    // Legacy: p.files contains everything; filter by known file patterns
+    if (p.files?.length) {
+      const jsonFiles = new Set(['twitter.json','canada.json','citm_catalog.json','gsoc-2018.json','harsh.json'])
+      return p.files.filter(f => jsonFiles.has(f.file) || f.file.endsWith('.json'))
+    }
+  }
+  if (selectedSection.value === 'structs') {
+    if (p.structs?.length) return p.structs
+    // Legacy: p.files — everything that isn't a .json file
+    if (p.files?.length) {
+      return p.files.filter(f => !f.file.endsWith('.json'))
+    }
+  }
   return []
 })
 
-// When the platform changes, reset selectedFile to the first available dataset
-watch(currentPlatform, () => {
+const availableFiles = computed(() => sectionItems.value.map(f => f.file))
+
+// Reset selectedFile when section or platform changes
+watch([currentPlatform, selectedSection], () => {
   const first = availableFiles.value[0] ?? ''
   if (!availableFiles.value.includes(selectedFile.value)) {
     selectedFile.value = first
@@ -159,20 +199,18 @@ watch(currentPlatform, () => {
 }, { immediate: true })
 
 const currentResults = computed(() => {
-  const p = currentPlatform.value
-  if (!p) return []
-  if (p.files?.length) {
-    const fd = p.files.find(f => f.file === selectedFile.value) ?? p.files[0]
-    return fd?.results ?? []
-  }
-  // Legacy flat format
-  return p.results ?? []
+  const fd = sectionItems.value.find(f => f.file === selectedFile.value) ?? sectionItems.value[0]
+  return fd?.results ?? []
 })
 
 const sortedResults = computed(() => {
   const key = selectedMetric.value
   return [...currentResults.value]
-    .map(r => ({ ...r, value: r[key] as number, isBeast: r.library.toLowerCase().includes('beast') }))
+    .map(r => ({
+      ...r,
+      value: r[key] as number,
+      isBeast: r.library.toLowerCase().includes('beast'),
+    }))
     .sort((a, b) => {
       if (a.value <= 0) return 1
       if (b.value <= 0) return -1
@@ -190,9 +228,10 @@ function pct(v: number): string {
 }
 
 function fmtVal(v: number): string {
-  return selectedMetric.value === 'alloc_kb'
-    ? v.toLocaleString() + ' KB'
-    : v.toFixed(1) + ' μs'
+  if (selectedMetric.value === 'alloc_kb') return v.toLocaleString() + ' KB'
+  // Show ns for sub-microsecond values (typical in HFT struct section)
+  if (selectedMetric.value !== 'alloc_kb' && v < 1) return (v * 1000).toFixed(0) + ' ns'
+  return v.toFixed(2) + ' μs'
 }
 
 function archLabel(arch: string): string { return ARCH_LABEL[arch] ?? arch }
@@ -250,18 +289,43 @@ onMounted(async () => {
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
-
-.arch-tab:hover {
-  border-color: var(--vp-c-brand-2);
-  color: var(--vp-c-text-1);
-}
-
+.arch-tab:hover { border-color: var(--vp-c-brand-2); color: var(--vp-c-text-1); }
 .arch-tab.active {
   border-color: var(--vp-c-brand-1);
   background: var(--vp-c-brand-soft);
   color: var(--vp-c-brand-1);
   font-weight: 600;
 }
+
+/* ── Section tabs ────────────────────────────────────────────────────── */
+.section-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.25rem;
+  border: 1.5px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-size: 0.88em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.section-tab:hover { border-color: var(--vp-c-brand-2); color: var(--vp-c-text-1); }
+.section-tab.active {
+  border-color: var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  font-weight: 700;
+}
+.section-icon { font-size: 1em; }
 
 /* ── Dataset tabs ────────────────────────────────────────────────────── */
 .file-tabs {
@@ -289,9 +353,7 @@ onMounted(async () => {
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
-
 .file-tab:hover { color: var(--vp-c-text-1); }
-
 .file-tab.active {
   border-color: var(--vp-c-brand-1);
   background: var(--vp-c-brand-soft);
@@ -319,16 +381,13 @@ onMounted(async () => {
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
-
 .metric-tab:hover { color: var(--vp-c-text-1); }
-
 .metric-tab.active {
   border-color: var(--vp-c-brand-1);
   background: var(--vp-c-brand-soft);
   color: var(--vp-c-brand-1);
   font-weight: 600;
 }
-
 .metric-hint {
   margin-left: auto;
   font-size: 0.78em;
@@ -345,12 +404,11 @@ onMounted(async () => {
 
 .bar-row {
   display: grid;
-  grid-template-columns: 1.4rem 140px 1fr 90px;
+  grid-template-columns: 1.4rem 150px 1fr 90px;
   align-items: center;
   gap: 0.6rem;
 }
 
-/* rank number */
 .rank {
   font-size: 0.72em;
   font-weight: 700;
@@ -360,7 +418,6 @@ onMounted(async () => {
 }
 .rank.gold { color: #f5a623; }
 
-/* library name */
 .lib {
   font-size: 0.82em;
   font-family: var(--vp-font-family-mono);
@@ -369,12 +426,8 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.lib.beast {
-  color: var(--vp-c-brand-1);
-  font-weight: 700;
-}
+.lib.beast { color: var(--vp-c-brand-1); font-weight: 700; }
 
-/* bar track */
 .track {
   position: relative;
   height: 22px;
@@ -389,15 +442,9 @@ onMounted(async () => {
   background: var(--vp-c-gray-2, #ccc);
   transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-.fill.beast {
-  background: var(--vp-c-brand-1);
-  opacity: 0.85;
-}
-
+.fill.beast { background: var(--vp-c-brand-1); opacity: 0.85; }
 .fill.na { background: transparent; }
 
-/* value label */
 .val {
   font-size: 0.78em;
   font-family: var(--vp-font-family-mono);
@@ -405,10 +452,7 @@ onMounted(async () => {
   text-align: right;
   white-space: nowrap;
 }
-.val.beast {
-  color: var(--vp-c-brand-1);
-  font-weight: 700;
-}
+.val.beast { color: var(--vp-c-brand-1); font-weight: 700; }
 
 /* ── Misc ────────────────────────────────────────────────────────────── */
 .bench-note {
@@ -426,5 +470,6 @@ onMounted(async () => {
 @media (max-width: 560px) {
   .bar-row { grid-template-columns: 1.4rem 100px 1fr 75px; gap: 0.4rem; }
   .metric-hint { display: none; }
+  .section-tab { padding: 0.4rem 0.8rem; font-size: 0.82em; }
 }
 </style>

@@ -161,27 +161,64 @@ target_link_libraries(bench_structs PRIVATE
 )
 target_include_directories(bench_structs PRIVATE ${rapidjson_SOURCE_DIR}/include)
 
+# HFT benchmark: beast-json vs glaze vs simdjson vs rapidjson vs nlohmann
+add_executable(bench_hft bench_hft.cpp)
+target_link_libraries(bench_hft PRIVATE
+    beast_json::beast_json
+    nlohmann_json::nlohmann_json
+    simdjson
+)
+target_include_directories(bench_hft PRIVATE ${rapidjson_SOURCE_DIR}/include)
+
+# ── Unified benchmark (CI primary target) ─────────────────────────────────
+# Merges general file benchmarks + struct binding + HFT message types.
+# Run: ./bench --all --quick    (both sections, CI mode)
+#      ./bench --section general --all
+#      ./bench --section structs
+add_executable(bench bench.cpp)
+target_link_libraries(bench PRIVATE
+    beast_json::beast_json
+    nlohmann_json::nlohmann_json
+    yyjson
+    simdjson
+)
+target_include_directories(bench PRIVATE ${rapidjson_SOURCE_DIR}/include)
+
 if(BEAST_BUILD_GLAZE)
     target_link_libraries(bench_all PRIVATE glaze::glaze)
     target_compile_definitions(bench_all PRIVATE BEAST_HAS_GLAZE=1)
-    
+
     target_link_libraries(bench_structs PRIVATE glaze::glaze)
     target_compile_definitions(bench_structs PRIVATE BEAST_HAS_GLAZE=1)
+
+    target_link_libraries(bench_hft PRIVATE glaze::glaze)
+    target_compile_definitions(bench_hft PRIVATE BEAST_HAS_GLAZE=1)
+
+    target_link_libraries(bench PRIVATE glaze::glaze)
+    target_compile_definitions(bench PRIVATE BEAST_HAS_GLAZE=1)
 
     # Attempt to use cxx_std_23 if CMake knows it, else fallback to standard options
     if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.20" OR "cxx_std_23" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
         target_compile_features(bench_all PRIVATE cxx_std_23)
         target_compile_features(bench_structs PRIVATE cxx_std_23)
+        target_compile_features(bench_hft PRIVATE cxx_std_23)
+        target_compile_features(bench PRIVATE cxx_std_23)
     elseif(HAS_CXX23)
         target_compile_options(bench_all PRIVATE -std=c++23)
         target_compile_options(bench_structs PRIVATE -std=c++23)
+        target_compile_options(bench_hft PRIVATE -std=c++23)
+        target_compile_options(bench PRIVATE -std=c++23)
     else()
         target_compile_options(bench_all PRIVATE -std=c++2b)
         target_compile_options(bench_structs PRIVATE -std=c++2b)
+        target_compile_options(bench_hft PRIVATE -std=c++2b)
+        target_compile_options(bench PRIVATE -std=c++2b)
     endif()
 else()
     target_compile_features(bench_all PRIVATE cxx_std_23)
     target_compile_features(bench_structs PRIVATE cxx_std_23)
+    target_compile_features(bench_hft PRIVATE cxx_std_23)
+    target_compile_features(bench PRIVATE cxx_std_23)
 endif()
 
 
@@ -215,7 +252,7 @@ endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64|AMD64")
     # (A) x86_64: native ISA; LTO and auto-vectorization intact.
-    foreach(_tgt bench_all bench_structs)
+    foreach(_tgt bench_all bench_structs bench_hft bench)
         if(TARGET ${_tgt})
             target_compile_options(${_tgt} PRIVATE -march=native)
         endif()
@@ -225,7 +262,7 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
         # (B) Apple Silicon — no SVE, safe to use -march=native + auto-vectorize.
         # This unlocks DOTPROD (UDOT/SDOT), SHA3/EOR3 (M2+), and correct
         # BEAST_PREFETCH_DISTANCE (512B) via BEAST_ARCH_APPLE_SILICON macro.
-        foreach(_tgt bench_all bench_structs)
+        foreach(_tgt bench_all bench_structs bench_hft bench)
             if(TARGET ${_tgt})
                 target_compile_options(${_tgt} PRIVATE -march=native)
             endif()
@@ -237,7 +274,7 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         # (C) Non-Apple AArch64 + Clang: SVE SIGILL safety guards.
         # Clang generates SVE at LTO link time even when source only uses NEON.
-        foreach(_tgt bench_all bench_structs)
+        foreach(_tgt bench_all bench_structs bench_hft bench)
             if(TARGET ${_tgt})
                 target_compile_options(${_tgt} PRIVATE
                     -fno-lto -fno-vectorize -fno-slp-vectorize)

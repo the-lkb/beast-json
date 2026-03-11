@@ -6150,6 +6150,18 @@ inline Value parse_strict(DocumentView &doc, ::std::string_view json) {
 
 namespace detail {
 
+// ── SWAR helpers (used by string serialization and Nexus key scanning) ────────
+// Returns non-zero if any byte in `v` equals `byte`.
+BEAST_INLINE uint64_t swar_has_byte(uint64_t v, uint8_t byte) noexcept {
+  uint64_t x = v ^ (static_cast<uint64_t>(byte) * 0x0101010101010101ULL);
+  return (x - 0x0101010101010101ULL) & ~x & 0x8080808080808080ULL;
+}
+// Returns non-zero if any byte in `v` is less than `threshold` (0x01..0x7F range safe).
+BEAST_INLINE uint64_t swar_has_less(uint64_t v, uint8_t threshold) noexcept {
+  return (v - static_cast<uint64_t>(threshold) * 0x0101010101010101ULL) & ~v &
+         0x8080808080808080ULL;
+}
+
 // ── Type trait helpers
 
 template <typename T, template <typename...> class U>
@@ -6373,31 +6385,49 @@ template <typename T> std::string to_json_str(const T &in) {
   } else if constexpr (std::is_floating_point_v<T>) {
     if (std::isinf(in) || std::isnan(in))
       return "null";
-    char buf[64];
+    char buf[32];
+#if __cpp_lib_to_chars >= 201611L && !defined(__APPLE__)
+    auto [ep, ec] = std::to_chars(buf, buf + sizeof(buf), in);
+    return std::string(buf, ep - buf);
+#else
     int n = std::snprintf(buf, sizeof(buf), "%.17g", static_cast<double>(in));
     return std::string(buf, static_cast<size_t>(n > 0 ? n : 0));
+#endif
   } else if constexpr (std::is_same_v<T, std::string> ||
                        std::is_same_v<T, std::string_view>) {
     std::string r;
     r.reserve(in.size() + 2);
     r += '"';
-    for (unsigned char c : in) {
-      if (c == '"')
-        r += "\\\"";
-      else if (c == '\\')
-        r += "\\\\";
-      else if (c == '\n')
-        r += "\\n";
-      else if (c == '\r')
-        r += "\\r";
-      else if (c == '\t')
-        r += "\\t";
-      else if (c < 0x20) {
-        char esc[8];
-        std::snprintf(esc, sizeof(esc), "\\u%04x", c);
-        r += esc;
-      } else
-        r += static_cast<char>(c);
+    const char *s = in.data(), *e = s + in.size();
+    while (s < e) {
+      const char *safe = s;
+      // SWAR: skip 8 bytes at a time when no byte needs escaping
+      while (safe + 8 <= e) {
+        uint64_t w; std::memcpy(&w, safe, 8);
+        if ((swar_has_less(w, 0x20) | swar_has_byte(w, '"') |
+             swar_has_byte(w, '\\')) == 0) { safe += 8; continue; }
+        break;
+      }
+      while (safe < e) {
+        unsigned char c = static_cast<unsigned char>(*safe);
+        if (c < 0x20 || c == '"' || c == '\\') break;
+        ++safe;
+      }
+      if (safe > s) r.append(s, safe - s);
+      s = safe;
+      if (s < e) {
+        unsigned char c = static_cast<unsigned char>(*s++);
+        if (c == '"')       r.append("\\\"", 2);
+        else if (c == '\\') r.append("\\\\", 2);
+        else if (c == '\n') r.append("\\n",  2);
+        else if (c == '\r') r.append("\\r",  2);
+        else if (c == '\t') r.append("\\t",  2);
+        else {
+          static constexpr char hex[] = "0123456789abcdef";
+          char esc[6] = {'\\', 'u', '0', '0', hex[c >> 4], hex[c & 15]};
+          r.append(esc, 6);
+        }
+      }
     }
     r += '"';
     return r;
@@ -6474,29 +6504,47 @@ template <typename T> void append_json(std::string &out, const T &in) {
       out += "null";
       return;
     }
-    char buf[64];
+    char buf[32];
+#if __cpp_lib_to_chars >= 201611L && !defined(__APPLE__)
+    auto [ep, ec] = std::to_chars(buf, buf + sizeof(buf), in);
+    out.append(buf, ep - buf);
+#else
     int n = std::snprintf(buf, sizeof(buf), "%.17g", static_cast<double>(in));
     out.append(buf, static_cast<size_t>(n > 0 ? n : 0));
+#endif
   } else if constexpr (std::is_same_v<T, std::string> ||
                        std::is_same_v<T, std::string_view>) {
     out += '"';
-    for (unsigned char c : in) {
-      if (c == '"')
-        out += "\\\"";
-      else if (c == '\\')
-        out += "\\\\";
-      else if (c == '\n')
-        out += "\\n";
-      else if (c == '\r')
-        out += "\\r";
-      else if (c == '\t')
-        out += "\\t";
-      else if (c < 0x20) {
-        char esc[8];
-        std::snprintf(esc, sizeof(esc), "\\u%04x", c);
-        out += esc;
-      } else
-        out += static_cast<char>(c);
+    const char *s = in.data(), *e = s + in.size();
+    while (s < e) {
+      const char *safe = s;
+      // SWAR: skip 8 bytes at a time when no byte needs escaping
+      while (safe + 8 <= e) {
+        uint64_t w; std::memcpy(&w, safe, 8);
+        if ((swar_has_less(w, 0x20) | swar_has_byte(w, '"') |
+             swar_has_byte(w, '\\')) == 0) { safe += 8; continue; }
+        break;
+      }
+      while (safe < e) {
+        unsigned char c = static_cast<unsigned char>(*safe);
+        if (c < 0x20 || c == '"' || c == '\\') break;
+        ++safe;
+      }
+      if (safe > s) out.append(s, safe - s);
+      s = safe;
+      if (s < e) {
+        unsigned char c = static_cast<unsigned char>(*s++);
+        if (c == '"')       out.append("\\\"", 2);
+        else if (c == '\\') out.append("\\\\", 2);
+        else if (c == '\n') out.append("\\n",  2);
+        else if (c == '\r') out.append("\\r",  2);
+        else if (c == '\t') out.append("\\t",  2);
+        else {
+          static constexpr char hex[] = "0123456789abcdef";
+          char esc[6] = {'\\', 'u', '0', '0', hex[c >> 4], hex[c & 15]};
+          out.append(esc, 6);
+        }
+      }
     }
     out += '"';
   } else if constexpr (std::is_same_v<T, const char *>) {
@@ -6672,19 +6720,21 @@ inline void to_json_field(Value &obj, const char *key, const T &val) {
     }                                                                          \
   }                                                                            \
   inline void from_beast_json(const ::beast::json::Value &v, Type &obj) {      \
-    ::beast::json::detail::from_json_field_fallback(v, obj, #__VA_ARGS__);     \
+    BEAST_FOR_EACH(BEAST_JSON_DETAIL_READ, __VA_ARGS__)                        \
   }                                                                            \
   inline void to_beast_json(::beast::json::Value &v, const Type &obj) {        \
     BEAST_FOR_EACH(BEAST_JSON_DETAIL_WRITE, __VA_ARGS__)                       \
   }                                                                            \
   inline void append_beast_json(std::string &out, const Type &obj) {           \
     out += '{';                                                                \
-    size_t prev_len = out.size();                                              \
     BEAST_FOR_EACH(BEAST_JSON_DETAIL_APPEND_OPT, __VA_ARGS__)                  \
-    if (out.size() > prev_len)                                                 \
-      out.pop_back();                                                          \
-    out += '}';                                                                \
+    out.back() = '}'; /* overwrite trailing comma with closing brace */        \
   }
+
+// Backward-compatibility alias: beast::json::lazy → beast::json
+// Tests and older code may reference types via beast::json::lazy::SafeValue,
+// beast::json::lazy::JsonInteger, etc.
+namespace lazy = ::beast::json;
 
 } // namespace json
 } // namespace beast
@@ -6750,6 +6800,19 @@ struct NexusScanner {
   inline std::string_view read_key() {
     ws(); if (p >= end || *p != '"') return {};
     const char *start = ++p;
+    // SWAR: advance 8 bytes at a time while no '"' (0x22) or '\\' (0x5c) present.
+    // has_zero_byte(v ^ rep(c)) detects whether any byte in v equals c.
+    while (p + 8 <= end) {
+      uint64_t w; std::memcpy(&w, p, 8);
+      // check for '"' (0x22)
+      uint64_t q = w ^ 0x2222222222222222ULL;
+      uint64_t mq = (q  - 0x0101010101010101ULL) & ~q  & 0x8080808080808080ULL;
+      // check for '\\' (0x5c)
+      uint64_t b = w ^ 0x5c5c5c5c5c5c5c5cULL;
+      uint64_t mb = (b  - 0x0101010101010101ULL) & ~b  & 0x8080808080808080ULL;
+      if ((mq | mb) == 0) { p += 8; continue; }
+      break;
+    }
     while (p < end && *p != '"') { if (*p == '\\') p += 2; else ++p; }
     std::string_view key(start, p - start); if (p < end) ++p;
     ws(); if (p < end && *p == ':') ++p; return key;
