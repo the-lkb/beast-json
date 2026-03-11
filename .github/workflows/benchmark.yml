@@ -52,6 +52,12 @@ jobs:
         key: bench-deps-${{ runner.os }}-${{ runner.arch }}-${{ matrix.cc }}-${{ hashFiles('benchmarks/CMakeLists.txt') }}
         restore-keys: bench-deps-${{ runner.os }}-${{ runner.arch }}-${{ matrix.cc }}-
 
+    - name: Setup ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        key: bench-${{ runner.os }}-${{ runner.arch }}-${{ matrix.cc }}
+        max-size: 128M
+
     - name: Configure CMake
       env:
         CC: ${{ matrix.cc }}
@@ -61,6 +67,8 @@ jobs:
         -DCMAKE_BUILD_TYPE=Release
         -DBEAST_JSON_BUILD_TESTS=OFF
         -DBEAST_JSON_BUILD_BENCHMARKS=ON
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
     - name: Build
       run: cmake --build build_bench --config Release -j2

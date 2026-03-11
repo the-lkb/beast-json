@@ -6,8 +6,15 @@ on:
       - main
     paths:
       - 'docs/**'
+      - '!docs/public/benchmark-results.json'
       - '.github/workflows/docs.yml'
       - 'include/beast_json/beast_json.hpp'
+  # Deploy after benchmarks finish so benchmark-results.json is up-to-date.
+  # workflow_run fires after the Benchmark workflow commits the updated JSON.
+  workflow_run:
+    workflows: ["Benchmark"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: write
@@ -22,14 +29,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # When triggered by workflow_run, github.sha points to the commit that
+      # *started* the benchmark — before it committed benchmark-results.json.
+      # Check out the branch HEAD instead so we always get the latest data.
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
 
       - name: Setup Doxygen
         run: sudo apt-get install -y doxygen
@@ -48,7 +61,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd docs
-          npm install
+          npm ci
 
       - name: Build VitePress
         run: |
