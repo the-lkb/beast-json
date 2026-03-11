@@ -76,10 +76,16 @@ interface BenchResult {
   alloc_kb: number
 }
 
+interface FileData {
+  file: string
+  results: BenchResult[]
+}
+
 interface PlatformData {
   arch: string
   label: string
-  results: BenchResult[]
+  files?: FileData[]     // format produced by current benchmark.yml
+  results?: BenchResult[] // legacy flat format (backward compat)
 }
 
 interface BenchData {
@@ -122,9 +128,14 @@ const formattedDate = computed(() => {
   })
 })
 
-const currentResults = computed(() =>
-  data.value?.platforms.find(p => p.arch === selectedArch.value)?.results ?? []
-)
+const currentResults = computed(() => {
+  const p = data.value?.platforms.find(p => p.arch === selectedArch.value)
+  if (!p) return []
+  // Current benchmark.yml format: platforms[].files[].results
+  if (p.files?.length) return p.files[0].results ?? []
+  // Legacy flat format: platforms[].results
+  return p.results ?? []
+})
 
 const sortedResults = computed(() => {
   const key = selectedMetric.value
