@@ -21,6 +21,8 @@ compile_commands.json
 *.json
 !package.json
 !**/package.json
+!package-lock.json
+!**/package-lock.json
 !tests/small.json
 !tests/test_*.json
 !docs/public/benchmark-results.json
