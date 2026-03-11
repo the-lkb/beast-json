@@ -1,267 +1,956 @@
 {
   "timestamp": "2026-03-11T21:30:00Z",
   "commit": "optimized",
-  "file": "twitter.json",
   "platforms": [
     {
       "arch": "x86_64",
-      "label": "x86_64 · GCC 13 · Ubuntu",
-      "files": [
+      "label": "x86_64 \u00b7 GCC 13 \u00b7 Ubuntu",
+      "general": [
         {
           "file": "twitter.json",
           "results": [
-            { "library": "beast::lazy", "parse_us": 283.45, "serialize_us": 164.16, "alloc_kb": 420 },
-            { "library": "simdjson",    "parse_us": 229.92, "serialize_us": 913.52, "alloc_kb": 1724 },
-            { "library": "yyjson",      "parse_us": 695.64, "serialize_us": 200.63, "alloc_kb": 1236 },
-            { "library": "RapidJSON",   "parse_us": 1535.55, "serialize_us": 1368.46, "alloc_kb": 820 },
-            { "library": "Glaze DOM",   "parse_us": 3102.77, "serialize_us": 550.40, "alloc_kb": 2268 },
-            { "library": "nlohmann",    "parse_us": 7194.28, "serialize_us": 2370.10, "alloc_kb": 2096 }
+            {
+              "library": "beast::lazy",
+              "parse_us": 283.45,
+              "serialize_us": 164.16,
+              "alloc_kb": 420
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 229.92,
+              "serialize_us": 913.52,
+              "alloc_kb": 1724
+            },
+            {
+              "library": "yyjson",
+              "parse_us": 695.64,
+              "serialize_us": 200.63,
+              "alloc_kb": 1236
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 1535.55,
+              "serialize_us": 1368.46,
+              "alloc_kb": 820
+            },
+            {
+              "library": "Glaze DOM",
+              "parse_us": 3102.77,
+              "serialize_us": 550.4,
+              "alloc_kb": 2268
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 7194.28,
+              "serialize_us": 2370.1,
+              "alloc_kb": 2096
+            }
           ]
         },
         {
           "file": "canada.json",
           "results": [
-            { "library": "beast::lazy", "parse_us": 2135.68, "serialize_us": 1164.25, "alloc_kb": 1748 },
-            { "library": "simdjson",    "parse_us": 3215.71, "serialize_us": 12102.06, "alloc_kb": 6324 },
-            { "library": "yyjson",      "parse_us": 3286.82, "serialize_us": 4302.46, "alloc_kb": 5012 },
-            { "library": "RapidJSON",   "parse_us": 6470.78, "serialize_us": 10790.19, "alloc_kb": 2960 },
-            { "library": "Glaze DOM",   "parse_us": 11126.68, "serialize_us": 5477.31, "alloc_kb": 10684 },
-            { "library": "nlohmann",    "parse_us": 42736.11, "serialize_us": 14421.18, "alloc_kb": 5596 }
+            {
+              "library": "beast::lazy",
+              "parse_us": 2135.68,
+              "serialize_us": 1164.25,
+              "alloc_kb": 1748
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 3215.71,
+              "serialize_us": 12102.06,
+              "alloc_kb": 6324
+            },
+            {
+              "library": "yyjson",
+              "parse_us": 3286.82,
+              "serialize_us": 4302.46,
+              "alloc_kb": 5012
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 6470.78,
+              "serialize_us": 10790.19,
+              "alloc_kb": 2960
+            },
+            {
+              "library": "Glaze DOM",
+              "parse_us": 11126.68,
+              "serialize_us": 5477.31,
+              "alloc_kb": 10684
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 42736.11,
+              "serialize_us": 14421.18,
+              "alloc_kb": 5596
+            }
           ]
         },
         {
           "file": "citm_catalog.json",
           "results": [
-            { "library": "beast::lazy", "parse_us": 748.87, "serialize_us": 503.05, "alloc_kb": 1108 },
-            { "library": "simdjson",    "parse_us": 626.11, "serialize_us": 1299.67, "alloc_kb": 3656 },
-            { "library": "yyjson",      "parse_us": 2177.89, "serialize_us": 283.21, "alloc_kb": 2876 },
-            { "library": "RapidJSON",   "parse_us": 2364.97, "serialize_us": 1707.60, "alloc_kb": 1320 },
-            { "library": "Glaze DOM",   "parse_us": 4762.86, "serialize_us": 1065.65, "alloc_kb": 4240 },
-            { "library": "nlohmann",    "parse_us": 13417.55, "serialize_us": 2827.26, "alloc_kb": 3856 }
+            {
+              "library": "beast::lazy",
+              "parse_us": 748.87,
+              "serialize_us": 503.05,
+              "alloc_kb": 1108
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 626.11,
+              "serialize_us": 1299.67,
+              "alloc_kb": 3656
+            },
+            {
+              "library": "yyjson",
+              "parse_us": 2177.89,
+              "serialize_us": 283.21,
+              "alloc_kb": 2876
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 2364.97,
+              "serialize_us": 1707.6,
+              "alloc_kb": 1320
+            },
+            {
+              "library": "Glaze DOM",
+              "parse_us": 4762.86,
+              "serialize_us": 1065.65,
+              "alloc_kb": 4240
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 13417.55,
+              "serialize_us": 2827.26,
+              "alloc_kb": 3856
+            }
           ]
         },
         {
           "file": "gsoc-2018.json",
           "results": [
-            { "library": "beast::lazy", "parse_us": 887.24, "serialize_us": 401.48, "alloc_kb": 328 },
-            { "library": "simdjson",    "parse_us": 1053.64, "serialize_us": 6978.40, "alloc_kb": 7236 },
-            { "library": "yyjson",      "parse_us": 3892.93, "serialize_us": 1472.49, "alloc_kb": 4008 },
-            { "library": "RapidJSON",   "parse_us": 7863.62, "serialize_us": 8277.87, "alloc_kb": 3728 },
-            { "library": "Glaze DOM",   "parse_us": 6379.01, "serialize_us": 1833.75, "alloc_kb": 5616 },
-            { "library": "nlohmann",    "parse_us": 28932.02, "serialize_us": 20893.85, "alloc_kb": 5804 }
+            {
+              "library": "beast::lazy",
+              "parse_us": 887.24,
+              "serialize_us": 401.48,
+              "alloc_kb": 328
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 1053.64,
+              "serialize_us": 6978.4,
+              "alloc_kb": 7236
+            },
+            {
+              "library": "yyjson",
+              "parse_us": 3892.93,
+              "serialize_us": 1472.49,
+              "alloc_kb": 4008
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 7863.62,
+              "serialize_us": 8277.87,
+              "alloc_kb": 3728
+            },
+            {
+              "library": "Glaze DOM",
+              "parse_us": 6379.01,
+              "serialize_us": 1833.75,
+              "alloc_kb": 5616
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 28932.02,
+              "serialize_us": 20893.85,
+              "alloc_kb": 5804
+            }
           ]
         },
         {
           "file": "harsh.json",
           "results": [
-            { "library": "beast::lazy", "parse_us": 9955.11, "serialize_us": 4006.55, "alloc_kb": 7032 },
-            { "library": "simdjson",    "parse_us": 6282.14, "serialize_us": 18068.89, "alloc_kb": 23760 },
-            { "library": "yyjson",      "parse_us": 7996.34, "serialize_us": 5388.19, "alloc_kb": 17432 },
-            { "library": "RapidJSON",   "parse_us": 19274.97, "serialize_us": 22030.02, "alloc_kb": 14064 },
-            { "library": "Glaze DOM",   "parse_us": 165711.37, "serialize_us": 73253.45, "alloc_kb": 59440 },
-            { "library": "nlohmann",    "parse_us": 262577.04, "serialize_us": 60614.65, "alloc_kb": 33720 }
+            {
+              "library": "beast::lazy",
+              "parse_us": 9955.11,
+              "serialize_us": 4006.55,
+              "alloc_kb": 7032
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 6282.14,
+              "serialize_us": 18068.89,
+              "alloc_kb": 23760
+            },
+            {
+              "library": "yyjson",
+              "parse_us": 7996.34,
+              "serialize_us": 5388.19,
+              "alloc_kb": 17432
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 19274.97,
+              "serialize_us": 22030.02,
+              "alloc_kb": 14064
+            },
+            {
+              "library": "Glaze DOM",
+              "parse_us": 165711.37,
+              "serialize_us": 73253.45,
+              "alloc_kb": 59440
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 262577.04,
+              "serialize_us": 60614.65,
+              "alloc_kb": 33720
+            }
           ]
-        },
+        }
+      ],
+      "structs": [
         {
           "file": "Simple Object",
           "results": [
-            { "library": "Beast (DOM)",      "parse_us": 0.48,  "serialize_us": 0.12, "alloc_kb": 64 },
-            { "library": "Beast (Nexus)",    "parse_us": 0.21,  "serialize_us": 0.14, "alloc_kb": 0 },
-            { "library": "glaze-struct",     "parse_us": 0.16,  "serialize_us": 0.08, "alloc_kb": 112 },
-            { "library": "nlohmann-struct",  "parse_us": 1.87,  "serialize_us": 1.03, "alloc_kb": 64 },
-            { "library": "rapidjson-struct", "parse_us": 0.50,  "serialize_us": 0.33, "alloc_kb": 4 }
+            {
+              "library": "Beast (DOM)",
+              "parse_us": 0.48,
+              "serialize_us": 0.12,
+              "alloc_kb": 64
+            },
+            {
+              "library": "Beast (Nexus)",
+              "parse_us": 0.21,
+              "serialize_us": 0.14,
+              "alloc_kb": 0
+            },
+            {
+              "library": "glaze-struct",
+              "parse_us": 0.16,
+              "serialize_us": 0.08,
+              "alloc_kb": 112
+            },
+            {
+              "library": "nlohmann-struct",
+              "parse_us": 1.87,
+              "serialize_us": 1.03,
+              "alloc_kb": 64
+            },
+            {
+              "library": "rapidjson-struct",
+              "parse_us": 0.5,
+              "serialize_us": 0.33,
+              "alloc_kb": 4
+            }
           ]
         },
         {
           "file": "Nested Object",
           "results": [
-            { "library": "Beast (DOM)",      "parse_us": 1.17, "serialize_us": 0.29, "alloc_kb": 4 },
-            { "library": "Beast (Nexus)",    "parse_us": 0.53, "serialize_us": 0.32, "alloc_kb": 0 },
-            { "library": "glaze-struct",     "parse_us": 0.40, "serialize_us": 0.15, "alloc_kb": 0 },
-            { "library": "nlohmann-struct",  "parse_us": 3.84, "serialize_us": 1.94, "alloc_kb": 0 },
-            { "library": "rapidjson-struct", "parse_us": 0.91, "serialize_us": 0.86, "alloc_kb": 4 }
+            {
+              "library": "Beast (DOM)",
+              "parse_us": 1.17,
+              "serialize_us": 0.29,
+              "alloc_kb": 4
+            },
+            {
+              "library": "Beast (Nexus)",
+              "parse_us": 0.53,
+              "serialize_us": 0.32,
+              "alloc_kb": 0
+            },
+            {
+              "library": "glaze-struct",
+              "parse_us": 0.4,
+              "serialize_us": 0.15,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann-struct",
+              "parse_us": 3.84,
+              "serialize_us": 1.94,
+              "alloc_kb": 0
+            },
+            {
+              "library": "rapidjson-struct",
+              "parse_us": 0.91,
+              "serialize_us": 0.86,
+              "alloc_kb": 4
+            }
           ]
         },
         {
           "file": "Complex Object",
           "results": [
-            { "library": "Beast (DOM)",      "parse_us": 4.00,  "serialize_us": 1.08, "alloc_kb": 4 },
-            { "library": "Beast (Nexus)",    "parse_us": 2.64,  "serialize_us": 1.23, "alloc_kb": 0 },
-            { "library": "glaze-struct",     "parse_us": 1.46,  "serialize_us": 0.44, "alloc_kb": 0 },
-            { "library": "nlohmann-struct",  "parse_us": 13.59, "serialize_us": 7.31, "alloc_kb": 0 },
-            { "library": "rapidjson-struct", "parse_us": 4.56,  "serialize_us": 3.37, "alloc_kb": 8 }
+            {
+              "library": "Beast (DOM)",
+              "parse_us": 4.0,
+              "serialize_us": 1.08,
+              "alloc_kb": 4
+            },
+            {
+              "library": "Beast (Nexus)",
+              "parse_us": 2.64,
+              "serialize_us": 1.23,
+              "alloc_kb": 0
+            },
+            {
+              "library": "glaze-struct",
+              "parse_us": 1.46,
+              "serialize_us": 0.44,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann-struct",
+              "parse_us": 13.59,
+              "serialize_us": 7.31,
+              "alloc_kb": 0
+            },
+            {
+              "library": "rapidjson-struct",
+              "parse_us": 4.56,
+              "serialize_us": 3.37,
+              "alloc_kb": 8
+            }
           ]
         },
         {
           "file": "Recursive Tree (Depth 8)",
           "results": [
-            { "library": "Beast (DOM)",      "parse_us": 138.11, "serialize_us": 11.98, "alloc_kb": 52 },
-            { "library": "Beast (Nexus)",    "parse_us": 41.64,  "serialize_us": 15.36, "alloc_kb": 0 },
-            { "library": "glaze-struct",     "parse_us": 51.05,  "serialize_us": 10.24, "alloc_kb": 0 },
-            { "library": "nlohmann-struct",  "parse_us": 388.39, "serialize_us": 226.42, "alloc_kb": 88 },
-            { "library": "rapidjson-struct", "parse_us": 102.68, "serialize_us": 184.97, "alloc_kb": 8 }
+            {
+              "library": "Beast (DOM)",
+              "parse_us": 138.11,
+              "serialize_us": 11.98,
+              "alloc_kb": 52
+            },
+            {
+              "library": "Beast (Nexus)",
+              "parse_us": 41.64,
+              "serialize_us": 15.36,
+              "alloc_kb": 0
+            },
+            {
+              "library": "glaze-struct",
+              "parse_us": 51.05,
+              "serialize_us": 10.24,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann-struct",
+              "parse_us": 388.39,
+              "serialize_us": 226.42,
+              "alloc_kb": 88
+            },
+            {
+              "library": "rapidjson-struct",
+              "parse_us": 102.68,
+              "serialize_us": 184.97,
+              "alloc_kb": 8
+            }
           ]
         },
         {
           "file": "Extreme Harsh STL (100 levels)",
           "results": [
-            { "library": "Beast (DOM)",      "parse_us": 648.06,  "serialize_us": 39.27,  "alloc_kb": 156 },
-            { "library": "Beast (Nexus)",    "parse_us": 122.96,  "serialize_us": 43.54,  "alloc_kb": 0 },
-            { "library": "glaze-struct",     "parse_us": 160.25,  "serialize_us": 32.91,  "alloc_kb": 24 },
-            { "library": "nlohmann-struct",  "parse_us": 1035.31, "serialize_us": 433.43, "alloc_kb": 116 },
-            { "library": "rapidjson-struct", "parse_us": 230.88,  "serialize_us": 284.42, "alloc_kb": 36 }
+            {
+              "library": "Beast (DOM)",
+              "parse_us": 648.06,
+              "serialize_us": 39.27,
+              "alloc_kb": 156
+            },
+            {
+              "library": "Beast (Nexus)",
+              "parse_us": 122.96,
+              "serialize_us": 43.54,
+              "alloc_kb": 0
+            },
+            {
+              "library": "glaze-struct",
+              "parse_us": 160.25,
+              "serialize_us": 32.91,
+              "alloc_kb": 24
+            },
+            {
+              "library": "nlohmann-struct",
+              "parse_us": 1035.31,
+              "serialize_us": 433.43,
+              "alloc_kb": 116
+            },
+            {
+              "library": "rapidjson-struct",
+              "parse_us": 230.88,
+              "serialize_us": 284.42,
+              "alloc_kb": 36
+            }
           ]
         },
         {
           "file": "HFT: L1 Market Tick (94B)",
-          "note": "Latency histogram — 100k samples · units: nanoseconds",
+          "note": "Latency histogram \u2014 100k samples \u00b7 units: nanoseconds",
           "results": [
-            { "library": "Beast Nexus",  "parse_us": 0.214, "p95_ns": 223,  "p99_ns": 363,  "p999_ns": 3216, "serialize_us": 0.247, "alloc_kb": 0 },
-            { "library": "Glaze",        "parse_us": 0.136, "p95_ns": 141,  "p99_ns": 166,  "p999_ns": 2842, "serialize_us": 0.093, "alloc_kb": 0 },
-            { "library": "simdjson",     "parse_us": 0.156, "p95_ns": 177,  "p99_ns": 348,  "p999_ns": 3792, "serialize_us": null,  "alloc_kb": 0 },
-            { "library": "RapidJSON",    "parse_us": 0.460, "p95_ns": 525,  "p99_ns": 3343, "p999_ns": 6354, "serialize_us": 0.352, "alloc_kb": 0 },
-            { "library": "nlohmann",     "parse_us": 1.737, "p95_ns": 4854, "p99_ns": 8166, "p999_ns": 25864,"serialize_us": 1.250, "alloc_kb": 0 }
+            {
+              "library": "Beast Nexus",
+              "parse_us": 0.214,
+              "p95_ns": 223,
+              "p99_ns": 363,
+              "p999_ns": 3216,
+              "serialize_us": 0.247,
+              "alloc_kb": 0
+            },
+            {
+              "library": "Glaze",
+              "parse_us": 0.136,
+              "p95_ns": 141,
+              "p99_ns": 166,
+              "p999_ns": 2842,
+              "serialize_us": 0.093,
+              "alloc_kb": 0
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 0.156,
+              "p95_ns": 177,
+              "p99_ns": 348,
+              "p999_ns": 3792,
+              "serialize_us": null,
+              "alloc_kb": 0
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 0.46,
+              "p95_ns": 525,
+              "p99_ns": 3343,
+              "p999_ns": 6354,
+              "serialize_us": 0.352,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 1.737,
+              "p95_ns": 4854,
+              "p99_ns": 8166,
+              "p999_ns": 25864,
+              "serialize_us": 1.25,
+              "alloc_kb": 0
+            }
           ]
         },
         {
           "file": "HFT: Order (108B)",
-          "note": "Latency histogram — 100k samples · units: nanoseconds",
+          "note": "Latency histogram \u2014 100k samples \u00b7 units: nanoseconds",
           "results": [
-            { "library": "Beast Nexus",  "parse_us": 0.238, "p95_ns": 246,  "p99_ns": 318,  "p999_ns": 2940,  "serialize_us": 0.186, "alloc_kb": 0 },
-            { "library": "Glaze",        "parse_us": 0.156, "p95_ns": 186,  "p99_ns": 258,  "p999_ns": 3142,  "serialize_us": 0.082, "alloc_kb": 0 },
-            { "library": "RapidJSON",    "parse_us": 0.561, "p95_ns": 839,  "p99_ns": 3710, "p999_ns": 11497, "serialize_us": 0.359, "alloc_kb": 0 },
-            { "library": "nlohmann",     "parse_us": 1.934, "p95_ns": 5480, "p99_ns": 9423, "p999_ns": 41293, "serialize_us": 1.486, "alloc_kb": 0 }
+            {
+              "library": "Beast Nexus",
+              "parse_us": 0.238,
+              "p95_ns": 246,
+              "p99_ns": 318,
+              "p999_ns": 2940,
+              "serialize_us": 0.186,
+              "alloc_kb": 0
+            },
+            {
+              "library": "Glaze",
+              "parse_us": 0.156,
+              "p95_ns": 186,
+              "p99_ns": 258,
+              "p999_ns": 3142,
+              "serialize_us": 0.082,
+              "alloc_kb": 0
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 0.561,
+              "p95_ns": 839,
+              "p99_ns": 3710,
+              "p999_ns": 11497,
+              "serialize_us": 0.359,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 1.934,
+              "p95_ns": 5480,
+              "p99_ns": 9423,
+              "p999_ns": 41293,
+              "serialize_us": 1.486,
+              "alloc_kb": 0
+            }
           ]
         },
         {
           "file": "HFT: Trade/Fill (80B)",
-          "note": "Latency histogram — 100k samples · units: nanoseconds",
+          "note": "Latency histogram \u2014 100k samples \u00b7 units: nanoseconds",
           "results": [
-            { "library": "Beast Nexus",  "parse_us": 0.183, "p95_ns": 190,  "p99_ns": 2731, "p999_ns": 4195,  "serialize_us": 0.145, "alloc_kb": 0 },
-            { "library": "Glaze",        "parse_us": 0.124, "p95_ns": 131,  "p99_ns": 210,  "p999_ns": 2876,  "serialize_us": 0.074, "alloc_kb": 0 },
-            { "library": "RapidJSON",    "parse_us": 0.421, "p95_ns": 566,  "p99_ns": 3563, "p999_ns": 8564,  "serialize_us": 0.328, "alloc_kb": 0 },
-            { "library": "nlohmann",     "parse_us": 1.489, "p95_ns": 4782, "p99_ns": 7875, "p999_ns": 29294, "serialize_us": 1.123, "alloc_kb": 0 }
+            {
+              "library": "Beast Nexus",
+              "parse_us": 0.183,
+              "p95_ns": 190,
+              "p99_ns": 2731,
+              "p999_ns": 4195,
+              "serialize_us": 0.145,
+              "alloc_kb": 0
+            },
+            {
+              "library": "Glaze",
+              "parse_us": 0.124,
+              "p95_ns": 131,
+              "p99_ns": 210,
+              "p999_ns": 2876,
+              "serialize_us": 0.074,
+              "alloc_kb": 0
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 0.421,
+              "p95_ns": 566,
+              "p99_ns": 3563,
+              "p999_ns": 8564,
+              "serialize_us": 0.328,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 1.489,
+              "p95_ns": 4782,
+              "p99_ns": 7875,
+              "p999_ns": 29294,
+              "serialize_us": 1.123,
+              "alloc_kb": 0
+            }
           ]
         },
         {
-          "file": "HFT: L2 Book Snapshot 5×5 (371B)",
-          "note": "Latency histogram — 100k samples · units: nanoseconds",
+          "file": "HFT: L2 Book Snapshot 5\u00d75 (371B)",
+          "note": "Latency histogram \u2014 100k samples \u00b7 units: nanoseconds",
           "results": [
-            { "library": "Beast Nexus",  "parse_us": 0.539, "p95_ns": 595,   "p99_ns": 3285,  "p999_ns": 5879,  "serialize_us": null, "alloc_kb": 0 },
-            { "library": "Glaze",        "parse_us": 0.498, "p95_ns": 560,   "p99_ns": 3243,  "p999_ns": 5711,  "serialize_us": null, "alloc_kb": 0 },
-            { "library": "RapidJSON",    "parse_us": 1.548, "p95_ns": 4447,  "p99_ns": 7074,  "p999_ns": 20419, "serialize_us": null, "alloc_kb": 0 },
-            { "library": "nlohmann",     "parse_us": 8.040, "p95_ns": 17751, "p99_ns": 28573, "p999_ns": 67386, "serialize_us": null, "alloc_kb": 0 }
+            {
+              "library": "Beast Nexus",
+              "parse_us": 0.539,
+              "p95_ns": 595,
+              "p99_ns": 3285,
+              "p999_ns": 5879,
+              "serialize_us": null,
+              "alloc_kb": 0
+            },
+            {
+              "library": "Glaze",
+              "parse_us": 0.498,
+              "p95_ns": 560,
+              "p99_ns": 3243,
+              "p999_ns": 5711,
+              "serialize_us": null,
+              "alloc_kb": 0
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 1.548,
+              "p95_ns": 4447,
+              "p99_ns": 7074,
+              "p999_ns": 20419,
+              "serialize_us": null,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 8.04,
+              "p95_ns": 17751,
+              "p99_ns": 28573,
+              "p999_ns": 67386,
+              "serialize_us": null,
+              "alloc_kb": 0
+            }
           ]
         }
       ]
     },
     {
       "arch": "linux-aarch64",
-      "label": "Linux aarch64 · GCC 14 · Ubuntu",
-      "files": [
+      "label": "Linux aarch64 \u00b7 GCC 14 \u00b7 Ubuntu",
+      "general": [
         {
           "file": "twitter.json",
           "results": [
-            { "library": "beast::lazy", "parse_us": 248.18, "serialize_us": 102.73, "alloc_kb": 296 },
-            { "library": "simdjson",    "parse_us": 338.4,  "serialize_us": 616.42, "alloc_kb": 1664 },
-            { "library": "yyjson",      "parse_us": 471.61, "serialize_us": 139.4,  "alloc_kb": 1240 },
-            { "library": "RapidJSON",   "parse_us": 1371.88, "serialize_us": 921.31, "alloc_kb": 1036 },
-            { "library": "Glaze DOM",   "parse_us": 1981.38, "serialize_us": 376.12, "alloc_kb": 2208 },
-            { "library": "nlohmann",    "parse_us": 5268.35, "serialize_us": 1582.94, "alloc_kb": 2224 }
+            {
+              "library": "beast::lazy",
+              "parse_us": 248.18,
+              "serialize_us": 102.73,
+              "alloc_kb": 296
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 338.4,
+              "serialize_us": 616.42,
+              "alloc_kb": 1664
+            },
+            {
+              "library": "yyjson",
+              "parse_us": 471.61,
+              "serialize_us": 139.4,
+              "alloc_kb": 1240
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 1371.88,
+              "serialize_us": 921.31,
+              "alloc_kb": 1036
+            },
+            {
+              "library": "Glaze DOM",
+              "parse_us": 1981.38,
+              "serialize_us": 376.12,
+              "alloc_kb": 2208
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 5268.35,
+              "serialize_us": 1582.94,
+              "alloc_kb": 2224
+            }
           ]
         },
         {
           "file": "canada.json",
           "results": [
-            { "library": "beast::lazy", "parse_us": 1760.99, "serialize_us": 507.19, "alloc_kb": 1812 },
-            { "library": "simdjson",    "parse_us": 2642.27, "serialize_us": 7278.52, "alloc_kb": 6292 },
-            { "library": "yyjson",      "parse_us": 1988.96, "serialize_us": 2755.18, "alloc_kb": 5008 },
-            { "library": "RapidJSON",   "parse_us": 4734.8,  "serialize_us": 5272.86, "alloc_kb": 4232 },
-            { "library": "Glaze DOM",   "parse_us": 7830.14, "serialize_us": 3328.18, "alloc_kb": 10672 },
-            { "library": "nlohmann",    "parse_us": 35831.98, "serialize_us": 8686.79, "alloc_kb": 5660 }
+            {
+              "library": "beast::lazy",
+              "parse_us": 1760.99,
+              "serialize_us": 507.19,
+              "alloc_kb": 1812
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 2642.27,
+              "serialize_us": 7278.52,
+              "alloc_kb": 6292
+            },
+            {
+              "library": "yyjson",
+              "parse_us": 1988.96,
+              "serialize_us": 2755.18,
+              "alloc_kb": 5008
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 4734.8,
+              "serialize_us": 5272.86,
+              "alloc_kb": 4232
+            },
+            {
+              "library": "Glaze DOM",
+              "parse_us": 7830.14,
+              "serialize_us": 3328.18,
+              "alloc_kb": 10672
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 35831.98,
+              "serialize_us": 8686.79,
+              "alloc_kb": 5660
+            }
           ]
         },
         {
           "file": "citm_catalog.json",
           "results": [
-            { "library": "beast::lazy", "parse_us": 537.55, "serialize_us": 236.67, "alloc_kb": 736 },
-            { "library": "simdjson",    "parse_us": 805.71, "serialize_us": 827.6,  "alloc_kb": 3480 },
-            { "library": "yyjson",      "parse_us": 1211.4, "serialize_us": 243.1,  "alloc_kb": 2876 },
-            { "library": "RapidJSON",   "parse_us": 1995.48, "serialize_us": 991.54, "alloc_kb": 1656 },
-            { "library": "Glaze DOM",   "parse_us": 3457.39, "serialize_us": 801.33, "alloc_kb": 4304 },
-            { "library": "nlohmann",    "parse_us": 9671.99, "serialize_us": 1996.41, "alloc_kb": 4048 }
+            {
+              "library": "beast::lazy",
+              "parse_us": 537.55,
+              "serialize_us": 236.67,
+              "alloc_kb": 736
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 805.71,
+              "serialize_us": 827.6,
+              "alloc_kb": 3480
+            },
+            {
+              "library": "yyjson",
+              "parse_us": 1211.4,
+              "serialize_us": 243.1,
+              "alloc_kb": 2876
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 1995.48,
+              "serialize_us": 991.54,
+              "alloc_kb": 1656
+            },
+            {
+              "library": "Glaze DOM",
+              "parse_us": 3457.39,
+              "serialize_us": 801.33,
+              "alloc_kb": 4304
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 9671.99,
+              "serialize_us": 1996.41,
+              "alloc_kb": 4048
+            }
           ]
         },
         {
           "file": "gsoc-2018.json",
           "results": [
-            { "library": "beast::lazy", "parse_us": 633.16, "serialize_us": 256.74, "alloc_kb": 392 },
-            { "library": "simdjson",    "parse_us": 1346.08, "serialize_us": 4968.17, "alloc_kb": 7056 },
-            { "library": "yyjson",      "parse_us": 2084.4, "serialize_us": 887.73, "alloc_kb": 4040 },
-            { "library": "RapidJSON",   "parse_us": 8146.46, "serialize_us": 5695.4, "alloc_kb": 3996 },
-            { "library": "Glaze DOM",   "parse_us": 4172.34, "serialize_us": 1359.0, "alloc_kb": 5504 },
-            { "library": "nlohmann",    "parse_us": 22578.66, "serialize_us": 8334.61, "alloc_kb": 5928 }
+            {
+              "library": "beast::lazy",
+              "parse_us": 633.16,
+              "serialize_us": 256.74,
+              "alloc_kb": 392
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 1346.08,
+              "serialize_us": 4968.17,
+              "alloc_kb": 7056
+            },
+            {
+              "library": "yyjson",
+              "parse_us": 2084.4,
+              "serialize_us": 887.73,
+              "alloc_kb": 4040
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 8146.46,
+              "serialize_us": 5695.4,
+              "alloc_kb": 3996
+            },
+            {
+              "library": "Glaze DOM",
+              "parse_us": 4172.34,
+              "serialize_us": 1359.0,
+              "alloc_kb": 5504
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 22578.66,
+              "serialize_us": 8334.61,
+              "alloc_kb": 5928
+            }
           ]
         },
         {
           "file": "harsh.json",
           "results": [
-            { "library": "beast::lazy", "parse_us": 5280.97, "serialize_us": 2139.14, "alloc_kb": 7096 },
-            { "library": "simdjson",    "parse_us": 7296.18, "serialize_us": 12652.24, "alloc_kb": 23552 },
-            { "library": "yyjson",      "parse_us": 5604.26, "serialize_us": 3524.13, "alloc_kb": 17420 },
-            { "library": "RapidJSON",   "parse_us": 18363.95, "serialize_us": 13045.16, "alloc_kb": 17872 },
-            { "library": "Glaze DOM",   "parse_us": 45370.7,  "serialize_us": 24065.65, "alloc_kb": 59504 },
-            { "library": "nlohmann",    "parse_us": 113526.07, "serialize_us": 30872.49, "alloc_kb": 33848 }
+            {
+              "library": "beast::lazy",
+              "parse_us": 5280.97,
+              "serialize_us": 2139.14,
+              "alloc_kb": 7096
+            },
+            {
+              "library": "simdjson",
+              "parse_us": 7296.18,
+              "serialize_us": 12652.24,
+              "alloc_kb": 23552
+            },
+            {
+              "library": "yyjson",
+              "parse_us": 5604.26,
+              "serialize_us": 3524.13,
+              "alloc_kb": 17420
+            },
+            {
+              "library": "RapidJSON",
+              "parse_us": 18363.95,
+              "serialize_us": 13045.16,
+              "alloc_kb": 17872
+            },
+            {
+              "library": "Glaze DOM",
+              "parse_us": 45370.7,
+              "serialize_us": 24065.65,
+              "alloc_kb": 59504
+            },
+            {
+              "library": "nlohmann",
+              "parse_us": 113526.07,
+              "serialize_us": 30872.49,
+              "alloc_kb": 33848
+            }
           ]
-        },
+        }
+      ],
+      "structs": [
         {
           "file": "Simple Object",
           "results": [
-            { "library": "Beast (DOM)",      "parse_us": 0.16, "serialize_us": 0.26, "alloc_kb": 0 },
-            { "library": "Beast (Nexus)",    "parse_us": 0.14, "serialize_us": 0.26, "alloc_kb": 128 },
-            { "library": "glaze-struct",     "parse_us": 0.12, "serialize_us": 0.06, "alloc_kb": 0 },
-            { "library": "nlohmann-struct",  "parse_us": 1.19, "serialize_us": 0.68, "alloc_kb": 8 },
-            { "library": "rapidjson-struct", "parse_us": 0.38, "serialize_us": 0.3,  "alloc_kb": 4 }
+            {
+              "library": "Beast (DOM)",
+              "parse_us": 0.16,
+              "serialize_us": 0.26,
+              "alloc_kb": 0
+            },
+            {
+              "library": "Beast (Nexus)",
+              "parse_us": 0.14,
+              "serialize_us": 0.26,
+              "alloc_kb": 128
+            },
+            {
+              "library": "glaze-struct",
+              "parse_us": 0.12,
+              "serialize_us": 0.06,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann-struct",
+              "parse_us": 1.19,
+              "serialize_us": 0.68,
+              "alloc_kb": 8
+            },
+            {
+              "library": "rapidjson-struct",
+              "parse_us": 0.38,
+              "serialize_us": 0.3,
+              "alloc_kb": 4
+            }
           ]
         },
         {
           "file": "Nested Object",
           "results": [
-            { "library": "Beast (DOM)",      "parse_us": 0.24, "serialize_us": 0.28, "alloc_kb": 0 },
-            { "library": "Beast (Nexus)",    "parse_us": 0.34, "serialize_us": 0.28, "alloc_kb": 0 },
-            { "library": "glaze-struct",     "parse_us": 0.23, "serialize_us": 0.11, "alloc_kb": 0 },
-            { "library": "nlohmann-struct",  "parse_us": 2.22, "serialize_us": 1.24, "alloc_kb": 0 },
-            { "library": "rapidjson-struct", "parse_us": 0.7,  "serialize_us": 0.53, "alloc_kb": 0 }
+            {
+              "library": "Beast (DOM)",
+              "parse_us": 0.24,
+              "serialize_us": 0.28,
+              "alloc_kb": 0
+            },
+            {
+              "library": "Beast (Nexus)",
+              "parse_us": 0.34,
+              "serialize_us": 0.28,
+              "alloc_kb": 0
+            },
+            {
+              "library": "glaze-struct",
+              "parse_us": 0.23,
+              "serialize_us": 0.11,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann-struct",
+              "parse_us": 2.22,
+              "serialize_us": 1.24,
+              "alloc_kb": 0
+            },
+            {
+              "library": "rapidjson-struct",
+              "parse_us": 0.7,
+              "serialize_us": 0.53,
+              "alloc_kb": 0
+            }
           ]
         },
         {
           "file": "Complex Object",
           "results": [
-            { "library": "Beast (DOM)",      "parse_us": 0.62, "serialize_us": 1.11, "alloc_kb": 0 },
-            { "library": "Beast (Nexus)",    "parse_us": 1.65, "serialize_us": 1.08, "alloc_kb": 0 },
-            { "library": "glaze-struct",     "parse_us": 1.13, "serialize_us": 0.44, "alloc_kb": 0 },
-            { "library": "nlohmann-struct",  "parse_us": 8.68, "serialize_us": 4.46, "alloc_kb": 4 },
-            { "library": "rapidjson-struct", "parse_us": 2.67, "serialize_us": 1.97, "alloc_kb": 12 }
+            {
+              "library": "Beast (DOM)",
+              "parse_us": 0.62,
+              "serialize_us": 1.11,
+              "alloc_kb": 0
+            },
+            {
+              "library": "Beast (Nexus)",
+              "parse_us": 1.65,
+              "serialize_us": 1.08,
+              "alloc_kb": 0
+            },
+            {
+              "library": "glaze-struct",
+              "parse_us": 1.13,
+              "serialize_us": 0.44,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann-struct",
+              "parse_us": 8.68,
+              "serialize_us": 4.46,
+              "alloc_kb": 4
+            },
+            {
+              "library": "rapidjson-struct",
+              "parse_us": 2.67,
+              "serialize_us": 1.97,
+              "alloc_kb": 12
+            }
           ]
         },
         {
           "file": "Recursive Tree (Depth 8)",
           "results": [
-            { "library": "Beast (DOM)",      "parse_us": 12.38,  "serialize_us": 13.28, "alloc_kb": 24 },
-            { "library": "Beast (Nexus)",    "parse_us": 37.76,  "serialize_us": 13.71, "alloc_kb": 0 },
-            { "library": "glaze-struct",     "parse_us": 32.43,  "serialize_us": 8.88,  "alloc_kb": 0 },
-            { "library": "nlohmann-struct",  "parse_us": 231.57, "serialize_us": 138.68, "alloc_kb": 124 },
-            { "library": "rapidjson-struct", "parse_us": 74.73,  "serialize_us": 148.8,  "alloc_kb": 20 }
+            {
+              "library": "Beast (DOM)",
+              "parse_us": 12.38,
+              "serialize_us": 13.28,
+              "alloc_kb": 24
+            },
+            {
+              "library": "Beast (Nexus)",
+              "parse_us": 37.76,
+              "serialize_us": 13.71,
+              "alloc_kb": 0
+            },
+            {
+              "library": "glaze-struct",
+              "parse_us": 32.43,
+              "serialize_us": 8.88,
+              "alloc_kb": 0
+            },
+            {
+              "library": "nlohmann-struct",
+              "parse_us": 231.57,
+              "serialize_us": 138.68,
+              "alloc_kb": 124
+            },
+            {
+              "library": "rapidjson-struct",
+              "parse_us": 74.73,
+              "serialize_us": 148.8,
+              "alloc_kb": 20
+            }
           ]
         },
         {
           "file": "Extreme Harsh STL (100 levels)",
           "results": [
-            { "library": "Beast (DOM)",      "parse_us": 18.39,  "serialize_us": 50.25,  "alloc_kb": 0 },
-            { "library": "Beast (Nexus)",    "parse_us": 83.61,  "serialize_us": 59.34,  "alloc_kb": 24 },
-            { "library": "glaze-struct",     "parse_us": 74.73,  "serialize_us": 18.89,  "alloc_kb": 20 },
-            { "library": "nlohmann-struct",  "parse_us": 449.95, "serialize_us": 240.41, "alloc_kb": 260 },
-            { "library": "rapidjson-struct", "parse_us": 143.51, "serialize_us": 140.38, "alloc_kb": 76 }
+            {
+              "library": "Beast (DOM)",
+              "parse_us": 18.39,
+              "serialize_us": 50.25,
+              "alloc_kb": 0
+            },
+            {
+              "library": "Beast (Nexus)",
+              "parse_us": 83.61,
+              "serialize_us": 59.34,
+              "alloc_kb": 24
+            },
+            {
+              "library": "glaze-struct",
+              "parse_us": 74.73,
+              "serialize_us": 18.89,
+              "alloc_kb": 20
+            },
+            {
+              "library": "nlohmann-struct",
+              "parse_us": 449.95,
+              "serialize_us": 240.41,
+              "alloc_kb": 260
+            },
+            {
+              "library": "rapidjson-struct",
+              "parse_us": 143.51,
+              "serialize_us": 140.38,
+              "alloc_kb": 76
+            }
           ]
         }
       ]
