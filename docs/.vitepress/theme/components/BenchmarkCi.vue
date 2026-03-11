@@ -1,62 +1,73 @@
 <template>
-  <div class="ci-bench">
-    <div v-if="loading" class="ci-bench-state">Loading CI benchmark data…</div>
+  <div class="bench-wrap">
+    <div v-if="loading" class="bench-state">Loading benchmark data…</div>
 
-    <template v-else-if="data && data.platforms && data.platforms.length">
-      <p class="ci-bench-meta">
-        Commit: <code>{{ data.commit }}</code> &nbsp;·&nbsp; {{ data.timestamp }}
-      </p>
+    <template v-else-if="data">
+      <!-- Meta -->
+      <div class="bench-meta">
+        <span>Commit <code>{{ data.commit }}</code></span>
+        <span class="sep">·</span>
+        <span>{{ formattedDate }}</span>
+        <span class="sep">·</span>
+        <span>Dataset: <code>{{ data.file }}</code></span>
+      </div>
 
-      <template v-for="p in data.platforms" :key="p.arch">
-        <h4 class="ci-bench-platform">{{ p.label }}</h4>
+      <!-- Architecture tabs -->
+      <div class="arch-tabs">
+        <button
+          v-for="p in data.platforms"
+          :key="p.arch"
+          :class="['arch-tab', { active: selectedArch === p.arch }]"
+          @click="selectedArch = p.arch"
+        >
+          <span class="arch-icon">{{ archIcon(p.arch) }}</span>
+          {{ archLabel(p.arch) }}
+        </button>
+      </div>
 
-        <template v-if="p.files && p.files.length" v-for="fd in p.files" :key="fd.file">
-          <h5 class="ci-bench-file"><code>{{ fd.file }}</code></h5>
-          <table v-if="fd.results && fd.results.length">
-            <thead>
-              <tr>
-                <th>Library</th>
-                <th>Parse (μs)</th>
-                <th>Serialize (μs)</th>
-                <th>Alloc (KB)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in fd.results" :key="r.library">
-                <td>{{ r.library }}</td>
-                <td :class="{ best: r.parse_us === minParse(fd.results) }">
-                  {{ r.parse_us.toFixed(1) }}
-                </td>
-                <td :class="{ best: r.serialize_us > 0 && r.serialize_us === minSer(fd.results) }">
-                  {{ r.serialize_us > 0 ? r.serialize_us.toFixed(1) : '—' }}
-                </td>
-                <td :class="{ best: r.alloc_kb > 0 && r.alloc_kb === minAlloc(fd.results) }">
-                  {{ r.alloc_kb > 0 ? r.alloc_kb : '—' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p v-else class="ci-bench-state">No data for this file.</p>
-        </template>
+      <!-- Metric tabs -->
+      <div class="metric-tabs">
+        <button
+          v-for="m in METRICS"
+          :key="m.key"
+          :class="['metric-tab', { active: selectedMetric === m.key }]"
+          @click="selectedMetric = m.key"
+        >{{ m.label }}</button>
+        <span class="metric-hint">↓ lower is better</span>
+      </div>
 
-        <p v-else class="ci-bench-state">No data for this platform.</p>
-      </template>
+      <!-- Bar chart -->
+      <div class="chart">
+        <div v-for="(r, i) in sortedResults" :key="r.library" class="bar-row">
+          <div class="rank" :class="{ gold: i === 0 }">{{ i + 1 }}</div>
+          <div class="lib" :class="{ beast: r.isBeast }">{{ r.library }}</div>
+          <div class="track">
+            <div
+              class="fill"
+              :class="{ beast: r.isBeast, na: r.value <= 0 }"
+              :style="{ width: r.value > 0 ? pct(r.value) : '0%' }"
+            />
+          </div>
+          <div class="val" :class="{ beast: r.isBeast }">
+            {{ r.value > 0 ? fmtVal(r.value) : '—' }}
+          </div>
+        </div>
+      </div>
 
-      <p class="ci-bench-note">
-        Quick mode (15 iterations), Release build without PGO/LTO.
-        Numbers reflect relative ordering on shared GitHub Actions runners —
-        not absolute throughput.
+      <p class="bench-note">
+        Quick mode · 15 iterations · Release build · no PGO/LTO ·
+        Relative ordering on shared GitHub Actions runners.
       </p>
     </template>
 
-    <div v-else class="ci-bench-state">
-      No CI benchmark data yet — data appears after the first benchmark workflow run.
+    <div v-else class="bench-state">
+      No CI benchmark data yet — appears after the first benchmark workflow run.
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 interface BenchResult {
   library: string
@@ -65,92 +76,276 @@ interface BenchResult {
   alloc_kb: number
 }
 
-interface FileData {
-  file: string
-  results: BenchResult[]
-}
-
 interface PlatformData {
   arch: string
   label: string
-  files: FileData[]
+  results: BenchResult[]
 }
 
 interface BenchData {
   timestamp: string
   commit: string
+  file: string
   platforms: PlatformData[]
 }
 
-const loading = ref(true)
-const data = ref<BenchData | null>(null)
+const METRICS = [
+  { key: 'parse_us',     label: 'Parse (μs)'     },
+  { key: 'serialize_us', label: 'Serialize (μs)'  },
+  { key: 'alloc_kb',     label: 'Alloc (KB)'      },
+] as const
 
-function minParse(results: BenchResult[]): number {
-  return results.length ? Math.min(...results.map(r => r.parse_us)) : Infinity
+type MetricKey = typeof METRICS[number]['key']
+
+const ARCH_LABEL: Record<string, string> = {
+  'x86_64':        'x86_64',
+  'apple-aarch64': 'Apple Silicon',
+  'linux-aarch64': 'Linux aarch64',
 }
 
-function minSer(results: BenchResult[]): number {
-  const vals = results.filter(r => r.serialize_us > 0).map(r => r.serialize_us)
-  return vals.length ? Math.min(...vals) : Infinity
+const ARCH_ICON: Record<string, string> = {
+  'x86_64':        '🖥',
+  'apple-aarch64': '',
+  'linux-aarch64': '🐧',
 }
 
-function minAlloc(results: BenchResult[]): number {
-  const vals = results.filter(r => r.alloc_kb > 0).map(r => r.alloc_kb)
-  return vals.length ? Math.min(...vals) : Infinity
+const loading        = ref(true)
+const data           = ref<BenchData | null>(null)
+const selectedArch   = ref('')
+const selectedMetric = ref<MetricKey>('parse_us')
+
+const formattedDate = computed(() => {
+  if (!data.value?.timestamp) return ''
+  return new Date(data.value.timestamp).toLocaleString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', timeZone: 'UTC', timeZoneName: 'short',
+  })
+})
+
+const currentResults = computed(() =>
+  data.value?.platforms.find(p => p.arch === selectedArch.value)?.results ?? []
+)
+
+const sortedResults = computed(() => {
+  const key = selectedMetric.value
+  return [...currentResults.value]
+    .map(r => ({ ...r, value: r[key] as number, isBeast: r.library === 'beast::lazy' }))
+    .sort((a, b) => {
+      if (a.value <= 0) return 1
+      if (b.value <= 0) return -1
+      return a.value - b.value
+    })
+})
+
+const maxValue = computed(() => {
+  const vals = sortedResults.value.filter(r => r.value > 0).map(r => r.value)
+  return vals.length ? Math.max(...vals) : 1
+})
+
+function pct(v: number): string {
+  return (v / maxValue.value * 100).toFixed(1) + '%'
 }
+
+function fmtVal(v: number): string {
+  return selectedMetric.value === 'alloc_kb'
+    ? v.toLocaleString() + ' KB'
+    : v.toFixed(1) + ' μs'
+}
+
+function archLabel(arch: string): string { return ARCH_LABEL[arch] ?? arch }
+function archIcon(arch: string):  string { return ARCH_ICON[arch]  ?? '💻' }
 
 onMounted(async () => {
   try {
     const res = await fetch('/beast-json/benchmark-results.json')
     if (res.ok) {
       const json: BenchData = await res.json()
-      if (json.platforms?.length) data.value = json
+      if (json.platforms?.length) {
+        data.value = json
+        selectedArch.value = json.platforms[0].arch
+      }
     }
-  } catch {
-    // network or parse error — show "no data" state
-  } finally {
-    loading.value = false
-  }
+  } catch { /* show "no data" state */ }
+  finally  { loading.value = false }
 })
 </script>
 
 <style scoped>
-.ci-bench { margin: 1.5rem 0; }
+/* ── Wrapper ──────────────────────────────────────────────────────────── */
+.bench-wrap { margin: 1.5rem 0; }
 
-.ci-bench-meta {
-  font-size: 0.85em;
+/* ── Meta line ───────────────────────────────────────────────────────── */
+.bench-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  font-size: 0.82em;
   color: var(--vp-c-text-2);
+  margin-bottom: 1rem;
+}
+.bench-meta .sep { color: var(--vp-c-divider); }
+
+/* ── Architecture tabs ───────────────────────────────────────────────── */
+.arch-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
 
-.ci-bench-platform {
-  margin-top: 1.5rem;
-  margin-bottom: 0.25rem;
-  font-size: 1em;
+.arch-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 1rem;
+  border: 1.5px solid var(--vp-c-divider);
+  border-radius: 9999px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-size: 0.85em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.arch-tab:hover {
+  border-color: var(--vp-c-brand-2);
+  color: var(--vp-c-text-1);
+}
+
+.arch-tab.active {
+  border-color: var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
   font-weight: 600;
 }
 
-.ci-bench-file {
-  margin-top: 0.75rem;
-  margin-bottom: 0.25rem;
-  font-size: 0.9em;
-  font-weight: 500;
-  color: var(--vp-c-text-2);
+/* ── Metric tabs ─────────────────────────────────────────────────────── */
+.metric-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
 }
 
-.ci-bench-note {
+.metric-tab {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vp-c-text-2);
   font-size: 0.8em;
-  color: var(--vp-c-text-3);
-  margin-top: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
-.ci-bench-state {
-  color: var(--vp-c-text-2);
+.metric-tab:hover { color: var(--vp-c-text-1); }
+
+.metric-tab.active {
+  border-color: var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+.metric-hint {
+  margin-left: auto;
+  font-size: 0.78em;
+  color: var(--vp-c-text-3);
   font-style: italic;
 }
 
-td.best {
+/* ── Bar chart ───────────────────────────────────────────────────────── */
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 1.4rem 140px 1fr 90px;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* rank number */
+.rank {
+  font-size: 0.72em;
   font-weight: 700;
+  color: var(--vp-c-text-3);
+  text-align: right;
+  line-height: 1;
+}
+.rank.gold { color: #f5a623; }
+
+/* library name */
+.lib {
+  font-size: 0.82em;
+  font-family: var(--vp-font-family-mono);
+  color: var(--vp-c-text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lib.beast {
   color: var(--vp-c-brand-1);
+  font-weight: 700;
+}
+
+/* bar track */
+.track {
+  position: relative;
+  height: 22px;
+  background: var(--vp-c-bg-soft);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--vp-c-gray-2, #ccc);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fill.beast {
+  background: var(--vp-c-brand-1);
+  opacity: 0.85;
+}
+
+.fill.na { background: transparent; }
+
+/* value label */
+.val {
+  font-size: 0.78em;
+  font-family: var(--vp-font-family-mono);
+  color: var(--vp-c-text-2);
+  text-align: right;
+  white-space: nowrap;
+}
+.val.beast {
+  color: var(--vp-c-brand-1);
+  font-weight: 700;
+}
+
+/* ── Misc ────────────────────────────────────────────────────────────── */
+.bench-note {
+  font-size: 0.77em;
+  color: var(--vp-c-text-3);
+  margin-top: 1rem;
+}
+
+.bench-state {
+  font-style: italic;
+  color: var(--vp-c-text-2);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .bar-row { grid-template-columns: 1.4rem 100px 1fr 75px; gap: 0.4rem; }
+  .metric-hint { display: none; }
 }
 </style>
