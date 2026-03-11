@@ -5,6 +5,7 @@
     <template v-else-if="data && data.platforms && data.platforms.length">
       <p class="ci-bench-meta">
         Commit: <code>{{ data.commit }}</code> &nbsp;·&nbsp; {{ data.timestamp }}
+        &nbsp;·&nbsp; file: <code>{{ data.file }}</code>
       </p>
 
       <template v-for="p in data.platforms" :key="p.arch">
@@ -15,6 +16,7 @@
               <th>Library</th>
               <th>Parse (μs)</th>
               <th>Serialize (μs)</th>
+              <th>Alloc (KB)</th>
             </tr>
           </thead>
           <tbody>
@@ -26,6 +28,9 @@
               <td :class="{ best: r.serialize_us > 0 && r.serialize_us === minSer(p.results) }">
                 {{ r.serialize_us > 0 ? r.serialize_us.toFixed(1) : '—' }}
               </td>
+              <td :class="{ best: r.alloc_kb > 0 && r.alloc_kb === minAlloc(p.results) }">
+                {{ r.alloc_kb > 0 ? r.alloc_kb : '—' }}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -33,9 +38,9 @@
       </template>
 
       <p class="ci-bench-note">
-        Quick mode (15 iterations), Release build without PGO/LTO tuning.
+        Quick mode (15 iterations), Release build without PGO/LTO.
         Numbers reflect relative ordering on shared GitHub Actions runners —
-        not absolute throughput. See the reference tables above for PGO-optimised figures.
+        not absolute throughput.
       </p>
     </template>
 
@@ -52,6 +57,7 @@ interface BenchResult {
   library: string
   parse_us: number
   serialize_us: number
+  alloc_kb: number
 }
 
 interface PlatformData {
@@ -76,6 +82,11 @@ function minParse(results: BenchResult[]): number {
 
 function minSer(results: BenchResult[]): number {
   const vals = results.filter(r => r.serialize_us > 0).map(r => r.serialize_us)
+  return vals.length ? Math.min(...vals) : Infinity
+}
+
+function minAlloc(results: BenchResult[]): number {
+  const vals = results.filter(r => r.alloc_kb > 0).map(r => r.alloc_kb)
   return vals.length ? Math.min(...vals) : Infinity
 }
 
