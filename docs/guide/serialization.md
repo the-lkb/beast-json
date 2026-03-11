@@ -2,6 +2,80 @@
 
 Beast JSON's serializer is built for **extreme throughput**. It uses a Stream-Push model that writes directly to an output buffer — no intermediate allocations, no `sprintf`, no `std::to_string`.
 
+---
+
+## 🗺️ `dump()` vs `write()` — Which One Should You Use?
+
+This is the most common source of confusion. Here is the short answer:
+
+| You have… | Use… |
+| :--- | :--- |
+| A **parsed** `beast::Value` and want to re-serialize it (possibly after mutations) | **`value.dump()`** |
+| A **C++ object** (struct, STL container, scalar) and want to convert it to JSON | **`beast::write(obj)`** |
+
+### `value.dump()` — Back to JSON from a Parsed Document
+
+Call `.dump()` on any `beast::Value` you got from `beast::parse()`. It serializes the node and everything below it, including any mutations you applied.
+
+```cpp
+beast::Document doc;
+auto root = beast::parse(doc, R"({"user": {"name": "Alice", "age": 25}})");
+
+root["user"]["age"] = 26;           // mutate in-place
+std::string json = root.dump();     // re-serialize the whole document
+// → {"user":{"name":"Alice","age":26}}
+
+std::string subtree = root["user"].dump();  // serialize only the subtree
+// → {"name":"Alice","age":26}
+```
+
+**When to use `dump()`:**
+- Round-tripping: parse → inspect/mutate → serialize back.
+- Extracting or forwarding a JSON subtree.
+- Any time you are working with data that came from `beast::parse()`.
+
+### `beast::write()` — C++ Object to JSON
+
+Use `beast::write()` when you are starting from a C++ object that was never parsed from JSON.
+
+```cpp
+struct Order { int id; double price; std::string symbol; };
+BEAST_JSON_FIELDS(Order, id, price, symbol)
+
+Order o{42, 99.5, "AAPL"};
+std::string json = beast::write(o);         // compact
+std::string pretty = beast::write(o, 2);    // 2-space indented
+```
+
+**When to use `beast::write()`:**
+- Serializing application structs / STL containers to send over a network or write to disk.
+- Any time you are building JSON from scratch in C++, not from a previously parsed document.
+
+### Want to Pretty-Print a Parsed Document?
+
+Use `value.dump(indent)` — it takes an indent size just like `beast::write()`:
+
+```cpp
+std::string pretty = root.dump(2);   // 2-space pretty-print of a parsed Value
+```
+
+### Want to Re-Serialize to a Reusable Buffer?
+
+```cpp
+std::string buf;
+buf.reserve(4096);
+
+// From a parsed document (mutations reflected):
+root.dump(buf);        // appends into buf — reuse across loop iterations
+buf.clear();
+
+// From a C++ object:
+beast::write_to(buf, my_struct);
+buf.clear();
+```
+
+---
+
 ## 🚀 Quick Start
 
 ```cpp

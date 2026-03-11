@@ -6678,6 +6678,33 @@ template <typename T>::std::string write(const T &obj) {
   return out;
 }
 
+// write(obj, indent) — pretty-printed variant.
+// Serializes obj to compact JSON, then re-parses and formats with indent spaces
+// per level. Use write(obj) for hot paths; this variant is for human-readable output.
+template <typename T>::std::string write(const T &obj, int indent) {
+  ::std::string compact = write(obj);
+  Document tmp;
+  Value root = parse(tmp, compact);
+  return root.dump(indent);
+}
+
+// write_to(buf, obj) — zero-allocation variant for hot loops.
+// Appends the compact JSON representation of obj to an existing string buffer.
+// Call buf.clear() between iterations; the buffer's heap capacity is reused.
+template <typename T> void write_to(::std::string &buf, const T &obj) {
+  ::beast::json::detail::append_json(buf, obj);
+}
+
+// write_to(buf, obj, indent) — pretty-printed buffer-append variant.
+template <typename T> void write_to(::std::string &buf, const T &obj, int indent) {
+  ::std::string compact;
+  compact.reserve(512);
+  ::beast::json::detail::append_json(compact, obj);
+  Document tmp;
+  Value root = parse(tmp, compact);
+  buf += root.dump(indent);
+}
+
 template <typename T> void from_json(const Value &v, T &out) {
   ::beast::json::detail::from_json(v, out);
 }

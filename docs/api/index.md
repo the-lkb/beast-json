@@ -328,15 +328,16 @@ auto title = root.at("/store/books/0/title"_jptr).as<std::string>();
 
 ### `operator[](index)` — Index Access
 
-Accepts `size_t` or `unsigned int`. Returns an invalid `Value{}` if the index is out of range (never throws).
+Accepts `int`, `unsigned int`, or `size_t` — no cast needed. Returns an invalid `Value{}` if the index is out of range or negative (never throws).
 
 ```cpp
 auto root = beast::parse(doc, R"({"tags": ["cpp", "simd", "hft"]})");
-std::string first = root["tags"][0u].as<std::string>(); // "cpp" (unsigned int)
-std::string third = root["tags"][2u].as<std::string>(); // "hft"
-// For signed int variable: cast to size_t
+std::string first  = root["tags"][0].as<std::string>(); // "cpp"
+std::string second = root["tags"][1].as<std::string>(); // "simd"
+std::string third  = root["tags"][2].as<std::string>(); // "hft"
+
 int i = 1;
-std::string second = root["tags"][size_t(i)].as<std::string>(); // "simd"
+std::string by_var = root["tags"][i].as<std::string>(); // "simd" — int var works too
 ```
 
 ### `.size()` — Element Count
@@ -416,6 +417,15 @@ auto max_val = std::ranges::max(root["scores"].as_array<int>());
 ```
 
 ---
+
+## 🟡 Serialization — `dump()` vs `write()`
+
+> **Quick rule:** use `.dump()` on a **parsed** `Value`; use `beast::write()` for **C++ objects**.
+>
+> | You have… | Use… |
+> | :--- | :--- |
+> | `beast::Value` from `beast::parse()` | `value.dump()` |
+> | C++ struct / STL container / scalar | `beast::write(obj)` |
 
 ## 🟡 `Value` — Serialization
 
@@ -503,12 +513,15 @@ root.insert_json("tags", R"(["cpp20", "performance"])");
 
 ### `.erase(key)` / `.erase(idx)` — Remove Key or Element
 
-Accepts `size_t` or `unsigned int` for array indices.
+Accepts `int`, `unsigned int`, or `size_t` for array indices — no cast needed.
 
 ```cpp
-root.erase("deprecated");       // remove object key
-root["tags"].erase(0u);         // remove first array element (unsigned int)
-root["tags"].erase(size_t{1});  // also valid (size_t)
+root.erase("deprecated");   // remove object key
+root["tags"].erase(0);      // remove first array element
+root["tags"].erase(1);      // remove by plain int — works fine
+
+int i = 2;
+root["tags"].erase(i);      // int variable — also works
 ```
 
 ### `.push_back(value)` — Append to Array
@@ -633,9 +646,9 @@ If you cannot modify a struct (e.g., from an external library), define these two
 namespace glm {
     // Teach Beast JSON to parse glm::vec3 from a JSON array
     inline void from_beast_json(const beast::Value& v, vec3& out) {
-        out.x = v[0u].as<float>();
-        out.y = v[1u].as<float>();
-        out.z = v[2u].as<float>();
+        out.x = v[0].as<float>();
+        out.y = v[1].as<float>();
+        out.z = v[2].as<float>();
     }
 
     // Teach Beast JSON to serialize glm::vec3 to a JSON array

@@ -18,19 +18,20 @@ wget https://raw.githubusercontent.com/qbuem/beast-json/main/include/beast_json/
 Beast JSON uses a lazy-DOM approach. Parsing is near-instant, and access is type-safe.
 
 ```cpp
-#include "beast_json.hpp"
+#include <beast_json/beast_json.hpp>
 #include <iostream>
 
 int main() {
     std::string json = R"({"name": "Beast", "speed": 2.7})";
-    
-    // Parse directly from string
-    auto doc = beast::json::parse(json);
-    
+
+    // A Document owns the tape; a Value is a lightweight handle into it
+    beast::Document doc;
+    beast::Value root = beast::parse(doc, json);
+
     // Type-safe access
-    std::string name = doc["name"];
-    double speed = doc["speed"];
-    
+    std::string name = root["name"].as<std::string>();
+    double speed = root["speed"].as<double>();
+
     std::cout << name << " throughput: " << speed << " GB/s" << std::endl;
 }
 ```
@@ -50,7 +51,7 @@ struct Config {
 BEAST_JSON_FIELDS(Config, host, port, secure)
 
 Config cfg{"localhost", 8080, true};
-std::string out = beast::json::dump(cfg);
+std::string out = beast::write(cfg);
 ```
 
 ### 3. 🪄 Magic STL Conversions
@@ -63,11 +64,11 @@ std::map<std::string, std::vector<int>> data = {
     {"us-east", {4, 5}}
 };
 
-// Dump directly to string!
-std::string json = beast::json::dump(data); 
+// Serialize directly to string
+std::string json = beast::write(data);
 
-// Parse directly back into your complex STL type!
-auto parsed = beast::json::parse(json).as<std::map<std::string, std::vector<int>>>();
+// Deserialize directly back into your complex STL type
+auto parsed = beast::read<std::map<std::string, std::vector<int>>>(json);
 ```
 
 > [!TIP]

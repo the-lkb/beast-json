@@ -313,14 +313,21 @@ ParseResult good_parse(std::string_view json) {
 }
 ```
 
-### 2. Use `size_t` or `unsigned int` for Array Indices
+### 2. Array Indices — Plain `int` Works
+
+All array index APIs (`operator[]`, `get()`, `erase()`) accept plain `int`, `unsigned int`, and `size_t`. No cast is needed:
 
 ```cpp
-// Ambiguous: a plain int literal 0 can be confused with a null pointer (string key)
-auto elem  = root["array"][0u];          // ✅ unsigned int literal — unambiguous
-auto elem2 = root["array"][size_t{0}];   // ✅ explicit size_t cast — also fine
+auto elem  = root["array"][0];   // ✅ plain int literal — works fine
+auto elem2 = root["array"][1];   // ✅ same
 
-// If you have a signed int variable, cast it explicitly:
-int i = 0;
-auto elem3 = root["array"][size_t(i)];  // ✅ cast required for signed int
+int i = 2;
+auto elem3 = root["array"][i];   // ✅ int variable — also works, no cast needed
+```
+
+Negative indices simply return an invalid (absent) value rather than throwing or invoking undefined behaviour:
+
+```cpp
+auto bad = root["array"][-1];    // ✅ safe — returns invalid Value{}
+bad.is_valid();                   // false
 ```
