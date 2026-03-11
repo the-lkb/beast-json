@@ -40,7 +40,7 @@ jobs:
             install_cmd: echo "Apple Clang pre-installed"
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Install compiler
       run: ${{ matrix.install_cmd }}
@@ -159,7 +159,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
