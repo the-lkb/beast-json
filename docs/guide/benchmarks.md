@@ -93,7 +93,9 @@ Peak Resident Set Size (RSS) while parsing `twitter.json` (631.5 KB), measured v
 | **Beast JSON** | **3.44 MB** | **0.23 MB** | **0.36×** |
 | `Glaze` | 5.58 MB | 1.80 MB | 2.85× |
 | `yyjson` | 6.32 MB | 2.50 MB | 3.96× |
+| `RapidJSON` | 8.74 MB | 5.53 MB | 8.76× |
 | `simdjson` | 11.04 MB | 6.50 MB | 10.29× |
+| `nlohmann` | 27.40 MB | 23.71 MB | 37.58× |
 
 > Beast JSON's **Tape DOM** model eliminates pointer overhead and node fragmentation — giving it the lowest per-document memory cost in the C++ ecosystem.
 
