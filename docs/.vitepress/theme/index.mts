@@ -21,17 +21,18 @@ export default {
     app.component('BenchmarkCi', BenchmarkCi)
 
     // Doxygen pages are static HTML served outside VitePress's route system.
-    // Without this guard, clicking a /api/reference/ link from within
-    // VitePress content causes the SPA router to handle it, fail to find a
-    // matching route, and render a 404. Returning false cancels SPA navigation
-    // and lets the browser make a full HTTP request to the real file.
+    // Using a capture-phase click listener (fires before Vue's handlers) so
+    // the SPA router never sees the click. link.href gives the fully-resolved
+    // absolute URL, correctly including the site's base path (/beast-json/).
     if (typeof window !== 'undefined') {
-      router.onBeforeRouteChange = (to: string) => {
-        if (to.includes('/api/reference/')) {
-          window.location.href = to
-          return false
+      document.addEventListener('click', (e) => {
+        const link = (e.target as Element).closest('a') as HTMLAnchorElement | null
+        if (link?.href.includes('/api/reference/')) {
+          e.preventDefault()
+          e.stopImmediatePropagation()
+          window.location.href = link.href
         }
-      }
+      }, true) // true = capture phase
     }
   }
 } satisfies Theme
