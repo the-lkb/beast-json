@@ -1,6 +1,133 @@
 {
-  "timestamp": null,
-  "commit": null,
-  "file": null,
-  "platforms": []
+  "timestamp": "2026-03-11T02:26:52Z",
+  "commit": "c7fcbec5",
+  "file": "twitter.json",
+  "platforms": [
+    {
+      "arch": "x86_64",
+      "label": "x86_64 \u00b7 GCC 13 \u00b7 Ubuntu",
+      "results": [
+        {
+          "library": "beast::lazy",
+          "parse_us": 279.73,
+          "serialize_us": 177.73,
+          "alloc_kb": 260
+        },
+        {
+          "library": "simdjson",
+          "parse_us": 244.4,
+          "serialize_us": 850.9,
+          "alloc_kb": 1760
+        },
+        {
+          "library": "yyjson",
+          "parse_us": 791.02,
+          "serialize_us": 174.57,
+          "alloc_kb": 1176
+        },
+        {
+          "library": "RapidJSON",
+          "parse_us": 1343.93,
+          "serialize_us": 874.89,
+          "alloc_kb": 856
+        },
+        {
+          "library": "Glaze DOM",
+          "parse_us": 2287.97,
+          "serialize_us": 397.21,
+          "alloc_kb": 2080
+        },
+        {
+          "library": "nlohmann",
+          "parse_us": 6047.74,
+          "serialize_us": 2343.11,
+          "alloc_kb": 2068
+        }
+      ]
+    },
+    {
+      "arch": "apple-aarch64",
+      "label": "Apple Silicon \u00b7 Apple Clang \u00b7 macOS",
+      "results": [
+        {
+          "library": "beast::lazy",
+          "parse_us": 237.37,
+          "serialize_us": 96.57,
+          "alloc_kb": 288
+        },
+        {
+          "library": "simdjson",
+          "parse_us": 227.95,
+          "serialize_us": 470.45,
+          "alloc_kb": 1632
+        },
+        {
+          "library": "yyjson",
+          "parse_us": 187.22,
+          "serialize_us": 119.65,
+          "alloc_kb": 1088
+        },
+        {
+          "library": "RapidJSON",
+          "parse_us": 998.19,
+          "serialize_us": 1047.7,
+          "alloc_kb": 1024
+        },
+        {
+          "library": "Glaze DOM",
+          "parse_us": 1455.72,
+          "serialize_us": 269.56,
+          "alloc_kb": 2272
+        },
+        {
+          "library": "nlohmann",
+          "parse_us": 4129.87,
+          "serialize_us": 1562.27,
+          "alloc_kb": 1648
+        }
+      ]
+    },
+    {
+      "arch": "linux-aarch64",
+      "label": "Linux aarch64 \u00b7 GCC 14 \u00b7 Ubuntu",
+      "results": [
+        {
+          "library": "beast::lazy",
+          "parse_us": 250.76,
+          "serialize_us": 104.15,
+          "alloc_kb": 296
+        },
+        {
+          "library": "simdjson",
+          "parse_us": 337.03,
+          "serialize_us": 615.07,
+          "alloc_kb": 1664
+        },
+        {
+          "library": "yyjson",
+          "parse_us": 470.63,
+          "serialize_us": 139.42,
+          "alloc_kb": 1240
+        },
+        {
+          "library": "RapidJSON",
+          "parse_us": 1410.8,
+          "serialize_us": 910.65,
+          "alloc_kb": 1036
+        },
+        {
+          "library": "Glaze DOM",
+          "parse_us": 1986.51,
+          "serialize_us": 373.89,
+          "alloc_kb": 2212
+        },
+        {
+          "library": "nlohmann",
+          "parse_us": 5468.79,
+          "serialize_us": 1567.91,
+          "alloc_kb": 2224
+        }
+      ]
+    }
+  ]
 }
