@@ -212,6 +212,87 @@ send(buf);
 
 ---
 
+## 📦 Large Structs (> 16 Fields)
+
+`BEAST_JSON_FIELDS` is a variadic macro that supports up to **16 fields** per struct. If your struct has more, you have two options:
+
+### Option A: Manual ADL Hooks (flat JSON layout preserved)
+
+Define `from_beast_json`, `to_beast_json`, and `append_beast_json` free functions yourself in the same namespace. These are exactly what the macro generates internally — you are just writing them by hand.
+
+```cpp
+struct BigEvent {
+    // 17 fields — one too many for BEAST_JSON_FIELDS
+    int64_t  seq;
+    int64_t  ts;
+    double   price;
+    double   qty;
+    double   bid;
+    double   ask;
+    double   bid_qty;
+    double   ask_qty;
+    int      side;
+    int      type;
+    bool     is_snapshot;
+    bool     is_last;
+    std::string symbol;
+    std::string venue;
+    std::string feed;
+    std::string session;
+    std::string trader_id;
+};
+
+// In the same namespace (or global if the struct is global):
+inline void from_beast_json(const beast::json::Value& v, BigEvent& o) {
+    beast::json::detail::from_json_field(v, "seq",       o.seq);
+    beast::json::detail::from_json_field(v, "ts",        o.ts);
+    beast::json::detail::from_json_field(v, "price",     o.price);
+    // ... repeat for all 17 fields
+    beast::json::detail::from_json_field(v, "trader_id", o.trader_id);
+}
+
+inline void to_beast_json(beast::json::Value& v, const BigEvent& o) {
+    beast::json::detail::to_json_field(v, "seq",       o.seq);
+    beast::json::detail::to_json_field(v, "ts",        o.ts);
+    // ... repeat for all 17 fields
+    beast::json::detail::to_json_field(v, "trader_id", o.trader_id);
+}
+```
+
+See the [API Reference — Large Structs](/api/#large-structs-16-fields) for the complete `append_beast_json` signature used by `beast::write()` and `beast::write_to()`.
+
+### Option B: Split into Sub-Structs (recommended if JSON shape is flexible)
+
+Decompose the large struct into smaller nested structs, each with ≤ 16 fields, and use `BEAST_JSON_FIELDS` on all of them:
+
+```cpp
+struct EventHeader {
+    int64_t seq; int64_t ts; std::string symbol;
+    std::string venue; std::string feed; std::string session;
+};
+struct EventPrices {
+    double price; double qty; double bid; double ask;
+    double bid_qty; double ask_qty; int side; int type;
+};
+struct EventFlags {
+    bool is_snapshot; bool is_last; std::string trader_id;
+};
+struct BigEvent {
+    EventHeader header;
+    EventPrices prices;
+    EventFlags  flags;
+};
+
+BEAST_JSON_FIELDS(EventHeader, seq, ts, symbol, venue, feed, session)
+BEAST_JSON_FIELDS(EventPrices, price, qty, bid, ask, bid_qty, ask_qty, side, type)
+BEAST_JSON_FIELDS(EventFlags,  is_snapshot, is_last, trader_id)
+BEAST_JSON_FIELDS(BigEvent,    header, prices, flags)
+```
+
+> **Trade-off:** The JSON layout becomes nested (`"header": {...}, "prices": {...}`). If you need a flat JSON object with all fields at the top level, use Option A instead.
+
+---
+
 ## ⚡ Performance Tips
 
 ### Tip 1: Reserve Your Buffer

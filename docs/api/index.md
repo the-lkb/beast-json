@@ -633,8 +633,103 @@ std::string pretty = beast::write(user, 2); // pretty print
 - Missing JSON fields keep their C++ **default values** (not an error)
 - JSON `null` on a non-optional field is **silently skipped**
 - Extra JSON fields not in the struct are **ignored**
-- Supports up to **32 fields** per struct
+- Supports up to **16 fields** per struct (see [Large Structs](#large-structs-16-fields) below)
 - Works **recursively** for nested structs
+
+---
+
+## 🟣 Large Structs (> 16 fields) {#large-structs-16-fields}
+
+`BEAST_JSON_FIELDS` is a variadic macro and supports a maximum of **16 fields**. For structs with more fields, define `from_beast_json` / `to_beast_json` / `append_beast_json` free functions manually in the **same namespace** as the struct. This is the same ADL hook mechanism that the macro generates — just written by hand.
+
+```cpp
+struct BigOrder {
+    uint64_t    id;
+    std::string symbol;
+    double      price;
+    double      qty;
+    double      filled_qty;
+    int         side;          // 0=buy, 1=sell
+    int         type;          // 0=limit, 1=market
+    int         status;
+    std::string client_id;
+    std::string exchange_id;
+    int64_t     created_at;
+    int64_t     updated_at;
+    double      fee;
+    std::string fee_asset;
+    bool        reduce_only;
+    bool        post_only;
+    std::string time_in_force; // 17th field — macro limit exceeded
+};
+
+inline void from_beast_json(const beast::json::Value& v, BigOrder& o) {
+    beast::json::detail::from_json_field(v, "id",           o.id);
+    beast::json::detail::from_json_field(v, "symbol",       o.symbol);
+    beast::json::detail::from_json_field(v, "price",        o.price);
+    beast::json::detail::from_json_field(v, "qty",          o.qty);
+    beast::json::detail::from_json_field(v, "filled_qty",   o.filled_qty);
+    beast::json::detail::from_json_field(v, "side",         o.side);
+    beast::json::detail::from_json_field(v, "type",         o.type);
+    beast::json::detail::from_json_field(v, "status",       o.status);
+    beast::json::detail::from_json_field(v, "client_id",    o.client_id);
+    beast::json::detail::from_json_field(v, "exchange_id",  o.exchange_id);
+    beast::json::detail::from_json_field(v, "created_at",   o.created_at);
+    beast::json::detail::from_json_field(v, "updated_at",   o.updated_at);
+    beast::json::detail::from_json_field(v, "fee",          o.fee);
+    beast::json::detail::from_json_field(v, "fee_asset",    o.fee_asset);
+    beast::json::detail::from_json_field(v, "reduce_only",  o.reduce_only);
+    beast::json::detail::from_json_field(v, "post_only",    o.post_only);
+    beast::json::detail::from_json_field(v, "time_in_force",o.time_in_force);
+}
+
+inline void to_beast_json(beast::json::Value& v, const BigOrder& o) {
+    beast::json::detail::to_json_field(v, "id",           o.id);
+    beast::json::detail::to_json_field(v, "symbol",       o.symbol);
+    beast::json::detail::to_json_field(v, "price",        o.price);
+    beast::json::detail::to_json_field(v, "qty",          o.qty);
+    beast::json::detail::to_json_field(v, "filled_qty",   o.filled_qty);
+    beast::json::detail::to_json_field(v, "side",         o.side);
+    beast::json::detail::to_json_field(v, "type",         o.type);
+    beast::json::detail::to_json_field(v, "status",       o.status);
+    beast::json::detail::to_json_field(v, "client_id",    o.client_id);
+    beast::json::detail::to_json_field(v, "exchange_id",  o.exchange_id);
+    beast::json::detail::to_json_field(v, "created_at",   o.created_at);
+    beast::json::detail::to_json_field(v, "updated_at",   o.updated_at);
+    beast::json::detail::to_json_field(v, "fee",          o.fee);
+    beast::json::detail::to_json_field(v, "fee_asset",    o.fee_asset);
+    beast::json::detail::to_json_field(v, "reduce_only",  o.reduce_only);
+    beast::json::detail::to_json_field(v, "post_only",    o.post_only);
+    beast::json::detail::to_json_field(v, "time_in_force",o.time_in_force);
+}
+
+inline void append_beast_json(std::string& out, const BigOrder& o) {
+    out += '{';
+    size_t prev = out.size();
+    beast::json::detail::append_json(out, "id",           o.id);
+    beast::json::detail::append_json(out, "symbol",       o.symbol);
+    // ... repeat for all fields ...
+    beast::json::detail::append_json(out, "time_in_force",o.time_in_force);
+    if (out.size() > prev) out.pop_back(); // remove trailing comma
+    out += '}';
+}
+```
+
+**Alternative: split into sub-structs**
+
+If logically possible, decompose a large struct into smaller nested ones — each with ≤ 16 fields — and use `BEAST_JSON_FIELDS` on all of them:
+
+```cpp
+struct OrderCore   { uint64_t id; std::string symbol; double price; double qty; /* ... */ };
+struct OrderFlags  { bool reduce_only; bool post_only; std::string time_in_force; /* ... */ };
+struct BigOrder    { OrderCore core; OrderFlags flags; /* ... */ };
+
+BEAST_JSON_FIELDS(OrderCore,  id, symbol, price, qty, ...)
+BEAST_JSON_FIELDS(OrderFlags, reduce_only, post_only, time_in_force, ...)
+BEAST_JSON_FIELDS(BigOrder,   core, flags)
+```
+
+> **Note:** The sub-struct approach changes the JSON shape (fields are now nested under `"core"` / `"flags"`). Use manual ADL hooks when you need to preserve a flat JSON layout.
 
 ---
 
