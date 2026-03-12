@@ -337,16 +337,43 @@ BEAST_JSON_FIELDS(LogEntry, level, message, timestamp)
 
 ---
 
-## 🔢 Float Precision
+## 🔢 Number Serialization
 
-Beast JSON uses the **Russ Cox + Eisel-Lemire** hybrid algorithm for number serialization. It guarantees:
+Beast JSON uses **two purpose-built algorithms** instead of `std::to_chars` or `sprintf`:
 
-- **Bit-accurate round-tripping**: Parsing the serialized output gives you back the exact same `double`.
-- **Shortest representation**: It always produces the shortest possible decimal that round-trips correctly.
+### Integers — yy-itoa (Y. Yuan / yyjson, MIT)
+
+Integer-to-decimal conversion via a 2-digit ASCII lookup table and multiply-shift
+arithmetic — **zero division instructions** in the hot path. Dispatches to separate
+32-bit and 64-bit code paths for maximum throughput.
+
+```cpp
+beast::write(9731);   // "9731"  — 3 multiplies, 2 table lookups, no div
+beast::write(-42LL);  // "-42"
+```
+
+### Floats — Schubfach dtoa (R. Giulietti 2020, via yyjson, MIT)
+
+The Schubfach algorithm produces the **shortest decimal string that round-trips
+exactly** through any IEEE 754-conformant parser. Implemented with a 128-bit pow10
+table (1,336 precomputed constants) — no floating-point arithmetic, no fallback path.
+
+- **Bit-accurate round-tripping**: Parsing the output gives back the exact same `double`.
+- **Shortest representation**: Trailing zeros trimmed automatically.
+- **Special values**: `NaN` and `±Inf` serialize as `null` (RFC 8259 compliant).
 
 ```cpp
 double pi = 3.141592653589793;
 
 beast::write(pi);  // "3.141592653589793"
-// Not "3.14159265358979300" or "3.1415926535897931"
+// Not "3.14159265358979300" — trailing zeros stripped
+
+beast::write(3.0); // "3"   — integer-looking doubles stay compact
+beast::write(std::numeric_limits<double>::infinity()); // "null"
 ```
+
+> [!NOTE]
+> **Russ Cox + Eisel-Lemire** are used for number **parsing** (input → `double`).
+> **Schubfach + yy-itoa** are used for number **serialization** (number → string).
+> See [Numeric Serialization Theory](/theory/numeric-serialization) for a deep-dive
+> with diagrams, and [Acknowledgments](/guide/acknowledgments) for full attribution.

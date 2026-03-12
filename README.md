@@ -83,18 +83,23 @@ Beast JSON is licensed under the **Apache License 2.0** — permissive commercia
 
 ## 💡 Inspiration & Acknowledgements
 
-* **[Russ Cox](https://research.swtch.com/fp-all/)** — Fast Unrounded Scaling algorithm (2026), foundation for bit-accurate number parsing.
+* **[Raffaello Giulietti](https://drive.google.com/file/d/1IEeATSVnEE6TkrHlCYNY2GjaraBjOT4f)** — Schubfach algorithm (2020), foundation for shortest round-trip double serialization.
+* **[yyjson / ibireme (Y. Yuan)](https://github.com/ibireme/yyjson)** — MIT-licensed source of the Schubfach port and yy-itoa integer serialization used in Beast JSON's `bj_nc` namespace.
+* **[Russ Cox](https://research.swtch.com/fp-all/)** — Fast Unrounded Scaling algorithm (2026), foundation for bit-accurate number **parsing**.
 * **[Daniel Lemire](https://github.com/lemire) & Michael Eisel** — Eisel-Lemire algorithm and [`fast_float`](https://github.com/fastfloat/fast_float), defining modern 64-bit float parsing.
 * **[simdjson](https://github.com/simdjson/simdjson)** — Pioneered SIMD-accelerated JSON parsing at L1-cache speeds.
-* **[yyjson](https://github.com/ibireme/yyjson)** — The Tape DOM architecture enabling cache-local sequential access.
+* **[glaze / Stephen Berry](https://github.com/stephenberry/glaze)** — Compile-time FNV-1a dispatch and struct reflection patterns that influenced Nexus Fusion.
 * **[RapidJSON](https://github.com/Tencent/rapidjson)** — A decade of excellence in C++ JSON processing.
 
 ## 📝 References
 
-1. **Russ Cox**, *"Floating-Point Printing and Parsing Can Be Simple and Fast,"* 2026. [Blog](https://research.swtch.com/fp-all/)
-2. **Daniel Lemire**, *"Number Parsing at Gigabytes per Second,"* SPE, 2021. [arXiv](https://arxiv.org/abs/2101.11408)
-3. **Michael Eisel & Daniel Lemire**, *"The Eisel-Lemire Algorithm,"* 2020. [fast_float](https://github.com/fastfloat/fast_float)
-4. **Langdale & Lemire**, *"Parsing Gigabytes of JSON per Second,"* VLDB Journal, 2020. [DOI](https://doi.org/10.1007/s00778-019-00578-5)
+1. **Raffaello Giulietti**, *"The Schubfach way to render doubles,"* 2020. [PDF](https://drive.google.com/file/d/1IEeATSVnEE6TkrHlCYNY2GjaraBjOT4f)
+2. **Y. Yuan (ibireme)**, *yyjson — A fast JSON library in ANSI C,* MIT License. [GitHub](https://github.com/ibireme/yyjson)
+3. **Russ Cox**, *"Floating-Point Printing and Parsing Can Be Simple and Fast,"* 2026. [Blog](https://research.swtch.com/fp-all/)
+4. **Daniel Lemire**, *"Number Parsing at Gigabytes per Second,"* SPE, 2021. [arXiv](https://arxiv.org/abs/2101.11408)
+5. **Michael Eisel & Daniel Lemire**, *"The Eisel-Lemire Algorithm,"* 2020. [fast_float](https://github.com/fastfloat/fast_float)
+6. **Langdale & Lemire**, *"Parsing Gigabytes of JSON per Second,"* VLDB Journal, 2020. [DOI](https://doi.org/10.1007/s00778-019-00578-5)
+7. **Stephen Berry et al.**, *glaze — Extremely fast, in-memory, JSON and interface library,* MIT License. [GitHub](https://github.com/stephenberry/glaze)
 
 ---
 
@@ -102,5 +107,7 @@ Beast JSON is licensed under the **Apache License 2.0** — permissive commercia
 
 Beast JSON is licensed under the **Apache License 2.0**.
 
-* **Independent Implementation** — Clean-room C++20 implementation. No code copied from referenced libraries.
+* **Open Attribution** — The `bj_nc` numeric serialization namespace is adapted from
+  [yyjson](https://github.com/ibireme/yyjson) (MIT License, Y. Yuan) with full attribution
+  in source and documentation. All other code is an original C++20 implementation.
 * **Fair Use & Citation** — Academic and blog citations provided for attribution under fair use.

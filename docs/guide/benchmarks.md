@@ -33,4 +33,6 @@ Unlike DOM-based parsing, **Nexus Fusion** maps JSON directly to C++ structs. Th
 | **Apple Silicon** | NEON 16B vectorized bitmasks | Branchless character detection tuned for 128-byte M-series cache lines |
 | **All** | SWAR (SIMD Within A Register) | 8 bytes/cycle string scan using 64-bit GPR — no SIMD required for short strings |
 | **All** | KeyLenCache | O(1) key lookup for repeated object schemas (e.g., JSON arrays of same-shape objects) |
-| **All** | Russ Cox float printer | Shortest round-trip decimal — 20-30% faster than `printf("%.17g")` |
+| **All** | Schubfach dtoa (R. Giulietti / yyjson port) | Shortest round-trip double→decimal — 2–3× faster than `std::to_chars(double)`, no trailing zeros |
+| **All** | yy-itoa (Y. Yuan / yyjson port) | Integer→decimal via 2-digit table + multiply-shift — zero division instructions |
+| **All** | Russ Cox algorithm (parsing only) | Shortest round-trip decimal parsing — no `strtod`, no bignum fallback |

@@ -119,6 +119,7 @@ export default withMermaid(
                         items: [
                             { text: 'The Tape Architecture', link: '/theory/architecture' },
                             { text: 'SIMD Acceleration', link: '/theory/simd' },
+                            { text: 'Numeric Serialization (Schubfach + yy-itoa)', link: '/theory/numeric-serialization' },
                             { text: 'The Russ Cox Algorithm', link: '/theory/russ-cox' },
                             { text: 'Zero-Allocation Principle', link: '/theory/zero-allocation' },
                             { text: 'Nexus Fusion (Zero-Tape)', link: '/theory/nexus-fusion' }
