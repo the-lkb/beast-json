@@ -1,103 +1,145 @@
-# Nexus Fusion: Zero-Tape Direct Mapping Theory
+# Nexus Fusion: Zero-Tape Mapping
 
-Traditional C++ JSON libraries, even high-performance ones like `simdjson` or `glaze`, still rely on intermediate states (Tape or Metadata) before mapping to user-defined structures. **Nexus Fusion** introduces a "Zero-Tape" architecture that maps the JSON stream directly to C++ struct members in a single pass.
+`beast::fuse<T>(text)` parses JSON directly into your C++ struct — no tape, no DOM, no intermediate state. When the parser encounters `"id"`, it hashes the key, looks up the corresponding struct member offset, and writes the value there. The tape is never built.
 
----
-
-## 1. The Allocation Paradox: "0 KB" Explained
-
-A common question arises: *How can parsing into a `std::vector` or `std::map` result in 0 KB of allocation?* 
-
-We must distinguish between **Structural Allocation** and **Data Allocation**:
-
-| Type | Description | Nexus Fusion Cost | Traditional Cost |
-| :--- | :--- | :---: | :---: |
-| **Structural** | Memory for Tape, DOM, or metadata used by the parser. | **0 KB** | 16 KB - 10 MB+ |
-| **Data** | Memory for the user's `vector`, `string`, or `map`. | *Varies* | *Varies* |
-
-### Absolute Zero-Allocation
-If your struct uses fixed-size types (`int`, `double`, `std::array`) or zero-copy types (`std::string_view` for strings), Nexus Fusion achieves **Absolute Zero-Allocation**. The parser requires zero heap memory to perform its work. 
-
-> [!NOTE]
-> In benchmarks, small data allocations often stay within the allocator's pre-reserved pages (RSS), resulting in a "0 KB" report. In "Extreme Harsh" tests, data allocations (for 100 levels of vectors) finally become visible in RSS.
+This page explains how that works, when it beats the DOM engine, and what it costs.
 
 ---
 
-## 2. Expert Technical Analysis: The Dual-Engine Verdict
+## What "0 KB allocation" actually means
 
-To validate the **Nexus Fusion** theory, we analyze it through the lens of modern systems programming and high-performance JSON library design.
+The benchmarks report `0 KB` for struct parsing. That needs unpacking.
 
-### A. The Hybrid Strategy
-Beast JSON is unique in providing a **Dual-Engine** approach. It does not force a single "best" parser, but offers two specialized engines:
+When we say 0 KB, we mean **structural allocation** — memory the parser itself uses to do its work. For the DOM engine, this is the tape. For Nexus, there is no tape, so it's literally zero.
 
-- **The DOM Engine (Beast DOM)**: Optimized for SIMD Stage 1 structural scanning. By identifying punctuation in 64-byte chunks (AVX-512), it excels at skipping through massive datasets or deeply nested structures (100+ levels) where raw skipping speed wins.
-- **The Nexus Engine (Beast Nexus)**: Optimized for zero-intermediate mapping. By bypassing the Tape/DOM entirely, it excels at small-to-medium DTOs where every nanosecond of allocation and tree-building is a bottleneck.
+The user's data — the `std::string` fields, `std::vector` elements, nested objects — still allocate when they need to. A struct with all `int` and `double` fields costs nothing beyond the struct itself. A struct with a `std::vector<std::string>` costs whatever the vector needs. That part is unavoidable and correct.
 
-### B. Technical Differentiation
+```cpp
+struct Tick {         // fixed-size types only
+    uint64_t seq;
+    double   bid, ask;
+    int      side;
+};
+// beast::fuse<Tick>(json) — zero heap allocation, period.
 
-| Feature | DOM (Standard) | Nexus (Fusion) | Glaze (Reflection) |
-| :--- | :--- | :--- | :--- |
-| **Parsing Complexity** | $O(N)$ with SIMD Skip | $O(N)$ with Direct Fusion | $O(N)$ Reflection |
-| **Intermediate State** | Contiguous Tape | **None (Zero)** | Minimal |
-| **Field Dispatch** | Runtime Lookup | **Constant Time (O1)** | Constant Time (O1) |
-| **100L Resilience** | **Maximum (SIMD)** | Moderate | Moderate |
-| **Best For** | Massive Files / Bulk | High-Freq DTOs | Static Schema |
-
-### C. The "Instruction Stream" Advantage
-Experts in low-level optimization (like those behind `simdjson`) emphasize **Instruction Cache** and **Branch Prediction**. 
-- Nexus Fusion treats JSON as a linear stream that "fuses" with the C++ memory layout using **Perfect-Hash Dispatch** (FNV-1a). This avoids the quadratic lookup costs $O(F^2)$ found in traditional DOM mapping.
-- By using a flat iteration engine instead of recursion, it maintains a clean instruction stream and prevents stack-frame overhead.
-
----
-
-## 3. Algorithmic Comparison: Why Nexus Wins
-
-### A. Simdjson vs. Nexus Fusion
-- **Simdjson**: Uses a two-stage approach. Stage 1 identifies structural characters via SIMD. Stage 2 builds a **Tape** (Linearized tree).
-- **Nexus Fusion**: Fuses structural identification with member assignment. It uses the SIMD markers to drive a **Fused State Machine** that jumps directly to the target memory offset.
-
-### B. Glaze vs. Nexus Fusion
-- **Glaze**: Uses powerful compile-time reflection to generate a parser. However, for complex nested structures, it often relies on recursive template expansion and deep stack frames.
-- **Nexus Fusion**: Uses a **Perfect-Hash Dispatcher** (FNV-1a) to avoid string comparisons and a **Flat Iteration Engine** to handle nesting without deep stack recursion.
+struct Order {        // contains dynamic types
+    uint64_t    id;
+    std::string symbol;   // ← one allocation for the string
+};
+// beast::fuse<Order>(json) — one allocation: the symbol string.
+// The parser itself still uses zero.
+```
 
 ---
 
-## 4. Technical Pillar: Perfect Hash Dispatch
+## DOM vs Nexus: when to use which
 
-Unlike other libraries that use runtime string comparisons, Nexus Fusion uses **FNV-1a Compile-Time Hashing** for field dispatch.
+The two engines are not competing — they handle different shapes of work.
+
+**Use the DOM engine (`beast::parse`) when:**
+- The JSON schema isn't known at compile time
+- You need to inspect arbitrary keys or traverse unknown structure
+- The document is large and you'll only read a small fraction of it
+- You need mutations (`.set()`, merge patch)
+
+**Use Nexus (`beast::fuse<T>` / `beast::read<T>`) when:**
+- You have a fixed C++ struct and you want it filled as fast as possible
+- You're in a hot loop processing thousands of identical messages per second
+- You want zero tape allocation by construction, not as an optimization
+
+A concrete HFT example: market data feeds deliver millions of JSON messages per day with the same shape. `beast::read<MarketTick>` on a warmed-up buffer processes each one without touching the allocator.
+
+---
+
+## How field dispatch works
+
+The naive approach to mapping JSON keys to struct fields is string comparison — `if (key == "id") fill_id(val)` repeated for every field. This is O(N×F) where N is the number of keys and F is the number of fields. For a 20-field struct, that's 400 comparisons per object.
+
+Nexus uses **compile-time FNV-1a hashing** to reduce this to O(1).
+
+At compile time, `BEAST_JSON_FIELDS(User, id, name, active)` generates a hash for each field name:
+
+```cpp
+constexpr uint64_t hash_id     = fnv1a_hash_ce("id");     // 0xa9f37…
+constexpr uint64_t hash_name   = fnv1a_hash_ce("name");   // 0xb4c28…
+constexpr uint64_t hash_active = fnv1a_hash_ce("active"); // 0xf91a3…
+```
+
+At parse time, when the scanner sees the key `"name"`:
 
 <div class="bd-diagram">
   <div class="bd-col">
-    <div class="bd-group" style="width:100%;max-width:540px;">
-      <div class="bd-group__title">JSON Stream: <code>{"id": 123, "name": "Beast"}</code></div>
+    <div class="bd-group" style="width:100%;max-width:520px;">
+      <div class="bd-group__title">Parsing <code>{"id": 42, "name": "Alice"}</code></div>
       <div class="bd-group__body">
         <div class="bd-steps">
-          <div class="bd-step"><div class="bd-step__num">1</div><div class="bd-step__body"><div class="bd-step__title">Key Scanning</div><div class="bd-step__desc">NexusScanner identifies "id" using structural anchors.</div></div></div>
-          <div class="bd-step"><div class="bd-step__num">2</div><div class="bd-step__body"><div class="bd-step__title">O(1) Dispatch</div><div class="bd-step__desc">hash("id") jumps directly to the C++ member offset.</div></div></div>
-          <div class="bd-step"><div class="bd-step__num">3</div><div class="bd-step__body"><div class="bd-step__title">Direct Binding</div><div class="bd-step__desc"><code>std::from_chars</code> parses the value directly into the address.</div></div></div>
+          <div class="bd-step">
+            <div class="bd-step__num">1</div>
+            <div class="bd-step__body">
+              <div class="bd-step__title">Scan key</div>
+              <div class="bd-step__desc">NexusScanner reads <code>"name"</code> — 4 bytes, no escape chars, SWAR fast-path.</div>
+            </div>
+          </div>
+          <div class="bd-step">
+            <div class="bd-step__num">2</div>
+            <div class="bd-step__body">
+              <div class="bd-step__title">Hash at runtime</div>
+              <div class="bd-step__desc"><code>hash("name")</code> — same FNV-1a function, same result as the compile-time constant.</div>
+            </div>
+          </div>
+          <div class="bd-step">
+            <div class="bd-step__num">3</div>
+            <div class="bd-step__body">
+              <div class="bd-step__title">Switch on hash</div>
+              <div class="bd-step__desc">Generated <code>switch(h)</code>: one case per field. Branch predictor wins on repeated schema.</div>
+            </div>
+          </div>
+          <div class="bd-step">
+            <div class="bd-step__num">4</div>
+            <div class="bd-step__body">
+              <div class="bd-step__title">Write directly</div>
+              <div class="bd-step__desc"><code>std::from_chars</code> or <code>from_json_direct</code> writes value into <code>&obj.name</code>. No intermediate copy.</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
----
-
-## 5. Security & Robustness
-
-"Fast" must also be "Safe". Nexus Fusion integrates **Stream-Validation** into the pulse engine:
-- **Unknown Fields**: Automatically skipped using the `Validator` core without allocating memory.
-- **Malformed JSON**: Detected in a single pass; throws `std::runtime_error` with precise stream position.
-- **Stack Protection**: Flat iteration prevents stack overflow even on malicious, infinitely nested JSON.
+For keys ≤ 8 bytes, `fast_key_hash` loads the key as a single 64-bit integer (one `memcpy`), XOR-folds it, and returns. No loop, no byte-by-byte iteration.
 
 ---
 
-## 📊 Summary of Competitive Advantage
+## Unknown fields and malformed input
 
-| Feature | Nlohmann | RapidJSON | Glaze | **Beast Nexus** |
-| :--- | :---: | :---: | :---: | :---: |
-| **Mapping Engine** | Dynamic Map | Pointer | Reflection | **Zero-Tape Pulse** |
-| **Key Lookup** | O(log N) | O(N) | O(1) | **O(1) Perfect Hash** |
-| **Intermediate Tape** | Yes (DOM) | Yes (DOM) | Minimal | **None (Zero)** |
-| **100L Resilience** | Fail (Slow) | Moderate | Moderate | **Extreme (SIMD)** |
-| **Memory Sync** | High | Moderate | Low | **Absolute Zero** |
+`beast::fuse<T>` doesn't fail on unknown fields — it skips them. A JSON payload with extra keys `{"id": 1, "debug_trace": {...}, "name": "Alice"}` will populate `id` and `name` and silently skip `debug_trace`. No allocation occurs during the skip.
+
+Malformed JSON throws `std::runtime_error` with the stream position. The parser is single-pass, so detection is immediate.
+
+Deep nesting doesn't cause stack overflow. The parser iterates rather than recurses, so `{"a": {"b": {"c": ...}}}` at any depth is handled with fixed stack space.
+
+---
+
+## BEAST_JSON_FIELDS macro
+
+This macro is the entry point. It generates both the Nexus dispatch table and the DOM compatibility layer:
+
+```cpp
+struct User {
+    uint64_t    id;
+    std::string name;
+    bool        active;
+};
+BEAST_JSON_FIELDS(User, id, name, active)
+
+// Now both engines work:
+auto doc = beast::parse(doc, json_text);
+User u1  = doc.root().as<User>();       // DOM path: tape → struct
+
+User u2;
+beast::fuse(u2, json_text);             // Nexus path: stream → struct, no tape
+```
+
+The macro supports up to 32 fields. Beyond that, use the manual ADL hook API
+(`from_beast_json` / `append_beast_json` free functions) — same performance, no limit.
