@@ -6549,39 +6549,46 @@ template <typename T> std::string to_json_str(const T &in) {
 
 // ── FastWriter — direct buffer write (avoids per-call std::string overhead) ─
 
+// FastWriter: stack-buffer accumulator — zero pre-init overhead.
+// Accumulates output in a 1 KB on-stack buffer; flushes to std::string
+// only on overflow or destruction.  For typical structs (< 1 KB JSON),
+// the destructor flush is the ONLY std::string call.
 struct FastWriter {
+  static constexpr size_t kBuf = 1024;
+  char        stack_[kBuf];
+  size_t      pos_;
   std::string &s;
-  char        *it;
-  char        *cap;   // end of pre-grown region
 
-  // Pre-grow the string so we can write directly into [it, cap) without
-  // triggering re-initialization.  The destructor shrinks back to actual size.
-  // Uses existing spare capacity first (avoids reallocation in hot loops).
-  explicit FastWriter(std::string &s) noexcept : s(s) {
-    const size_t base  = s.size();
-    const size_t spare = s.capacity() - base;
-    // Re-use existing capacity; if none, reserve a modest 256 bytes.
-    const size_t pre   = spare > 0 ? spare : 256;
-    s.resize(base + pre, '\0');
-    it  = s.data() + base;
-    cap = s.data() + s.size();
+  explicit FastWriter(std::string &s) noexcept : pos_(0), s(s) {}
+
+  // Flush stack to string on destruction (single s.append call).
+  ~FastWriter() noexcept { if (pos_) s.append(stack_, pos_); }
+
+  BEAST_INLINE void put(char c) noexcept {
+    if (__builtin_expect(pos_ < kBuf, 1)) { stack_[pos_++] = c; return; }
+    flush_then_put(c);
   }
-  // Shrinking resize is O(1) – no re-initialization of bytes before it.
-  ~FastWriter() noexcept { s.resize(static_cast<size_t>(it - s.data())); }
-
-  BEAST_INLINE void put(char c)  noexcept { if (__builtin_expect(it == cap, 0)) grow(1); *it++ = c; }
   BEAST_INLINE void write(const char *src, size_t n) noexcept {
-    if (__builtin_expect(it + n > cap, 0)) grow(n);
-    std::memcpy(it, src, n); it += n;
+    if (__builtin_expect(pos_ + n <= kBuf, 1)) {
+      std::memcpy(stack_ + pos_, src, n); pos_ += n; return;
+    }
+    flush_then_write(src, n);
   }
-  BEAST_INLINE void set_last(char c) noexcept { *(it - 1) = c; }
+  // Overwrite the last written byte (replaces trailing comma with '}'/'}'.
+  BEAST_INLINE void set_last(char c) noexcept {
+    if (__builtin_expect(pos_ > 0, 1)) { stack_[pos_ - 1] = c; return; }
+    if (!s.empty()) s.back() = c;   // after flush, last byte is in s
+  }
 
-  void grow(size_t extra) noexcept {
-    const size_t cur = static_cast<size_t>(it - s.data());
-    const size_t need = cur + extra + 256;
-    s.resize(need, '\0');   // extend: initializes [cur..need) with '\0'
-    it  = s.data() + cur;
-    cap = s.data() + s.size();
+  void flush() noexcept { s.append(stack_, pos_); pos_ = 0; }
+  void flush_then_put(char c) noexcept { flush(); stack_[pos_++] = c; }
+  void flush_then_write(const char *src, size_t n) noexcept {
+    flush();
+    if (__builtin_expect(n <= kBuf, 1)) {
+      std::memcpy(stack_, src, n); pos_ = n;
+    } else {
+      s.append(src, n);  // oversized single write: bypass stack
+    }
   }
 };
 
