@@ -41,7 +41,7 @@ jobs:
         config-file: ./.github/codeql/codeql-config.yml
 
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBEAST_JSON_BUILD_TESTS=ON
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DQBUEM_JSON_BUILD_TESTS=ON
 
     - name: Build Code for Analysis
       run: cmake --build build -j4

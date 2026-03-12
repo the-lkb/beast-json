@@ -7,13 +7,13 @@
 //
 // ASan detects use-after-free / OOB; UBSan detects signed overflow, etc.
 
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 #include <string_view>
 
-using namespace beast::json::lazy;
+using namespace qbuem::json::lazy;
 
 static DocumentView g_doc_a;
 static DocumentView g_doc_b;

@@ -1,12 +1,12 @@
 /**
  * @file test_stl_exhaustive.cpp
  *
- * Exhaustive coverage of all STL containers, BEAST_JSON_FIELDS struct
+ * Exhaustive coverage of all STL containers, QBUEM_JSON_FIELDS struct
  * round-trips, numeric/string edge cases, and structural mutation correctness.
  *
- * Uses beast::write() / beast::read<T>() exclusively (public API).
+ * Uses qbuem::write() / qbuem::read<T>() exclusively (public API).
  *
- * NOTE: beast::read<std::string>(json) returns the RAW JSON string byte content
+ * NOTE: qbuem::read<std::string>(json) returns the RAW JSON string byte content
  * without converting escape sequences. So "hello\\nworld" parsed as a string
  * gives back the string with a literal backslash-n, not a newline character.
  * String round-trips through write/read only preserve strings that don't
@@ -14,7 +14,7 @@
  * control chars). Tests are designed to reflect this real behavior.
  */
 
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 
 #include <array>
@@ -31,14 +31,14 @@
 #include <variant>
 #include <vector>
 
-using namespace beast;
+using namespace qbuem;
 
-// ─── Struct definitions (global namespace for BEAST_JSON_FIELDS ADL) ─────────
+// ─── Struct definitions (global namespace for QBUEM_JSON_FIELDS ADL) ─────────
 
 struct Point {
   int x{}, y{};
 };
-BEAST_JSON_FIELDS(Point, x, y)
+QBUEM_JSON_FIELDS(Point, x, y)
 
 struct Person {
   std::string name;
@@ -46,14 +46,14 @@ struct Person {
   std::optional<std::string> email;
   std::vector<int> scores;
 };
-BEAST_JSON_FIELDS(Person, name, age, email, scores)
+QBUEM_JSON_FIELDS(Person, name, age, email, scores)
 
 struct GeoPoint {
   Point origin{};
   std::vector<Point> points;
   std::map<std::string, int> labels;
 };
-BEAST_JSON_FIELDS(GeoPoint, origin, points, labels)
+QBUEM_JSON_FIELDS(GeoPoint, origin, points, labels)
 
 struct ServerConfig {
   std::string host;
@@ -62,14 +62,14 @@ struct ServerConfig {
   std::map<std::string, std::string> env;
   std::optional<int> timeout;
 };
-BEAST_JSON_FIELDS(ServerConfig, host, port, tags, env, timeout)
+QBUEM_JSON_FIELDS(ServerConfig, host, port, tags, env, timeout)
 
 struct AppConfig {
   std::string name;
   std::vector<ServerConfig> servers;
   ServerConfig primary;
 };
-BEAST_JSON_FIELDS(AppConfig, name, servers, primary)
+QBUEM_JSON_FIELDS(AppConfig, name, servers, primary)
 
 // ─── Struct16: exactly 16 fields — macro boundary ────────────────────────────
 
@@ -79,7 +79,7 @@ struct Struct16 {
   int f9{}, f10{}, f11{}, f12{};
   int f13{}, f14{}, f15{}, f16{};
 };
-BEAST_JSON_FIELDS(Struct16, f1, f2, f3, f4, f5, f6, f7, f8,
+QBUEM_JSON_FIELDS(Struct16, f1, f2, f3, f4, f5, f6, f7, f8,
                   f9, f10, f11, f12, f13, f14, f15, f16)
 
 // ─── LargeEvent: 17 fields — manual ADL hooks required ───────────────────────
@@ -104,51 +104,51 @@ struct LargeEvent {
   std::string trader_id; // 17th field — exceeds macro limit
 };
 
-inline void from_beast_json(const beast::json::Value& v, LargeEvent& o) {
-  ::beast::json::detail::from_json_field(v, "seq",         o.seq);
-  ::beast::json::detail::from_json_field(v, "ts",          o.ts);
-  ::beast::json::detail::from_json_field(v, "price",       o.price);
-  ::beast::json::detail::from_json_field(v, "qty",         o.qty);
-  ::beast::json::detail::from_json_field(v, "bid",         o.bid);
-  ::beast::json::detail::from_json_field(v, "ask",         o.ask);
-  ::beast::json::detail::from_json_field(v, "bid_qty",     o.bid_qty);
-  ::beast::json::detail::from_json_field(v, "ask_qty",     o.ask_qty);
-  ::beast::json::detail::from_json_field(v, "side",        o.side);
-  ::beast::json::detail::from_json_field(v, "type",        o.type);
-  ::beast::json::detail::from_json_field(v, "is_snapshot", o.is_snapshot);
-  ::beast::json::detail::from_json_field(v, "is_last",     o.is_last);
-  ::beast::json::detail::from_json_field(v, "symbol",      o.symbol);
-  ::beast::json::detail::from_json_field(v, "venue",       o.venue);
-  ::beast::json::detail::from_json_field(v, "feed",        o.feed);
-  ::beast::json::detail::from_json_field(v, "session",     o.session);
-  ::beast::json::detail::from_json_field(v, "trader_id",   o.trader_id);
+inline void from_qbuem_json(const qbuem::json::Value& v, LargeEvent& o) {
+  ::qbuem::json::detail::from_json_field(v, "seq",         o.seq);
+  ::qbuem::json::detail::from_json_field(v, "ts",          o.ts);
+  ::qbuem::json::detail::from_json_field(v, "price",       o.price);
+  ::qbuem::json::detail::from_json_field(v, "qty",         o.qty);
+  ::qbuem::json::detail::from_json_field(v, "bid",         o.bid);
+  ::qbuem::json::detail::from_json_field(v, "ask",         o.ask);
+  ::qbuem::json::detail::from_json_field(v, "bid_qty",     o.bid_qty);
+  ::qbuem::json::detail::from_json_field(v, "ask_qty",     o.ask_qty);
+  ::qbuem::json::detail::from_json_field(v, "side",        o.side);
+  ::qbuem::json::detail::from_json_field(v, "type",        o.type);
+  ::qbuem::json::detail::from_json_field(v, "is_snapshot", o.is_snapshot);
+  ::qbuem::json::detail::from_json_field(v, "is_last",     o.is_last);
+  ::qbuem::json::detail::from_json_field(v, "symbol",      o.symbol);
+  ::qbuem::json::detail::from_json_field(v, "venue",       o.venue);
+  ::qbuem::json::detail::from_json_field(v, "feed",        o.feed);
+  ::qbuem::json::detail::from_json_field(v, "session",     o.session);
+  ::qbuem::json::detail::from_json_field(v, "trader_id",   o.trader_id);
 }
 
-inline void to_beast_json(beast::json::Value& v, const LargeEvent& o) {
-  ::beast::json::detail::to_json_field(v, "seq",         o.seq);
-  ::beast::json::detail::to_json_field(v, "ts",          o.ts);
-  ::beast::json::detail::to_json_field(v, "price",       o.price);
-  ::beast::json::detail::to_json_field(v, "qty",         o.qty);
-  ::beast::json::detail::to_json_field(v, "bid",         o.bid);
-  ::beast::json::detail::to_json_field(v, "ask",         o.ask);
-  ::beast::json::detail::to_json_field(v, "bid_qty",     o.bid_qty);
-  ::beast::json::detail::to_json_field(v, "ask_qty",     o.ask_qty);
-  ::beast::json::detail::to_json_field(v, "side",        o.side);
-  ::beast::json::detail::to_json_field(v, "type",        o.type);
-  ::beast::json::detail::to_json_field(v, "is_snapshot", o.is_snapshot);
-  ::beast::json::detail::to_json_field(v, "is_last",     o.is_last);
-  ::beast::json::detail::to_json_field(v, "symbol",      o.symbol);
-  ::beast::json::detail::to_json_field(v, "venue",       o.venue);
-  ::beast::json::detail::to_json_field(v, "feed",        o.feed);
-  ::beast::json::detail::to_json_field(v, "session",     o.session);
-  ::beast::json::detail::to_json_field(v, "trader_id",   o.trader_id);
+inline void to_qbuem_json(qbuem::json::Value& v, const LargeEvent& o) {
+  ::qbuem::json::detail::to_json_field(v, "seq",         o.seq);
+  ::qbuem::json::detail::to_json_field(v, "ts",          o.ts);
+  ::qbuem::json::detail::to_json_field(v, "price",       o.price);
+  ::qbuem::json::detail::to_json_field(v, "qty",         o.qty);
+  ::qbuem::json::detail::to_json_field(v, "bid",         o.bid);
+  ::qbuem::json::detail::to_json_field(v, "ask",         o.ask);
+  ::qbuem::json::detail::to_json_field(v, "bid_qty",     o.bid_qty);
+  ::qbuem::json::detail::to_json_field(v, "ask_qty",     o.ask_qty);
+  ::qbuem::json::detail::to_json_field(v, "side",        o.side);
+  ::qbuem::json::detail::to_json_field(v, "type",        o.type);
+  ::qbuem::json::detail::to_json_field(v, "is_snapshot", o.is_snapshot);
+  ::qbuem::json::detail::to_json_field(v, "is_last",     o.is_last);
+  ::qbuem::json::detail::to_json_field(v, "symbol",      o.symbol);
+  ::qbuem::json::detail::to_json_field(v, "venue",       o.venue);
+  ::qbuem::json::detail::to_json_field(v, "feed",        o.feed);
+  ::qbuem::json::detail::to_json_field(v, "session",     o.session);
+  ::qbuem::json::detail::to_json_field(v, "trader_id",   o.trader_id);
 }
 
-inline void append_beast_json(std::string& out, const LargeEvent& o) {
+inline void append_qbuem_json(std::string& out, const LargeEvent& o) {
   out += '{';
   size_t prev_len = out.size();
 #define BEAST_TEST_APPEND(key, val) \
-  out += "\"" key "\":"; ::beast::json::detail::append_json(out, val); out += ',';
+  out += "\"" key "\":"; ::qbuem::json::detail::append_json(out, val); out += ',';
   BEAST_TEST_APPEND("seq",         o.seq)
   BEAST_TEST_APPEND("ts",          o.ts)
   BEAST_TEST_APPEND("price",       o.price)
@@ -174,24 +174,24 @@ inline void append_beast_json(std::string& out, const LargeEvent& o) {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 template <typename T> static T roundtrip(const T &val) {
-  return beast::read<T>(beast::write(val));
+  return qbuem::read<T>(qbuem::write(val));
 }
 
-// ─── BEAST_JSON_FIELDS: Point
+// ─── QBUEM_JSON_FIELDS: Point
 // ─────────────────────────────────────────────────
 
-TEST(BeastJsonFields, PointRoundTrip) {
+TEST(QbuemJsonFields, PointRoundTrip) {
   Point p{3, 7};
-  std::string json = beast::write(p);
+  std::string json = qbuem::write(p);
   EXPECT_NE(json.find("\"x\":3"), std::string::npos);
   EXPECT_NE(json.find("\"y\":7"), std::string::npos);
 
-  Point p2 = beast::read<Point>(json);
+  Point p2 = qbuem::read<Point>(json);
   EXPECT_EQ(p2.x, 3);
   EXPECT_EQ(p2.y, 7);
 }
 
-TEST(BeastJsonFields, PersonRoundTrip) {
+TEST(QbuemJsonFields, PersonRoundTrip) {
   Person p;
   p.name = "Alice";
   p.age = 30;
@@ -207,7 +207,7 @@ TEST(BeastJsonFields, PersonRoundTrip) {
   EXPECT_EQ(p2.scores[1], 20);
 }
 
-TEST(BeastJsonFields, PersonOptionalAbsent) {
+TEST(QbuemJsonFields, PersonOptionalAbsent) {
   Person p;
   p.name = "Bob";
   p.age = 25;
@@ -219,7 +219,7 @@ TEST(BeastJsonFields, PersonOptionalAbsent) {
   EXPECT_EQ(p2.scores[0], 5);
 }
 
-TEST(BeastJsonFields, NestedStructRoundTrip) {
+TEST(QbuemJsonFields, NestedStructRoundTrip) {
   GeoPoint n;
   n.origin = {0, 0};
   n.points = {{1, 2}, {3, 4}, {5, 6}};
@@ -256,14 +256,14 @@ TEST(STLVector, OfVectors) {
 
 TEST(STLVector, Empty) {
   std::vector<int> v = {};
-  EXPECT_EQ(beast::write(v), "[]");
+  EXPECT_EQ(qbuem::write(v), "[]");
   EXPECT_EQ(roundtrip(v), v);
 }
 
 TEST(STLVector, VectorBool) {
   std::vector<bool> v = {true, false, true};
-  EXPECT_EQ(beast::write(v), "[true,false,true]");
-  auto v2 = beast::read<std::vector<bool>>("[true,false,true]");
+  EXPECT_EQ(qbuem::write(v), "[true,false,true]");
+  auto v2 = qbuem::read<std::vector<bool>>("[true,false,true]");
   ASSERT_EQ(v2.size(), 3u);
   EXPECT_EQ(v2[0], true);
   EXPECT_EQ(v2[1], false);
@@ -273,7 +273,7 @@ TEST(STLVector, VectorBool) {
 
 TEST(STLList, RoundTrip) {
   std::list<int> l = {10, 20, 30};
-  EXPECT_EQ(beast::write(l), "[10,20,30]");
+  EXPECT_EQ(qbuem::write(l), "[10,20,30]");
   EXPECT_EQ(roundtrip(l), l);
 }
 
@@ -286,7 +286,7 @@ TEST(STLList, StringList) {
 
 TEST(STLDeque, RoundTrip) {
   std::deque<int> d = {1, 2, 3};
-  EXPECT_EQ(beast::write(d), "[1,2,3]");
+  EXPECT_EQ(qbuem::write(d), "[1,2,3]");
   EXPECT_EQ(roundtrip(d), d);
 }
 
@@ -294,7 +294,7 @@ TEST(STLDeque, RoundTrip) {
 
 TEST(STLSet, IntSet) {
   std::set<int> s = {3, 1, 2};
-  EXPECT_EQ(beast::write(s), "[1,2,3]"); // sorted iteration
+  EXPECT_EQ(qbuem::write(s), "[1,2,3]"); // sorted iteration
   EXPECT_EQ(roundtrip(s), s);
 }
 
@@ -343,7 +343,7 @@ TEST(STLMap, NestedMap) {
 
 TEST(STLArray, FixedIntArray) {
   std::array<int, 3> a = {10, 20, 30};
-  EXPECT_EQ(beast::write(a), "[10,20,30]");
+  EXPECT_EQ(qbuem::write(a), "[10,20,30]");
   EXPECT_EQ(roundtrip(a), a);
 }
 
@@ -358,7 +358,7 @@ TEST(STLArray, FixedStringArray) {
 
 TEST(STLPair, IntStringPair) {
   std::pair<int, std::string> p = {42, "beast"};
-  EXPECT_EQ(beast::write(p), "[42,\"beast\"]");
+  EXPECT_EQ(qbuem::write(p), "[42,\"beast\"]");
   auto p2 = roundtrip(p);
   EXPECT_EQ(p2.first, 42);
   EXPECT_EQ(p2.second, "beast");
@@ -366,7 +366,7 @@ TEST(STLPair, IntStringPair) {
 
 TEST(STLTuple, ThreeElementTuple) {
   std::tuple<int, double, std::string> t = {1, 3.14, "hi"};
-  std::string json = beast::write(t);
+  std::string json = qbuem::write(t);
   Document doc;
   auto root = parse(doc, json);
   EXPECT_TRUE(root.is_array());
@@ -376,13 +376,13 @@ TEST(STLTuple, ThreeElementTuple) {
   EXPECT_EQ(root[2].as<std::string>(), "hi");
 }
 
-TEST(STLTuple, EmptyTuple) { EXPECT_EQ(beast::write(std::tuple<>{}), "[]"); }
+TEST(STLTuple, EmptyTuple) { EXPECT_EQ(qbuem::write(std::tuple<>{}), "[]"); }
 
 // ─── std::optional ───────────────────────────────────────────────────────────
 
 TEST(STLOptional, SomeInt) {
   std::optional<int> o = 42;
-  EXPECT_EQ(beast::write(o), "42");
+  EXPECT_EQ(qbuem::write(o), "42");
   auto o2 = roundtrip(o);
   ASSERT_TRUE(o2.has_value());
   EXPECT_EQ(*o2, 42);
@@ -390,7 +390,7 @@ TEST(STLOptional, SomeInt) {
 
 TEST(STLOptional, None) {
   std::optional<int> o = std::nullopt;
-  EXPECT_EQ(beast::write(o), "null");
+  EXPECT_EQ(qbuem::write(o), "null");
   auto o2 = roundtrip(o);
   EXPECT_FALSE(o2.has_value());
 }
@@ -445,31 +445,31 @@ TEST(NumericEdge, IntMax) {
 TEST(NumericEdge, ZeroFloat) { EXPECT_DOUBLE_EQ(roundtrip(0.0), 0.0); }
 
 TEST(NumericEdge, NegativeZero) {
-  auto json = beast::write(-0.0);
+  auto json = qbuem::write(-0.0);
   Document doc;
   EXPECT_DOUBLE_EQ(parse(doc, json).as<double>(), 0.0);
 }
 
 TEST(NumericEdge, NaNIsNull) {
-  EXPECT_EQ(beast::write(std::numeric_limits<double>::quiet_NaN()), "null");
+  EXPECT_EQ(qbuem::write(std::numeric_limits<double>::quiet_NaN()), "null");
 }
 
 TEST(NumericEdge, InfIsNull) {
-  EXPECT_EQ(beast::write(std::numeric_limits<double>::infinity()), "null");
+  EXPECT_EQ(qbuem::write(std::numeric_limits<double>::infinity()), "null");
 }
 
 TEST(NumericEdge, NegInfIsNull) {
-  EXPECT_EQ(beast::write(-std::numeric_limits<double>::infinity()), "null");
+  EXPECT_EQ(qbuem::write(-std::numeric_limits<double>::infinity()), "null");
 }
 
 TEST(NumericEdge, MaxDouble) {
-  auto json = beast::write(std::numeric_limits<double>::max());
+  auto json = qbuem::write(std::numeric_limits<double>::max());
   Document doc;
   EXPECT_GT(parse(doc, json).as<double>(), 0.0);
 }
 
 TEST(NumericEdge, FloatPrecision) {
-  auto json = beast::write(1.5f);
+  auto json = qbuem::write(1.5f);
   Document doc;
   EXPECT_NEAR(parse(doc, json).as<double>(), 1.5, 1e-6);
 }
@@ -482,15 +482,15 @@ TEST(NumericEdge, UInt32Max) {
   EXPECT_EQ(roundtrip(uint64_t{4294967295ULL}), uint64_t{4294967295ULL});
 }
 
-// ─── String: serialization-level checks (beast::write escaping)
+// ─── String: serialization-level checks (qbuem::write escaping)
 // ─────────────── Note: beast stores strings verbatim in parse tape.
-// beast::write(s) escapes s→JSON. beast::read<string>(json) re-parses the JSON
+// qbuem::write(s) escapes s→JSON. qbuem::read<string>(json) re-parses the JSON
 // string but stores the raw un-decoded bytes from the JSON source.
 // Thus roundtrip of strings with special chars returns the JSON-escaped form,
 // not the original string. These tests verify the ESCAPING behavior.
 
 TEST(StringEdge, EmptyStringSerializes) {
-  EXPECT_EQ(beast::write(std::string("")), "\"\"");
+  EXPECT_EQ(qbuem::write(std::string("")), "\"\"");
 }
 
 TEST(StringEdge, SimpleStringRoundtrip) {
@@ -501,7 +501,7 @@ TEST(StringEdge, SimpleStringRoundtrip) {
 
 TEST(StringEdge, EmbeddedQuoteEscaped) {
   std::string s = "say \"hello\"";
-  auto json = beast::write(s);
+  auto json = qbuem::write(s);
   // Verify the JSON contains escaped quotes
   EXPECT_NE(json.find("\\\""), std::string::npos);
   // Verify the JSON is valid (parsable)
@@ -512,7 +512,7 @@ TEST(StringEdge, EmbeddedQuoteEscaped) {
 
 TEST(StringEdge, EmbeddedBackslashEscaped) {
   std::string s = "path\\file";
-  auto json = beast::write(s);
+  auto json = qbuem::write(s);
   EXPECT_NE(json.find("\\\\"), std::string::npos);
   Document doc;
   EXPECT_TRUE(parse(doc, json).is_string());
@@ -520,7 +520,7 @@ TEST(StringEdge, EmbeddedBackslashEscaped) {
 
 TEST(StringEdge, NewlineEscaped) {
   std::string s = "line1\nline2";
-  auto json = beast::write(s);
+  auto json = qbuem::write(s);
   EXPECT_NE(json.find("\\n"), std::string::npos);
   // The raw character must not appear in the JSON output
   EXPECT_EQ(json.find('\n'), std::string::npos);
@@ -528,7 +528,7 @@ TEST(StringEdge, NewlineEscaped) {
 
 TEST(StringEdge, TabEscaped) {
   std::string s = "col1\tcol2";
-  auto json = beast::write(s);
+  auto json = qbuem::write(s);
   EXPECT_NE(json.find("\\t"), std::string::npos);
   EXPECT_EQ(json.find('\t'), std::string::npos);
 }
@@ -538,7 +538,7 @@ TEST(StringEdge, ControlCharsEscaped) {
     if (c == '\n' || c == '\r' || c == '\t')
       continue;
     std::string s(1, static_cast<char>(c));
-    auto json = beast::write(s);
+    auto json = qbuem::write(s);
     EXPECT_EQ(json.find(c), std::string::npos)
         << "Char 0x" << std::hex << (int)c << " not escaped in: " << json;
   }
@@ -747,51 +747,51 @@ TEST(DeepStruct, AppConfigRoundTrip) {
 // ─── Top-level API sanity
 // ─────────────────────────────────────────────────────
 
-TEST(TopLevelAPI, WriteNull) { EXPECT_EQ(beast::write(nullptr), "null"); }
+TEST(TopLevelAPI, WriteNull) { EXPECT_EQ(qbuem::write(nullptr), "null"); }
 
 TEST(TopLevelAPI, WriteBooleans) {
-  EXPECT_EQ(beast::write(true), "true");
-  EXPECT_EQ(beast::write(false), "false");
+  EXPECT_EQ(qbuem::write(true), "true");
+  EXPECT_EQ(qbuem::write(false), "false");
 }
 
 TEST(TopLevelAPI, WriteInts) {
-  EXPECT_EQ(beast::write(0), "0");
-  EXPECT_EQ(beast::write(-1), "-1");
-  EXPECT_EQ(beast::write(int64_t{9007199254740992LL}), "9007199254740992");
+  EXPECT_EQ(qbuem::write(0), "0");
+  EXPECT_EQ(qbuem::write(-1), "-1");
+  EXPECT_EQ(qbuem::write(int64_t{9007199254740992LL}), "9007199254740992");
 }
 
 TEST(TopLevelAPI, WriteString) {
-  EXPECT_EQ(beast::write(std::string("hi")), "\"hi\"");
-  EXPECT_EQ(beast::write(std::string_view("sv")), "\"sv\"");
+  EXPECT_EQ(qbuem::write(std::string("hi")), "\"hi\"");
+  EXPECT_EQ(qbuem::write(std::string_view("sv")), "\"sv\"");
 }
 
 TEST(TopLevelAPI, WriteOptional) {
-  EXPECT_EQ(beast::write(std::optional<int>{42}), "42");
-  EXPECT_EQ(beast::write(std::optional<int>{}), "null");
+  EXPECT_EQ(qbuem::write(std::optional<int>{42}), "42");
+  EXPECT_EQ(qbuem::write(std::optional<int>{}), "null");
 }
 
 TEST(TopLevelAPI, ReadWriteRoundtrip) {
-  EXPECT_EQ(beast::read<int>("42"), 42);
-  EXPECT_EQ(beast::read<std::string>("\"hello\""), "hello");
-  EXPECT_EQ(beast::read<bool>("true"), true);
-  EXPECT_NEAR(beast::read<double>("3.14"), 3.14, 1e-9);
+  EXPECT_EQ(qbuem::read<int>("42"), 42);
+  EXPECT_EQ(qbuem::read<std::string>("\"hello\""), "hello");
+  EXPECT_EQ(qbuem::read<bool>("true"), true);
+  EXPECT_NEAR(qbuem::read<double>("3.14"), 3.14, 1e-9);
 }
 
 TEST(TopLevelAPI, WriteVectorAndRead) {
   std::vector<int> v = {1, 2, 3};
-  EXPECT_EQ(beast::write(v), "[1,2,3]");
-  EXPECT_EQ(beast::read<std::vector<int>>("[1,2,3]"), v);
+  EXPECT_EQ(qbuem::write(v), "[1,2,3]");
+  EXPECT_EQ(qbuem::read<std::vector<int>>("[1,2,3]"), v);
 }
 
 TEST(TopLevelAPI, WriteMapAndRead) {
   std::map<std::string, int> m = {{"x", 42}};
-  auto json = beast::write(m);
-  auto m2 = beast::read<std::map<std::string, int>>(json);
+  auto json = qbuem::write(m);
+  auto m2 = qbuem::read<std::map<std::string, int>>(json);
   EXPECT_EQ(m2["x"], 42);
 }
 
 TEST(TopLevelAPI, WritePairAndCheckStructure) {
-  auto json = beast::write(std::pair<int, bool>{7, true});
+  auto json = qbuem::write(std::pair<int, bool>{7, true});
   Document doc;
   auto root = parse(doc, json);
   EXPECT_TRUE(root.is_array());
@@ -799,10 +799,10 @@ TEST(TopLevelAPI, WritePairAndCheckStructure) {
   EXPECT_TRUE(root[1].as<bool>());
 }
 
-// ─── BEAST_JSON_FIELDS: 16-field boundary ────────────────────────────────────
+// ─── QBUEM_JSON_FIELDS: 16-field boundary ────────────────────────────────────
 
 // Verify the macro works at its maximum capacity (16 fields).
-TEST(BeastJsonFields, Struct16BoundaryRoundTrip) {
+TEST(QbuemJsonFields, Struct16BoundaryRoundTrip) {
   Struct16 s;
   s.f1 = 1; s.f2 = 2; s.f3 = 3; s.f4 = 4;
   s.f5 = 5; s.f6 = 6; s.f7 = 7; s.f8 = 8;
@@ -816,10 +816,10 @@ TEST(BeastJsonFields, Struct16BoundaryRoundTrip) {
 }
 
 // All 16 keys appear in the serialized JSON.
-TEST(BeastJsonFields, Struct16AllKeysPresent) {
+TEST(QbuemJsonFields, Struct16AllKeysPresent) {
   Struct16 s;
   s.f1 = 10; s.f16 = 160;
-  std::string json = beast::write(s);
+  std::string json = qbuem::write(s);
 
   for (int i = 1; i <= 16; ++i) {
     std::string key = "\"f" + std::to_string(i) + "\":";
@@ -828,7 +828,7 @@ TEST(BeastJsonFields, Struct16AllKeysPresent) {
 }
 
 // Default-constructed struct serializes all fields as 0.
-TEST(BeastJsonFields, Struct16DefaultValues) {
+TEST(QbuemJsonFields, Struct16DefaultValues) {
   Struct16 s{};
   auto s2 = roundtrip(s);
   EXPECT_EQ(s2.f1,  0);
@@ -837,9 +837,9 @@ TEST(BeastJsonFields, Struct16DefaultValues) {
 }
 
 // Missing JSON fields keep C++ default values (not an error).
-TEST(BeastJsonFields, Struct16MissingFieldsKeepDefaults) {
+TEST(QbuemJsonFields, Struct16MissingFieldsKeepDefaults) {
   // Only f1 and f16 present in JSON; all others must remain 0.
-  Struct16 s = beast::read<Struct16>(R"({"f1":99,"f16":88})");
+  Struct16 s = qbuem::read<Struct16>(R"({"f1":99,"f16":88})");
   EXPECT_EQ(s.f1,  99);
   EXPECT_EQ(s.f16, 88);
   EXPECT_EQ(s.f2,  0);
@@ -848,7 +848,7 @@ TEST(BeastJsonFields, Struct16MissingFieldsKeepDefaults) {
 
 // ─── Manual ADL hooks: LargeEvent (17 fields) ────────────────────────────────
 
-// Basic roundtrip via beast::write / beast::read.
+// Basic roundtrip via qbuem::write / qbuem::read.
 TEST(LargeStructADL, RoundTripAllFields) {
   LargeEvent e;
   e.seq        = 1001;
@@ -890,7 +890,7 @@ TEST(LargeStructADL, FlatJSONLayoutAllKeysPresent) {
   LargeEvent e;
   e.symbol    = "ETHUSDT";
   e.trader_id = "t1";
-  std::string json = beast::write(e);
+  std::string json = qbuem::write(e);
 
   for (const char* key : {"\"seq\":", "\"ts\":", "\"price\":", "\"qty\":",
                            "\"bid\":", "\"ask\":", "\"bid_qty\":", "\"ask_qty\":",
@@ -901,7 +901,7 @@ TEST(LargeStructADL, FlatJSONLayoutAllKeysPresent) {
   }
 }
 
-// write_to buffer-reuse path exercises append_beast_json.
+// write_to buffer-reuse path exercises append_qbuem_json.
 TEST(LargeStructADL, WriteToBufferReuse) {
   LargeEvent e;
   e.seq    = 7;
@@ -910,20 +910,20 @@ TEST(LargeStructADL, WriteToBufferReuse) {
   std::string buf;
   buf.reserve(512);
 
-  beast::write_to(buf, e);
+  qbuem::write_to(buf, e);
   EXPECT_NE(buf.find("\"seq\":7"),          std::string::npos);
   EXPECT_NE(buf.find("\"symbol\":\"SOLUSDT\""), std::string::npos);
 
   // Reuse the buffer — clear and write again.
   buf.clear();
   e.seq = 8;
-  beast::write_to(buf, e);
+  qbuem::write_to(buf, e);
   EXPECT_NE(buf.find("\"seq\":8"), std::string::npos);
 }
 
 // Missing fields in JSON keep zero/default values.
 TEST(LargeStructADL, MissingFieldsKeepDefaults) {
-  LargeEvent e = beast::read<LargeEvent>(R"({"seq":5,"symbol":"XRPUSDT"})");
+  LargeEvent e = qbuem::read<LargeEvent>(R"({"seq":5,"symbol":"XRPUSDT"})");
   EXPECT_EQ(e.seq,       5);
   EXPECT_EQ(e.symbol,    "XRPUSDT");
   EXPECT_NEAR(e.price,   0.0, 1e-12);

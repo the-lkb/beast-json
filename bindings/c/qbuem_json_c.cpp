@@ -1,9 +1,9 @@
 /**
- * beast_json_c.cpp — Beast JSON C API implementation
+ * qbuem_json_c.cpp — qbuem-json C API implementation
  */
 
-#include "beast_json_c.h"
-#include <beast_json/beast_json.hpp>
+#include "qbuem_json_c.h"
+#include <qbuem_json/qbuem_json.hpp>
 
 #include <cstring>
 #include <string>
@@ -12,24 +12,24 @@
 // ── Internal structures ───────────────────────────────────────────────────────
 
 struct BJSONValue_ {
-  beast::Value val;
+  qbuem::Value val;
   bool         valid = false;
 };
 
 struct BJSONDocument_ {
-  beast::Document          doc;
+  qbuem::Document          doc;
   std::string              last_error;
   std::string              dump_buf;
   std::vector<BJSONValue_*> value_pool;  // all Values owned by this document
 
-  BJSONValue_* alloc(beast::Value v) {
+  BJSONValue_* alloc(qbuem::Value v) {
     auto* bv = new BJSONValue_{v, true};
     value_pool.push_back(bv);
     return bv;
   }
 
   BJSONValue_* invalid_val() {
-    auto* bv = new BJSONValue_{beast::Value{}, false};
+    auto* bv = new BJSONValue_{qbuem::Value{}, false};
     value_pool.push_back(bv);
     return bv;
   }
@@ -61,7 +61,7 @@ BJSONValue* bjson_parse(BJSONDocument* doc,
   try {
     doc->clear_pool();
     doc->last_error.clear();
-    beast::Value root = beast::parse(doc->doc,
+    qbuem::Value root = qbuem::parse(doc->doc,
                                      std::string_view(json_data, json_len));
     return doc->alloc(root);
   } catch (const std::exception& e) {
@@ -76,7 +76,7 @@ BJSONValue* bjson_parse_strict(BJSONDocument* doc,
   try {
     doc->clear_pool();
     doc->last_error.clear();
-    beast::Value root = beast::parse_strict(doc->doc,
+    qbuem::Value root = qbuem::parse_strict(doc->doc,
                                              std::string_view(json_data, json_len));
     return doc->alloc(root);
   } catch (const std::exception& e) {
@@ -158,7 +158,7 @@ BJSONValue* bjson_get_idx(BJSONDocument* doc,
                           const BJSONValue* val, size_t idx) {
   if (!doc || !val || !val->valid) return doc ? doc->invalid_val() : nullptr;
   try {
-    beast::Value child = val->val[static_cast<int>(idx)];
+    qbuem::Value child = val->val[static_cast<int>(idx)];
     if (!child.is_valid()) return doc->invalid_val();
     return doc->alloc(child);
   } catch (...) { return doc->invalid_val(); }
@@ -180,7 +180,7 @@ BJSONValue* bjson_at_path(BJSONDocument* doc,
   if (!doc || !val || !val->valid || !pointer)
     return doc ? doc->invalid_val() : nullptr;
   try {
-    beast::Value v = val->val.at(std::string_view(pointer));
+    qbuem::Value v = val->val.at(std::string_view(pointer));
     if (!v.is_valid()) return doc->invalid_val();
     return doc->alloc(v);
   } catch (...) { return doc->invalid_val(); }
@@ -190,14 +190,14 @@ BJSONValue* bjson_at_path(BJSONDocument* doc,
 
 struct BJSONIter_ {
   BJSONDocument*  doc;
-  beast::Value    obj_val;  // keep the object value alive
+  qbuem::Value    obj_val;  // keep the object value alive
   bool            started = false;
 
   // We use a cached items list for simplicity
-  std::vector<std::pair<std::string, beast::Value>> entries;
+  std::vector<std::pair<std::string, qbuem::Value>> entries;
   size_t pos = 0;
 
-  explicit BJSONIter_(BJSONDocument* d, beast::Value v) : doc(d), obj_val(v) {
+  explicit BJSONIter_(BJSONDocument* d, qbuem::Value v) : doc(d), obj_val(v) {
     for (const auto& [k, val] : v.items())
       entries.emplace_back(std::string(k), val);
   }

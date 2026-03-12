@@ -1,4 +1,4 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <string>
@@ -25,8 +25,8 @@ TEST(Bitmap, TwitterSpecificOffsets) {
   size_t expected_comma = 1 + twitter.size(); // After '[' + twitter1
 
   // Build bitmap
-  beast::json::BitmapIndex idx;
-  beast::json::simd::fill_bitmap(large.c_str(), large.size(), idx);
+  qbuem::json::BitmapIndex idx;
+  qbuem::json::simd::fill_bitmap(large.c_str(), large.size(), idx);
 
   // Check offset 631124 that C++ reported as comma (suspicious check from
   // legacy test)

@@ -1,6 +1,6 @@
 # SIMD Acceleration: Bitsliced Structural Analysis
 
-Beast JSON replaces a character-by-character state machine with a **data-parallel byte classification engine**. Rather than branching on each byte, it classifies 64 bytes simultaneously using a single AVX-512 register, producing a sparse bitset of structural positions in a fraction of the time.
+qbuem-json replaces a character-by-character state machine with a **data-parallel byte classification engine**. Rather than branching on each byte, it classifies 64 bytes simultaneously using a single AVX-512 register, producing a sparse bitset of structural positions in a fraction of the time.
 
 ---
 
@@ -23,7 +23,7 @@ On a modern superscalar CPU, this produces:
 - One byte processed per iteration → unable to exploit instruction-level parallelism
 - Maximum throughput: ~1 byte/cycle → ~3 GB/s at 3 GHz
 
-Beast JSON's SIMD path achieves **64 bytes per cycle** on AVX-512 — a 64× improvement in classification throughput.
+qbuem-json's SIMD path achieves **64 bytes per cycle** on AVX-512 — a 64× improvement in classification throughput.
 
 ---
 
@@ -39,7 +39,7 @@ On Intel Ice Lake and later, `VMOVDQU64` has 1 cycle latency and can be pipeline
 
 ## Stage 1a: Parallel Structural Character Detection
 
-Instead of eight `if` branches, Beast JSON runs eight `VPCMPEQB` instructions. Each compares all 64 bytes against one target character and produces a 64-bit bitmask. For a 64-byte window, this produces a **64-bit integer** (`structural_mask`) identifying every structural character in **~8 cycles total**.
+Instead of eight `if` branches, qbuem-json runs eight `VPCMPEQB` instructions. Each compares all 64 bytes against one target character and produces a 64-bit bitmask. For a 64-byte window, this produces a **64-bit integer** (`structural_mask`) identifying every structural character in **~8 cycles total**.
 
 ### What the mask looks like
 
@@ -69,7 +69,7 @@ For the input `{ "name": "Alice" }` (first 20 bytes shown):
 
 ## Stage 1b: Quote-Region Masking (Prefix-XOR Carry)
 
-The raw `structural_mask` still includes characters **inside string literals** — e.g., a `:` inside `"key:val"`. Beast JSON uses a **prefix-XOR carry** to suppress them.
+The raw `structural_mask` still includes characters **inside string literals** — e.g., a `:` inside `"key:val"`. qbuem-json uses a **prefix-XOR carry** to suppress them.
 
 The core insight: `in_string[i] = XOR of all unescaped quote bits from index 0 to i`.
 
@@ -218,7 +218,7 @@ The loop body executes **once per structural character**. In typical JSON, struc
 
 ## ARM NEON Path
 
-On Apple Silicon and ARM64 servers, Beast JSON uses NEON 128-bit registers (16 bytes per load). The algorithm is identical; 4 NEON iterations cover 64 bytes:
+On Apple Silicon and ARM64 servers, qbuem-json uses NEON 128-bit registers (16 bytes per load). The algorithm is identical; 4 NEON iterations cover 64 bytes:
 
 <div class="bd-diagram">
   <div class="bd-group" style="max-width:480px;margin:0 auto;">
@@ -247,7 +247,7 @@ On Apple Silicon and ARM64 servers, Beast JSON uses NEON 128-bit registers (16 b
   </div>
 </div>
 
-NEON has no `VCOMPRESSB` equivalent. Beast JSON uses a `VBSL`-based gather with a compact scalar loop for Stage 2 on ARM — still far faster than a pure scalar parser.
+NEON has no `VCOMPRESSB` equivalent. qbuem-json uses a `VBSL`-based gather with a compact scalar loop for Stage 2 on ARM — still far faster than a pure scalar parser.
 
 ---
 

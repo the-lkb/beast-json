@@ -1,6 +1,6 @@
 # Low-Latency Patterns
 
-Beast JSON is engineered for workloads where parsing overhead must not stall execution. These patterns apply to any domain that processes JSON at high throughput or under strict timing constraints — trading systems, game engines, web API gateways, embedded devices, and data pipelines.
+qbuem-json is engineered for workloads where parsing overhead must not stall execution. These patterns apply to any domain that processes JSON at high throughput or under strict timing constraints — trading systems, game engines, web API gateways, embedded devices, and data pipelines.
 
 The core principle is always the same: **allocate once, reuse forever**.
 
@@ -8,17 +8,17 @@ The core principle is always the same: **allocate once, reuse forever**.
 
 ## The Fundamental Pattern: Document Reuse
 
-The single most impactful change for any hot loop is to stop calling `malloc` on every parse. Beast JSON's `Document` is designed for this — re-calling `beast::parse()` on the same document resets the tape cursor without freeing memory:
+The single most impactful change for any hot loop is to stop calling `malloc` on every parse. qbuem-json's `Document` is designed for this — re-calling `qbuem::parse()` on the same document resets the tape cursor without freeing memory:
 
 ```cpp
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 
-beast::Document doc;           // allocated once at startup
-// beast::Document doc; doc.reserve(64 * 1024);  // optional: pre-warm to avoid first-parse realloc
+qbuem::Document doc;           // allocated once at startup
+// qbuem::Document doc; doc.reserve(64 * 1024);  // optional: pre-warm to avoid first-parse realloc
 
 while (running) {
     auto msg = source.receive();                   // socket, queue, ring buffer, file line, …
-    beast::Value root = beast::parse(doc, msg);    // zero malloc after first call
+    qbuem::Value root = qbuem::parse(doc, msg);    // zero malloc after first call
     if (!root.is_valid()) continue;
 
     dispatch(root["type"].as<std::string_view>(), root);
@@ -37,11 +37,11 @@ Market data feeds and order routing systems deliver hundreds of thousands of JSO
 
 ```cpp
 // Pinned to a dedicated CPU core — runs in a tight loop
-beast::Document doc;
+qbuem::Document doc;
 doc.reserve(2 * 1024); // typical market message < 1 KB
 
 void on_market_message(std::string_view raw) {
-    beast::Value root = beast::parse(doc, raw);
+    qbuem::Value root = qbuem::parse(doc, raw);
     if (!root.is_valid()) return;
 
     auto sym   = root["sym"].as<std::string_view>();
@@ -63,11 +63,11 @@ Level data, save files, network state deltas, and config all use JSON. In a 60 H
 
 ```cpp
 // One persistent document per purpose — pre-sized at load time
-beast::Document level_doc;
-beast::Document net_doc;
+qbuem::Document level_doc;
+qbuem::Document net_doc;
 
 void load_level(std::string_view json) {
-    beast::Value root = beast::parse(level_doc, json);
+    qbuem::Value root = qbuem::parse(level_doc, json);
 
     for (auto [id_v, entity] : root["entities"].items()) {
         spawn_entity({
@@ -82,7 +82,7 @@ void load_level(std::string_view json) {
 
 // Called every network tick — re-uses net_doc's tape
 void on_net_delta(std::string_view delta) {
-    beast::Value root = beast::parse(net_doc, delta);
+    qbuem::Value root = qbuem::parse(net_doc, delta);
     if (!root.is_valid()) return;
 
     for (auto state : root["states"].elements()) {
@@ -101,10 +101,10 @@ void on_net_delta(std::string_view delta) {
 An API gateway at 50 k req/s cannot allocate a new DOM per request. Use a `thread_local` document — one per worker thread, no synchronization required:
 
 ```cpp
-thread_local beast::Document tl_doc; // one per OS thread, zero contention
+thread_local qbuem::Document tl_doc; // one per OS thread, zero contention
 
 void handle_request(std::string_view body, HttpResponse& resp) {
-    beast::Value root = beast::parse(tl_doc, body);
+    qbuem::Value root = qbuem::parse(tl_doc, body);
     if (!root.is_valid()) {
         resp.status(400).body("Bad JSON");
         return;
@@ -135,7 +135,7 @@ void handle_sensor_packet(std::string_view json) {
     alignas(std::max_align_t) std::byte buf[16 * 1024];
     std::pmr::monotonic_buffer_resource pool(buf, sizeof(buf));
 
-    auto doc  = beast::json::parse(json, &pool);
+    auto doc  = qbuem::json::parse(json, &pool);
     auto root = doc.root();
 
     float  temp   = root["temp"].as<double>();
@@ -155,7 +155,7 @@ Suitable for hard real-time constraints where heap latency is non-deterministic.
 Log ingestion and metrics processing parse millions of JSON lines per second. Batch reuse over an entire processing window:
 
 ```cpp
-beast::Document doc;
+qbuem::Document doc;
 doc.reserve(8 * 1024); // typical log line
 
 struct Stats { uint64_t errors = 0, warnings = 0, total = 0; };
@@ -164,7 +164,7 @@ Stats process_log_chunk(std::span<std::string_view> lines) {
     Stats s;
     for (auto line : lines) {
         ++s.total;
-        beast::Value root = beast::parse(doc, line);
+        qbuem::Value root = qbuem::parse(doc, line);
         if (!root.is_valid()) { ++s.errors; continue; }
 
         auto level = root["level"] | std::string_view{""};
@@ -188,8 +188,8 @@ One `Document`, one tape allocation for the entire chunk — regardless of how m
 
 | Technique | Allocation cost | Impact | Best for |
 |:---|:---|:---|:---|
-| `beast::parse_reuse(doc, …)` | **Zero** after warmup | ★★★★★ | Any hot loop (explicit reuse intent) |
-| `beast::parse(doc, …)` reuse | **Zero** after warmup | ★★★★★ | Any hot loop (equivalent to above) |
+| `qbuem::parse_reuse(doc, …)` | **Zero** after warmup | ★★★★★ | Any hot loop (explicit reuse intent) |
+| `qbuem::parse(doc, …)` reuse | **Zero** after warmup | ★★★★★ | Any hot loop (equivalent to above) |
 | `thread_local Document` | **Zero** per request | ★★★★★ | Web servers, workers |
 | `std::pmr` stack pool | **Zero** (no heap) | ★★★★★ | Embedded, hard RT |
 | `doc.reserve(N)` at startup | One-time only | ★★★★☆ | All of the above |
@@ -200,11 +200,11 @@ One `Document`, one tape allocation for the entire chunk — regardless of how m
 
 ## Branch Prediction & Cold Paths
 
-Beast JSON uses `BEAST_LIKELY` / `BEAST_UNLIKELY` internally to keep the parsing hot path free of unpredictable branches. Error handling, escape processing, and UTF-8 validation are placed in cold sections — so the instruction cache sees only the fast path across sequential cache-warm iterations.
+qbuem-json uses `BEAST_LIKELY` / `BEAST_UNLIKELY` internally to keep the parsing hot path free of unpredictable branches. Error handling, escape processing, and UTF-8 validation are placed in cold sections — so the instruction cache sees only the fast path across sequential cache-warm iterations.
 
 Your code benefits from this automatically; no annotation is required on the call site.
 
 ---
 
 > [!TIP]
-> For even tighter control over where Beast JSON allocates, see [Custom Allocators](/guide/allocators). Combining `std::pmr::monotonic_buffer_resource` with document reuse is the highest-performance configuration for throughput-critical workloads.
+> For even tighter control over where qbuem-json allocates, see [Custom Allocators](/guide/allocators). Combining `std::pmr::monotonic_buffer_resource` with document reuse is the highest-performance configuration for throughput-critical workloads.

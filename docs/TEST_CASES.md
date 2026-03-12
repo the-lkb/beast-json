@@ -1,14 +1,14 @@
-# Beast JSON Test Case Documentation & Integrity Report
+# qbuem-json Test Case Documentation & Integrity Report
 
-This document outlines the systematic testing methodology and standard compliance verification for the Beast JSON library.
+This document outlines the systematic testing methodology and standard compliance verification for the qbuem-json library.
 
 ## 1. Testing Philosophy
-Beast JSON follows a "Safety First, Performance Second" philosophy. Every feature is validated against memory sanitizers and official RFC test suites to ensure that extreme performance does not come at the cost of correctness or security.
+qbuem-json follows a "Safety First, Performance Second" philosophy. Every feature is validated against memory sanitizers and official RFC test suites to ensure that extreme performance does not come at the cost of correctness or security.
 
 **Total test count: 507** (as of the ReproBugs2 + Observations additions).
 
 ## 2. Core Compliance & Standard Verification
-These tests guarantee that Beast JSON flawlessly adheres to official JSON standards.
+These tests guarantee that qbuem-json flawlessly adheres to official JSON standards.
 
 ### 2.1 RFC 8259 Compliance (JSON)
 - **File**: `tests/test_compliance.cpp`
@@ -35,7 +35,7 @@ These tests guarantee that Beast JSON flawlessly adheres to official JSON standa
 
 ## 3. Security & Multi-Sanitizer Verification (Memory Integrity)
 
-To mathematically and dynamically prove memory safety and the absence of undefined behavior, Beast JSON is continuously validated against the following sanitizers:
+To mathematically and dynamically prove memory safety and the absence of undefined behavior, qbuem-json is continuously validated against the following sanitizers:
 
 | Sanitizer | Target | Result (macOS 15/16) |
 | :--- | :--- | :--- |
@@ -48,7 +48,7 @@ To mathematically and dynamically prove memory safety and the absence of undefin
 
 ## 4. Performance & Zero-Cost Audit
 
-Beast JSON adheres to the "Zero-Cost" principle: you don't pay for the mutation features unless you use them.
+qbuem-json adheres to the "Zero-Cost" principle: you don't pay for the mutation features unless you use them.
 
 - **Read-Path Efficiency**: Accessors like `operator[]` and `at()` use `BEAST_UNLIKELY` branch hints to check for mutations. For read-only documents, this cost is a single bit-check.
 - **Throughput Verification** (Release build, twitter.json):
@@ -75,7 +75,7 @@ Beast JSON adheres to the "Zero-Cost" principle: you don't pay for the mutation 
 
 | Test | Bug | Description |
 | :--- | :--- | :--- |
-| `ParseReusePublicFacade` | BUG-1 | `beast::parse_reuse()` is available in the public `beast::` namespace without ADL ambiguity |
+| `ParseReusePublicFacade` | BUG-1 | `qbuem::parse_reuse()` is available in the public `qbuem::` namespace without ADL ambiguity |
 | `UnsignedIntSubscriptNoAmbiguity` | BUG-2 | `Value::operator[](unsigned int)` compiles and dispatches correctly |
 | `UnsignedIntEraseNoAmbiguity` | BUG-2 | `Value::erase(unsigned int)` compiles and dispatches correctly |
 | `SafeValueGetUnsignedIntNoAmbiguity` | BUG-2 | `SafeValue::operator[](unsigned int)` and `SafeValue::get(unsigned int)` compile correctly |

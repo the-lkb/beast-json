@@ -1,4 +1,4 @@
-name: "beast-json CodeQL config"
+name: "qbuem-json CodeQL config"
 
 paths-ignore:
   - build/_deps

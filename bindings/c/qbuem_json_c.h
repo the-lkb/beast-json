@@ -1,7 +1,7 @@
 /**
- * beast_json_c.h — Beast JSON C API
+ * qbuem_json_c.h — qbuem-json C API
  *
- * A pure C interface to the Beast JSON C++20 library.
+ * A pure C interface to the qbuem-json C++20 library.
  * Designed for use with ctypes (Python), cffi, or any C-compatible FFI.
  *
  * Lifetime model:
@@ -17,8 +17,8 @@
  * Use bjson_last_error() to retrieve the last error message.
  */
 
-#ifndef BEAST_JSON_C_H
-#define BEAST_JSON_C_H
+#ifndef QBUEM_JSON_C_H
+#define QBUEM_JSON_C_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -210,4 +210,4 @@ void bjson_erase_idx(BJSONValue* val, size_t idx);
 }  /* extern "C" */
 #endif
 
-#endif  /* BEAST_JSON_C_H */
+#endif  /* QBUEM_JSON_C_H */

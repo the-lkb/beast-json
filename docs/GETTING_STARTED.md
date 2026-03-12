@@ -1,4 +1,4 @@
-# Beast JSON — Getting Started
+# qbuem-json — Getting Started
 
 > C++20 · Single Header · CMake 3.14+
 
@@ -26,14 +26,14 @@
 
 ### Option A: Single Header Drop-in
 
-Beast JSON is a **single header library**. Copy the header into your project — no CMake required.
+qbuem-json is a **single header library**. Copy the header into your project — no CMake required.
 
 ```bash
-cp include/beast_json/beast_json.hpp /your/project/include/
+cp include/qbuem_json/qbuem_json.hpp /your/project/include/
 ```
 
 ```cpp
-#include "beast_json.hpp"
+#include "qbuem_json.hpp"
 ```
 
 Compile with C++20:
@@ -47,25 +47,25 @@ g++ -std=c++20 -O3 main.cpp -o main
 ```cmake
 include(FetchContent)
 FetchContent_Declare(
-    beast_json
-    GIT_REPOSITORY https://github.com/qbuem/beast-json
+    qbuem_json
+    GIT_REPOSITORY https://github.com/qbuem/qbuem-json
     GIT_TAG        main
 )
-FetchContent_MakeAvailable(beast_json)
+FetchContent_MakeAvailable(qbuem_json)
 
-target_link_libraries(your_target PRIVATE beast_json)
+target_link_libraries(your_target PRIVATE qbuem_json)
 ```
 
 ### Option C: Clone & Build
 
 ```bash
-git clone https://github.com/qbuem/beast-json.git
-cd beast-json
+git clone https://github.com/qbuem/qbuem-json.git
+cd qbuem-json
 
 # Release build with tests
 cmake -S . -B build \
       -DCMAKE_BUILD_TYPE=Release \
-      -DBEAST_JSON_BUILD_TESTS=ON
+      -DQBUEM_JSON_BUILD_TESTS=ON
 cmake --build build -j$(nproc)
 
 # Run all 507 tests
@@ -82,21 +82,21 @@ cmake --install build --prefix /usr/local
 ## First Parse
 
 ```cpp
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <iostream>
 
 int main() {
     std::string_view json = R"({
-        "name": "Beast JSON",
+        "name": "qbuem-json",
         "version": 1,
         "fast": true,
         "tags": ["c++20", "zero-copy", "simd"]
     })";
 
-    beast::Document doc;
-    beast::Value root = beast::parse(doc, json);
+    qbuem::Document doc;
+    qbuem::Value root = qbuem::parse(doc, json);
 
-    std::cout << root["name"].as<std::string>() << "\n"; // Beast JSON
+    std::cout << root["name"].as<std::string>() << "\n"; // qbuem-json
     std::cout << root["version"].as<int>()       << "\n"; // 1
     std::cout << root["fast"].as<bool>()          << "\n"; // 1 (true)
 
@@ -105,8 +105,8 @@ int main() {
 ```
 
 **Key rules:**
-- `beast::Document` owns the memory arena. It must **outlive** all `Value` objects derived from it.
-- `beast::parse()` returns a `Value` pointing into the `doc`'s tape. The `doc` can be reused by calling `parse()` again (tape reset, overlays cleared).
+- `qbuem::Document` owns the memory arena. It must **outlive** all `Value` objects derived from it.
+- `qbuem::parse()` returns a `Value` pointing into the `doc`'s tape. The `doc` can be reused by calling `parse()` again (tape reset, overlays cleared).
 - `Value` is a lightweight (16-byte) handle — cheap to copy and pass by value.
 
 
@@ -213,8 +213,8 @@ std::string mode = root.value("mode", std::string{"fast"});
 ### Object iteration
 
 ```cpp
-beast::Document doc;
-auto root = beast::parse(doc, R"({"a":1,"b":2,"c":3})");
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"a":1,"b":2,"c":3})");
 
 // Structured bindings
 for (auto [key, val] : root.items()) {
@@ -232,8 +232,8 @@ for (auto v : root.values())
 ### Array iteration
 
 ```cpp
-beast::Document doc;
-auto root = beast::parse(doc, R"({"ids":[10,20,30],"tags":["go","cpp"]})");
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"ids":[10,20,30],"tags":["go","cpp"]})");
 
 for (auto elem : root["ids"].elements())
     std::cout << elem.as<int>() << " ";  // 10 20 30
@@ -272,8 +272,8 @@ std::cout << it->as<int>() << "\n";  // 30
 ### Value mutation (scalar overlay)
 
 ```cpp
-beast::Document doc;
-auto root = beast::parse(doc, R"({"user":{"id":1,"name":"Alice"}})");
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"user":{"id":1,"name":"Alice"}})");
 
 // Both forms are equivalent
 root["user"]["id"] = 99;
@@ -296,8 +296,8 @@ std::cout << root["user"].dump() << "\n";
 ### Structural mutation (add / remove)
 
 ```cpp
-beast::Document doc;
-auto root = beast::parse(doc, R"({"users":[{"id":1},{"id":2}],"tags":["a","b"]})");
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"users":[{"id":1},{"id":2}],"tags":["a","b"]})");
 
 // Object: add key
 root.insert("version", 2);
@@ -349,13 +349,13 @@ for (int i = 0; i < 1'000'000; ++i) {
 ## Auto-Serialization (Structs)
 
 ```cpp
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 
 struct Address {
     std::string city;
     std::string country;
 };
-BEAST_JSON_FIELDS(Address, city, country)  // one line — read + write registered
+QBUEM_JSON_FIELDS(Address, city, country)  // one line — read + write registered
 
 struct User {
     std::string              name;
@@ -364,11 +364,11 @@ struct User {
     std::vector<std::string> tags;                 // STL — auto
     std::optional<double>    score;                // optional — auto
 };
-BEAST_JSON_FIELDS(User, name, age, addr, tags, score)
+QBUEM_JSON_FIELDS(User, name, age, addr, tags, score)
 
 int main() {
     // Deserialize
-    auto user = beast::read<User>(R"({
+    auto user = qbuem::read<User>(R"({
         "name": "Alice", "age": 30,
         "addr": {"city": "Seoul", "country": "KR"},
         "tags": ["admin", "user"],
@@ -380,19 +380,19 @@ int main() {
     std::cout << user.tags[0] << "\n";      // admin
 
     // Serialize
-    std::string json = beast::write(user);
+    std::string json = qbuem::write(user);
 
     // STL containers — zero effort (no macro needed)
-    auto ids = beast::read<std::vector<int>>("[1,2,3]");
-    auto map = beast::read<std::map<std::string,double>>(R"({"pi":3.14})");
-    auto tup = beast::read<std::tuple<int,std::string,bool>>("[42,\"ok\",true]");
+    auto ids = qbuem::read<std::vector<int>>("[1,2,3]");
+    auto map = qbuem::read<std::map<std::string,double>>(R"({"pi":3.14})");
+    auto tup = qbuem::read<std::tuple<int,std::string,bool>>("[42,\"ok\",true]");
 
-    std::string j1 = beast::write(std::pair{3, std::string{"hello"}});  // [3,"hello"]
-    std::string j2 = beast::write(std::optional<int>{});                 // null
+    std::string j1 = qbuem::write(std::pair{3, std::string{"hello"}});  // [3,"hello"]
+    std::string j2 = qbuem::write(std::optional<int>{});                 // null
 }
 ```
 
-**BEAST_JSON_FIELDS behavior:**
+**QBUEM_JSON_FIELDS behavior:**
 - Missing JSON field → struct member keeps its C++ default value
 - JSON `null` on a non-optional field → skip silently
 - Extra JSON fields not in the struct → ignored
@@ -402,7 +402,7 @@ int main() {
 
 ### Serializing Third-Party Types (ADL)
 
-If you cannot modify a struct (e.g., `glm::vec3` from an external library), you cannot use the `BEAST_JSON_FIELDS` macro. Instead, you can define two **Argument-Dependent Lookup (ADL)** functions inside the *same namespace* as your target type:
+If you cannot modify a struct (e.g., `glm::vec3` from an external library), you cannot use the `QBUEM_JSON_FIELDS` macro. Instead, you can define two **Argument-Dependent Lookup (ADL)** functions inside the *same namespace* as your target type:
 
 ```cpp
 #include <glm/vec3.hpp>
@@ -410,53 +410,53 @@ If you cannot modify a struct (e.g., `glm::vec3` from an external library), you 
 // 1. Open the namespace of the target type
 namespace glm {
     
-    // 2. Define the parsing hook: from_beast_json
-    inline void from_beast_json(const beast::json::Value& v, vec3& out) {
+    // 2. Define the parsing hook: from_qbuem_json
+    inline void from_qbuem_json(const qbuem::json::Value& v, vec3& out) {
         // Assuming we want to parse it from a JSON Array: [x, y, z]
         out.x = v[0].as_double();
         out.y = v[1].as_double();
         out.z = v[2].as_double();
     }
 
-    // 3. Define the serialization hook: to_beast_json
-    inline void to_beast_json(beast::json::Value& root, const vec3& in) {
+    // 3. Define the serialization hook: to_qbuem_json
+    inline void to_qbuem_json(qbuem::json::Value& root, const vec3& in) {
         // Construct a JSON array and push the values
-        root = beast::json::Value::Array();
-        root.push_back(beast::json::Value(in.x));
-        root.push_back(beast::json::Value(in.y));
-        root.push_back(beast::json::Value(in.z));
+        root = qbuem::json::Value::Array();
+        root.push_back(qbuem::json::Value(in.x));
+        root.push_back(qbuem::json::Value(in.y));
+        root.push_back(qbuem::json::Value(in.z));
     }
 }
 
 // Now you can natively read/write glm::vec3 safely
 int main() {
-    glm::vec3 position = beast::read<glm::vec3>("[1.0, 2.0, 3.5]");
-    std::string json = beast::write(position);
+    glm::vec3 position = qbuem::read<glm::vec3>("[1.0, 2.0, 3.5]");
+    std::string json = qbuem::write(position);
 }
 ```
 
 
 ## RFC 8259 Strict Mode
 
-By default, `beast::parse()` is lenient. Use `beast::parse_strict()` or `beast::rfc8259::validate()` when you need guaranteed RFC 8259 compliance.
+By default, `qbuem::parse()` is lenient. Use `qbuem::parse_strict()` or `qbuem::rfc8259::validate()` when you need guaranteed RFC 8259 compliance.
 
 ```cpp
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 
 int main() {
     // Validation only (no parse)
     try {
-        beast::rfc8259::validate("[1,2,]");  // trailing comma → throws
+        qbuem::rfc8259::validate("[1,2,]");  // trailing comma → throws
     } catch (const std::runtime_error& e) {
         std::cerr << e.what() << "\n";
         // RFC 8259 violation at offset 5: trailing comma
     }
 
     // Validate + parse in one call
-    beast::Document doc;
+    qbuem::Document doc;
     try {
-        auto root = beast::parse_strict(doc, R"({"key": "value"})");  // OK
-        auto bad  = beast::parse_strict(doc, "[1,2,]");              // throws
+        auto root = qbuem::parse_strict(doc, R"({"key": "value"})");  // OK
+        auto bad  = qbuem::parse_strict(doc, "[1,2,]");              // throws
     } catch (const std::runtime_error& e) {
         std::cerr << e.what() << "\n";
     }
@@ -476,12 +476,12 @@ int main() {
 For maximum performance when parsing multiple documents (e.g., a JSON stream), reuse the `Document`:
 
 ```cpp
-beast::Document doc;
+qbuem::Document doc;
 std::string line;
 
 while (std::getline(std::cin, line)) {
-    // beast::parse_reuse() resets tape + clears overlays, reuses malloc'd capacity
-    beast::Value root = beast::parse_reuse(doc, line);
+    // qbuem::parse_reuse() resets tape + clears overlays, reuses malloc'd capacity
+    qbuem::Value root = qbuem::parse_reuse(doc, line);
     // process root...
     std::string out;
     root.dump(out);   // reuse out buffer across iterations too
@@ -490,9 +490,9 @@ while (std::getline(std::cin, line)) {
 ```
 
 > [!TIP]
-> `beast::parse()` and `beast::parse_reuse()` are equivalent — both reset the tape and reuse allocated capacity when called on the same `Document`. `parse_reuse()` is provided as a self-documenting alias that makes the intent explicit in hot-loop code.
+> `qbuem::parse()` and `qbuem::parse_reuse()` are equivalent — both reset the tape and reuse allocated capacity when called on the same `Document`. `parse_reuse()` is provided as a self-documenting alias that makes the intent explicit in hot-loop code.
 
-**What `beast::parse_reuse()` does on reuse:**
+**What `qbuem::parse_reuse()` does on reuse:**
 1. Clears `mutations_`, `deleted_`, `additions_` overlays
 2. Resets `last_dump_size_` to 0
 3. Calls `tape.reserve(n)` — if existing capacity ≥ n, just resets `head` (no malloc)
@@ -503,10 +503,10 @@ while (std::getline(std::cin, line)) {
 
 | CMake Option | Default | Description |
 |:---|:---:|:---|
-| `BEAST_JSON_BUILD_TESTS` | `OFF` | Build test suite (`ctest`) |
-| `BEAST_JSON_BUILD_BENCHMARKS` | `OFF` | Build benchmark executables |
-| `BEAST_JSON_BUILD_BINDINGS` | `OFF` | Build C shared library (`libbeast_json_c`) |
-| `BEAST_JSON_BUILD_FUZZ` | `OFF` | Build libFuzzer targets (requires Clang) |
+| `QBUEM_JSON_BUILD_TESTS` | `OFF` | Build test suite (`ctest`) |
+| `QBUEM_JSON_BUILD_BENCHMARKS` | `OFF` | Build benchmark executables |
+| `QBUEM_JSON_BUILD_BINDINGS` | `OFF` | Build C shared library (`libqbuem_json_c`) |
+| `QBUEM_JSON_BUILD_FUZZ` | `OFF` | Build libFuzzer targets (requires Clang) |
 
 **Performance builds:**
 
@@ -514,21 +514,21 @@ while (std::getline(std::cin, line)) {
 # Maximum performance (GCC + PGO requires two-step build)
 cmake -S . -B build-pgo-gen \
     -DCMAKE_BUILD_TYPE=Release \
-    -DBEAST_JSON_BUILD_BENCHMARKS=ON \
+    -DQBUEM_JSON_BUILD_BENCHMARKS=ON \
     "-DCMAKE_CXX_FLAGS=-fprofile-generate -march=native"
 cmake --build build-pgo-gen
 ./build-pgo-gen/benchmarks/bench_all --all  # generate profile data
 
 cmake -S . -B build-pgo-use \
     -DCMAKE_BUILD_TYPE=Release \
-    -DBEAST_JSON_BUILD_BENCHMARKS=ON \
+    -DQBUEM_JSON_BUILD_BENCHMARKS=ON \
     "-DCMAKE_CXX_FLAGS=-fprofile-use -fprofile-correction -march=native"
 cmake --build build-pgo-use
 
 # ASan + UBSan (sanitizer build)
 cmake -S . -B build-san \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DBEAST_JSON_BUILD_TESTS=ON \
+    -DQBUEM_JSON_BUILD_TESTS=ON \
     "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer"
 cmake --build build-san
 ctest --test-dir build-san  # 507/507 PASS expected
@@ -539,7 +539,7 @@ ctest --test-dir build-san  # 507/507 PASS expected
 
 ```bash
 # Build and run all 507 tests
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBEAST_JSON_BUILD_TESTS=ON
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DQBUEM_JSON_BUILD_TESTS=ON
 cmake --build build -j$(nproc)
 ctest --test-dir build --output-on-failure
 
@@ -561,7 +561,7 @@ ctest --test-dir build -V
 | PipeFallback, ValueDefault | 14 | `operator\|`, `value()` defaults |
 | JsonPointer, JsonPointerCT | 10 | RFC 6901 runtime + compile-time |
 | MergePatch, Merge | 6 | RFC 7396 merge patch |
-| AutoSerial, MacroFields | 33 | `read<T>()`, `write()`, `BEAST_JSON_FIELDS` |
+| AutoSerial, MacroFields | 33 | `read<T>()`, `write()`, `QBUEM_JSON_FIELDS` |
 | RFC8259_* | 56 | RFC 8259 strict validation |
 | + 17 other suites | 78 | Unicode, escaping, concepts, etc. |
 
@@ -572,15 +572,15 @@ ctest --test-dir build -V
 
 ```bash
 # Build shared library
-cmake -S . -B build -DBEAST_JSON_BUILD_BINDINGS=ON
-cmake --build build --target beast_json_c
+cmake -S . -B build -DQBUEM_JSON_BUILD_BINDINGS=ON
+cmake --build build --target qbuem_json_c
 
-# Output: build/bindings/c/libbeast_json_c.so (Linux)
-#         build/bindings/c/libbeast_json_c.dylib (macOS)
+# Output: build/bindings/c/libqbuem_json_c.so (Linux)
+#         build/bindings/c/libqbuem_json_c.dylib (macOS)
 ```
 
 ```c
-#include "bindings/c/beast_json_c.h"
+#include "bindings/c/qbuem_json_c.h"
 
 BJSONDocument* doc = bjson_doc_create();
 BJSONValue* root = bjson_parse(doc, json_str, json_len);
@@ -596,13 +596,13 @@ bjson_doc_destroy(doc);
 ### Python
 
 ```bash
-export BEAST_JSON_LIB_PATH=./build/bindings/c
+export QBUEM_JSON_LIB_PATH=./build/bindings/c
 cd bindings/python
 python3 example.py
 ```
 
 ```python
-from beast_json import Document, loads
+from qbuem_json import Document, loads
 
 doc = Document('{"name":"Alice","score":99}')
 root = doc.root()
@@ -622,49 +622,49 @@ data = loads('[1, 2, {"x": 3}]')
 
 ```cpp
 // WRONG — doc destroyed before root is used
-beast::Value bad() {
-    beast::Document doc;
-    return beast::parse(doc, R"({"x":1})");
+qbuem::Value bad() {
+    qbuem::Document doc;
+    return qbuem::parse(doc, R"({"x":1})");
 }  // doc destroyed here → dangling pointer
 
 // CORRECT — keep doc alive alongside the Value
 struct ParseResult {
-    beast::Document doc;
-    beast::Value root;
+    qbuem::Document doc;
+    qbuem::Value root;
 };
 
 ParseResult parse_it(std::string_view json) {
     ParseResult r;
-    r.root = beast::parse(r.doc, json);
+    r.root = qbuem::parse(r.doc, json);
     return r;
 }
 ```
 
 ### 2. string_view source must remain alive
 
-`beast::parse()` takes a `std::string_view` and zero-copies strings. The underlying buffer must remain alive for the lifetime of the `Document`.
+`qbuem::parse()` takes a `std::string_view` and zero-copies strings. The underlying buffer must remain alive for the lifetime of the `Document`.
 
 ```cpp
 // WRONG — temporary string destroyed
-beast::Value bad(beast::Document& doc) {
-    return beast::parse(doc, std::string{R"({"x":1})"});
+qbuem::Value bad(qbuem::Document& doc) {
+    return qbuem::parse(doc, std::string{R"({"x":1})"});
     // string destroyed at semicolon — zero-copy pointers dangle
 }
 
 // CORRECT — bind to a named variable with sufficient lifetime
 std::string json = load_file("data.json");
-beast::Document doc;
-auto root = beast::parse(doc, json);  // json outlives doc
+qbuem::Document doc;
+auto root = qbuem::parse(doc, json);  // json outlives doc
 ```
 
 ### 3. Reusing a Document clears all mutations
 
 ```cpp
-beast::Document doc;
-auto root = beast::parse(doc, json1);
+qbuem::Document doc;
+auto root = qbuem::parse(doc, json1);
 root["key"] = 42;            // set mutation overlay
 
-auto root2 = beast::parse(doc, json2);  // ← clears all overlays on doc
+auto root2 = qbuem::parse(doc, json2);  // ← clears all overlays on doc
 // root is now invalid! (tape was reset)
 // root2 is valid and points to json2's parsed data
 ```
@@ -687,8 +687,8 @@ auto elem3 = root["array"][size_t(i)];  // ✅ cast int to size_t
 ### 5. as\<int\> on a double returns a cast, not an error
 
 ```cpp
-beast::Document doc;
-auto root = beast::parse(doc, R"({"x": 3.14})");
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"x": 3.14})");
 int n = root["x"].as<int>();  // returns 3 (truncated cast), does NOT throw
 // Use is_int() first if you need to distinguish integer from double
 ```

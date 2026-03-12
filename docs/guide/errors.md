@@ -1,6 +1,6 @@
 # Error Handling
 
-Beast JSON gives you full control over how errors are handled. You can choose between **throwing exceptions** for known schemas, **monadic chaining** for untrusted data, or **explicit boolean checks** for fine-grained control.
+qbuem-json gives you full control over how errors are handled. You can choose between **throwing exceptions** for known schemas, **monadic chaining** for untrusted data, or **explicit boolean checks** for fine-grained control.
 
 ## 🗺️ Choosing Your Strategy
 
@@ -19,8 +19,8 @@ The `as<T>()` API throws a `std::runtime_error` if the key is missing or the typ
 
 ```cpp
 try {
-    beast::Document doc;
-    auto root = beast::parse(doc, R"({"user": {"id": 42, "name": "Alice"}})");
+    qbuem::Document doc;
+    auto root = qbuem::parse(doc, R"({"user": {"id": 42, "name": "Alice"}})");
 
     // Throws if "user" or "id" is missing, or "id" is not an int
     int id = root["user"]["id"].as<int>();
@@ -39,8 +39,8 @@ A parse failure also throws `std::runtime_error`:
 
 ```cpp
 try {
-    beast::Document doc;
-    auto root = beast::parse(doc, "{malformed json!}"); // throws
+    qbuem::Document doc;
+    auto root = qbuem::parse(doc, "{malformed json!}"); // throws
 } catch (const std::runtime_error& e) {
     std::cerr << "Parse failed: " << e.what() << "\n";
 }
@@ -53,8 +53,8 @@ try {
 The `.get("key")` API returns a `SafeValue` — a proxy that propagates `absent` state through the entire chain. **It never throws.** This is ideal for deeply nested structures from untrusted sources.
 
 ```cpp
-beast::Document doc;
-auto root = beast::parse(doc, R"({
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({
     "config": { "server": { "timeout_ms": 5000 } }
 })");
 
@@ -123,23 +123,23 @@ v.type_name();   // "null", "bool", "int", "double", "string", "array", "object"
 
 ## 🔐 Strategy 4: RFC 8259 Strict Validation
 
-Use `beast::parse_strict()` or `beast::rfc8259::validate()` when you need to enforce strict JSON compliance (e.g., for security-sensitive input processing).
+Use `qbuem::parse_strict()` or `qbuem::rfc8259::validate()` when you need to enforce strict JSON compliance (e.g., for security-sensitive input processing).
 
 ```cpp
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 
 // Validate without parsing (just check validity)
 try {
-    beast::rfc8259::validate("[1, 2,]");  // trailing comma → throws
+    qbuem::rfc8259::validate("[1, 2,]");  // trailing comma → throws
 } catch (const std::runtime_error& e) {
     std::cerr << e.what(); // "RFC 8259 violation at offset 7: trailing comma"
 }
 
 // Validate and parse in one step
 try {
-    beast::Document doc;
-    auto root = beast::parse_strict(doc, R"({"key": "value"})"); // OK
-    auto bad  = beast::parse_strict(doc, R"({"a": 01})");        // leading zero → throws
+    qbuem::Document doc;
+    auto root = qbuem::parse_strict(doc, R"({"key": "value"})"); // OK
+    auto bad  = qbuem::parse_strict(doc, R"({"a": 01})");        // leading zero → throws
 } catch (const std::runtime_error& e) {
     std::cerr << "Strict parse failed: " << e.what() << "\n";
 }
@@ -172,8 +172,8 @@ struct UserView {
 };
 
 UserView build_view(std::string_view json) {
-    beast::Document doc;
-    auto root = beast::parse(doc, json);
+    qbuem::Document doc;
+    auto root = qbuem::parse(doc, json);
 
     return UserView {
         // Required fields → throw if missing (programmer error)

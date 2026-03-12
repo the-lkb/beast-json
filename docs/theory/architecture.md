@@ -2,7 +2,7 @@
 
 A 50 KB JSON document with 1,000 string values makes `nlohmann/json` call `malloc` over 1,000 times. Each node ends up at a random heap address. When you traverse the result, every key and every value is a pointer chase to a different cache line. The CPU's prefetcher stops trying.
 
-Beast JSON parses the same document with **one allocation**. Here's why that's possible and how it works.
+qbuem-json parses the same document with **one allocation**. Here's why that's possible and how it works.
 
 ---
 
@@ -45,7 +45,7 @@ There's also a third problem: when you want to skip a nested structure — say, 
 
 ## A flat array fixes all three
 
-Beast JSON doesn't build a tree. It writes a **flat contiguous array** — the tape — with one 8-byte slot per JSON element. Same input, entirely different layout:
+qbuem-json doesn't build a tree. It writes a **flat contiguous array** — the tape — with one 8-byte slot per JSON element. Same input, entirely different layout:
 
 <div class="bd-diagram">
   <div class="bd-col">
@@ -73,9 +73,9 @@ The flat array is the whole design. Every other mechanism is a consequence of it
 
 ---
 
-## But first, Beast JSON doesn't read most of your input
+## But first, qbuem-json doesn't read most of your input
 
-Before writing a single tape node, Beast JSON runs a SIMD scan that classifies **64 bytes at once** using a single AVX-512 instruction. The output is a 64-bit bitmask — one bit per byte — where a `1` marks a structural character (`{`, `}`, `[`, `]`, `"`, `:`, `,`) and `0` marks data.
+Before writing a single tape node, qbuem-json runs a SIMD scan that classifies **64 bytes at once** using a single AVX-512 instruction. The output is a 64-bit bitmask — one bit per byte — where a `1` marks a structural character (`{`, `}`, `[`, `]`, `"`, `:`, `,`) and `0` marks data.
 
 <div class="bd-diagram">
   <div class="bd-col">
@@ -196,7 +196,7 @@ The lifetime contract is simple: `string_view` stays valid as long as both the `
 
 Every `OBJ_START` node stores the tape index of its matching `OBJ_END` in its payload. Same for arrays. This is the jump index.
 
-When you access `root["status"]` on an object that has a 500-field `"metadata"` block before `"status"`, Beast JSON reads `tape[1]` (KEY "metadata"), sees it's not a match, reads `tape[2]` (OBJ_START), then jumps directly to `tape[tape[2].jump + 1]` — skipping all 500 fields in a single integer read.
+When you access `root["status"]` on an object that has a 500-field `"metadata"` block before `"status"`, qbuem-json reads `tape[1]` (KEY "metadata"), sees it's not a match, reads `tape[2]` (OBJ_START), then jumps directly to `tape[tape[2].jump + 1]` — skipping all 500 fields in a single integer read.
 
 <div class="bd-diagram">
   <div class="bd-col">
@@ -222,13 +222,13 @@ When you access `root["status"]` on an object that has a 500-field `"metadata"` 
   </div>
 </div>
 
-This is the mechanism behind Beast JSON's "100-level deep, 100-wide" benchmark numbers. Every depth level is one jump read.
+This is the mechanism behind qbuem-json's "100-level deep, 100-wide" benchmark numbers. Every depth level is one jump read.
 
 ---
 
 ## A `Value` is a position, not a value
 
-After parsing, you get back a `beast::Value` — a 16-byte token:
+After parsing, you get back a `qbuem::Value` — a 16-byte token:
 
 ```cpp
 struct Value {
@@ -250,7 +250,7 @@ Extraction is the one operation that touches data:
           <div class="bd-step">
             <div class="bd-step__num" style="background:color-mix(in srgb,#e53935 18%,transparent);color:#c62828;font-size:0.75rem;">once</div>
             <div class="bd-step__body">
-              <div class="bd-step__title">Parse — <code>beast::parse(doc, text)</code></div>
+              <div class="bd-step__title">Parse — <code>qbuem::parse(doc, text)</code></div>
               <div class="bd-step__desc">SIMD scan + tape write. Proportional to input size. Never paid again.</div>
             </div>
           </div>
@@ -285,16 +285,16 @@ Extraction is the one operation that touches data:
 
 ## The second parse is free
 
-The tape lives in a `DocumentView`. When you call `beast::parse()` again into the same `Document`, the existing `TapeArena` is reset (cursor back to zero, capacity kept) and reused — no `malloc` as long as the new document fits. The SIMD structural index is also reused the same way.
+The tape lives in a `DocumentView`. When you call `qbuem::parse()` again into the same `Document`, the existing `TapeArena` is reset (cursor back to zero, capacity kept) and reused — no `malloc` as long as the new document fits. The SIMD structural index is also reused the same way.
 
 <TapeFlowDiagram />
 
 In a JSON stream processing loop, the first document pays the allocation cost. Every document after that pays nothing.
 
 ```cpp
-beast::Document doc;          // allocates tape once
+qbuem::Document doc;          // allocates tape once
 while (auto line = read_line()) {
-    auto root = beast::parse_reuse(doc, line); // zero malloc
+    auto root = qbuem::parse_reuse(doc, line); // zero malloc
     process(root["event"].as<std::string_view>());
 }
 ```
@@ -305,7 +305,7 @@ while (auto line = read_line()) {
 
 <TreeVsTape />
 
-| | Beast DOM | nlohmann/json | simdjson |
+| | qbuem-json DOM | nlohmann/json | simdjson |
 |:---|:---|:---|:---|
 | Allocations per parse | **1** | O(N elements) | 2 |
 | Memory layout | Contiguous tape | Scattered heap | Tape (read-only) |
@@ -315,7 +315,7 @@ while (auto line = read_line()) {
 | Serialize support | ✅ | ✅ | ❌ |
 | Peak RSS (twitter.json) | **3.4 MB** | 27.4 MB | 11.0 MB |
 
-The gap vs simdjson is mostly mutation and serialization — simdjson's tape is a read-only view and it intentionally doesn't support writing. Beast JSON's tape is writable via an overlay map that stores mutations without touching the original tape.
+The gap vs simdjson is mostly mutation and serialization — simdjson's tape is a read-only view and it intentionally doesn't support writing. qbuem-json's tape is writable via an overlay map that stores mutations without touching the original tape.
 
 ---
 

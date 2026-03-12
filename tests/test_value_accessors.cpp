@@ -1,4 +1,4 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <iterator>
@@ -10,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-using namespace beast;
+using namespace qbuem;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -605,7 +605,7 @@ TEST(ValueAssign, AssignChained) {
 // SafeValue: get() optional chain — never throws
 // ══════════════════════════════════════════════════════════════════════════════
 
-using namespace beast::json::lazy; // access SafeValue type
+using namespace qbuem::json::lazy; // access SafeValue type
 
 TEST(SafeValue, GetPresentKey) {
   Document doc;
@@ -862,37 +862,37 @@ TEST(Monadic, PipelineChainMissing) {
 
 TEST(Concepts, JsonIntegerConcept) {
   // JsonInteger accepts int, long, short but not bool
-  static_assert(beast::json::lazy::JsonInteger<int>);
-  static_assert(beast::json::lazy::JsonInteger<long>);
-  static_assert(beast::json::lazy::JsonInteger<int64_t>);
-  static_assert(!beast::json::lazy::JsonInteger<bool>);
-  static_assert(!beast::json::lazy::JsonInteger<float>);
+  static_assert(qbuem::json::lazy::JsonInteger<int>);
+  static_assert(qbuem::json::lazy::JsonInteger<long>);
+  static_assert(qbuem::json::lazy::JsonInteger<int64_t>);
+  static_assert(!qbuem::json::lazy::JsonInteger<bool>);
+  static_assert(!qbuem::json::lazy::JsonInteger<float>);
   SUCCEED();
 }
 
 TEST(Concepts, JsonFloatConcept) {
-  static_assert(beast::json::lazy::JsonFloat<float>);
-  static_assert(beast::json::lazy::JsonFloat<double>);
-  static_assert(!beast::json::lazy::JsonFloat<int>);
-  static_assert(!beast::json::lazy::JsonFloat<bool>);
+  static_assert(qbuem::json::lazy::JsonFloat<float>);
+  static_assert(qbuem::json::lazy::JsonFloat<double>);
+  static_assert(!qbuem::json::lazy::JsonFloat<int>);
+  static_assert(!qbuem::json::lazy::JsonFloat<bool>);
   SUCCEED();
 }
 
 TEST(Concepts, JsonReadableConcept) {
-  static_assert(beast::json::lazy::JsonReadable<bool>);
-  static_assert(beast::json::lazy::JsonReadable<int>);
-  static_assert(beast::json::lazy::JsonReadable<double>);
-  static_assert(beast::json::lazy::JsonReadable<std::string>);
-  static_assert(beast::json::lazy::JsonReadable<std::string_view>);
+  static_assert(qbuem::json::lazy::JsonReadable<bool>);
+  static_assert(qbuem::json::lazy::JsonReadable<int>);
+  static_assert(qbuem::json::lazy::JsonReadable<double>);
+  static_assert(qbuem::json::lazy::JsonReadable<std::string>);
+  static_assert(qbuem::json::lazy::JsonReadable<std::string_view>);
   SUCCEED();
 }
 
 TEST(Concepts, JsonWritableConcept) {
-  static_assert(beast::json::lazy::JsonWritable<bool>);
-  static_assert(beast::json::lazy::JsonWritable<int>);
-  static_assert(beast::json::lazy::JsonWritable<double>);
-  static_assert(beast::json::lazy::JsonWritable<std::string_view>);
-  static_assert(beast::json::lazy::JsonWritable<std::nullptr_t>);
+  static_assert(qbuem::json::lazy::JsonWritable<bool>);
+  static_assert(qbuem::json::lazy::JsonWritable<int>);
+  static_assert(qbuem::json::lazy::JsonWritable<double>);
+  static_assert(qbuem::json::lazy::JsonWritable<std::string_view>);
+  static_assert(qbuem::json::lazy::JsonWritable<std::nullptr_t>);
   SUCCEED();
 }
 
@@ -1586,7 +1586,7 @@ TEST(JsonPointerCT, Root) {
 // ── merge() / merge_patch() ───────────────────────────────────────────────────
 
 // Helper: dump() → store → re-parse (Document stores string_view, not string)
-static std::pair<std::string, beast::Value> reparse(beast::Document &r, beast::Value src) {
+static std::pair<std::string, qbuem::Value> reparse(qbuem::Document &r, qbuem::Value src) {
   std::string json = src.dump();
   auto val = parse(r, json);
   return {std::move(json), val};
@@ -1653,7 +1653,7 @@ TEST(MergePatch, NestedPatch) {
   EXPECT_EQ(res.at("/config/retries").as<int>(), 3);  // unchanged
 }
 
-// ── beast::read<T>() / beast::write<T>() ADL struct binding ──────────────────
+// ── qbuem::read<T>() / qbuem::write<T>() ADL struct binding ──────────────────
 
 struct TestUser {
   std::string name;
@@ -1661,27 +1661,27 @@ struct TestUser {
   bool active = false;
 };
 
-inline void from_beast_json(const beast::Value& v, TestUser& u) {
+inline void from_qbuem_json(const qbuem::Value& v, TestUser& u) {
   u.name   = v["name"]   | std::string{};
   u.age    = v["age"]    | 0;
   u.active = v["active"] | false;
 }
 
-inline void to_beast_json(beast::Value& v, const TestUser& u) {
+inline void to_qbuem_json(qbuem::Value& v, const TestUser& u) {
   v.insert("name",   u.name);
   v.insert("age",    u.age);
   v.insert("active", u.active);
 }
 
 TEST(StructBinding, ReadBasic) {
-  auto user = beast::read<TestUser>(R"({"name":"Alice","age":30,"active":true})");
+  auto user = qbuem::read<TestUser>(R"({"name":"Alice","age":30,"active":true})");
   EXPECT_EQ(user.name, "Alice");
   EXPECT_EQ(user.age, 30);
   EXPECT_TRUE(user.active);
 }
 
 TEST(StructBinding, ReadWithDefaults) {
-  auto user = beast::read<TestUser>(R"({"name":"Bob"})");
+  auto user = qbuem::read<TestUser>(R"({"name":"Bob"})");
   EXPECT_EQ(user.name, "Bob");
   EXPECT_EQ(user.age, 0);      // default
   EXPECT_FALSE(user.active);   // default
@@ -1689,7 +1689,7 @@ TEST(StructBinding, ReadWithDefaults) {
 
 TEST(StructBinding, WriteBasic) {
   TestUser u{"Eve", 25, true};
-  std::string json = beast::write(u);
+  std::string json = qbuem::write(u);
   // Re-parse and verify
   Document doc;
   auto root = parse(doc, json);
@@ -1700,8 +1700,8 @@ TEST(StructBinding, WriteBasic) {
 
 TEST(StructBinding, RoundTrip) {
   TestUser original{"Charlie", 42, false};
-  std::string json = beast::write(original);
-  auto restored = beast::read<TestUser>(json);
+  std::string json = qbuem::write(original);
+  auto restored = qbuem::read<TestUser>(json);
   EXPECT_EQ(restored.name, "Charlie");
   EXPECT_EQ(restored.age, 42);
   EXPECT_FALSE(restored.active);
@@ -1714,7 +1714,7 @@ TEST(StructBinding, RoundTrip) {
 // ── is_valid() ────────────────────────────────────────────────────────────────
 
 TEST(IsValid, DefaultValue) {
-  beast::Value v;
+  qbuem::Value v;
   EXPECT_FALSE(v.is_valid());
 }
 
@@ -1736,71 +1736,71 @@ TEST(IsValid, MissingKey) {
 // ── Primitives ────────────────────────────────────────────────────────────────
 
 TEST(AutoSerial, Bool) {
-  EXPECT_EQ(beast::write(true),  "true");
-  EXPECT_EQ(beast::write(false), "false");
-  EXPECT_EQ(beast::read<bool>("true"),  true);
-  EXPECT_EQ(beast::read<bool>("false"), false);
+  EXPECT_EQ(qbuem::write(true),  "true");
+  EXPECT_EQ(qbuem::write(false), "false");
+  EXPECT_EQ(qbuem::read<bool>("true"),  true);
+  EXPECT_EQ(qbuem::read<bool>("false"), false);
 }
 
 TEST(AutoSerial, Int) {
-  EXPECT_EQ(beast::write(42),   "42");
-  EXPECT_EQ(beast::write(-7),   "-7");
-  EXPECT_EQ(beast::read<int>("42"),  42);
-  EXPECT_EQ(beast::read<int>("-99"), -99);
+  EXPECT_EQ(qbuem::write(42),   "42");
+  EXPECT_EQ(qbuem::write(-7),   "-7");
+  EXPECT_EQ(qbuem::read<int>("42"),  42);
+  EXPECT_EQ(qbuem::read<int>("-99"), -99);
 }
 
 TEST(AutoSerial, Double) {
-  double v = beast::read<double>("3.14");
+  double v = qbuem::read<double>("3.14");
   EXPECT_NEAR(v, 3.14, 1e-9);
-  std::string s = beast::write(1.5);
+  std::string s = qbuem::write(1.5);
   EXPECT_FALSE(s.empty());
   // NaN / Inf → null
-  EXPECT_EQ(beast::write(std::numeric_limits<double>::infinity()), "null");
-  EXPECT_EQ(beast::write(std::numeric_limits<double>::quiet_NaN()), "null");
+  EXPECT_EQ(qbuem::write(std::numeric_limits<double>::infinity()), "null");
+  EXPECT_EQ(qbuem::write(std::numeric_limits<double>::quiet_NaN()), "null");
 }
 
 TEST(AutoSerial, String) {
-  EXPECT_EQ(beast::write(std::string("hello")), R"("hello")");
-  EXPECT_EQ(beast::write(std::string_view("world")), R"("world")");
-  EXPECT_EQ(beast::read<std::string>(R"("beast")"), "beast");
+  EXPECT_EQ(qbuem::write(std::string("hello")), R"("hello")");
+  EXPECT_EQ(qbuem::write(std::string_view("world")), R"("world")");
+  EXPECT_EQ(qbuem::read<std::string>(R"("beast")"), "beast");
 }
 
 TEST(AutoSerial, StringEscape) {
   // Verify that to_json_str produces correct JSON escape sequences
   std::string s = "a\tb\nc\"d\\e";
-  std::string json = beast::write(s);
+  std::string json = qbuem::write(s);
   EXPECT_NE(json.find("\\t"),  std::string::npos);
   EXPECT_NE(json.find("\\n"),  std::string::npos);
   EXPECT_NE(json.find("\\\""), std::string::npos);
   EXPECT_NE(json.find("\\\\"), std::string::npos);
   // Note: beast uses zero-copy architecture — as<string>() returns raw source
   // bytes without unescaping. Round-trip works for strings with no escapes:
-  EXPECT_EQ(beast::read<std::string>(R"("hello world")"), "hello world");
+  EXPECT_EQ(qbuem::read<std::string>(R"("hello world")"), "hello world");
 }
 
 TEST(AutoSerial, Nullptr) {
-  EXPECT_EQ(beast::write(nullptr), "null");
+  EXPECT_EQ(qbuem::write(nullptr), "null");
 }
 
 // ── std::optional ─────────────────────────────────────────────────────────────
 
 TEST(AutoSerial, OptionalPresent) {
   std::optional<int> v = 42;
-  EXPECT_EQ(beast::write(v), "42");
-  auto r = beast::read<std::optional<int>>("42");
+  EXPECT_EQ(qbuem::write(v), "42");
+  auto r = qbuem::read<std::optional<int>>("42");
   ASSERT_TRUE(r.has_value());
   EXPECT_EQ(*r, 42);
 }
 
 TEST(AutoSerial, OptionalNull) {
   std::optional<int> v = std::nullopt;
-  EXPECT_EQ(beast::write(v), "null");
-  auto r = beast::read<std::optional<int>>("null");
+  EXPECT_EQ(qbuem::write(v), "null");
+  auto r = qbuem::read<std::optional<int>>("null");
   EXPECT_FALSE(r.has_value());
 }
 
 TEST(AutoSerial, OptionalString) {
-  auto r = beast::read<std::optional<std::string>>(R"("hi")");
+  auto r = qbuem::read<std::optional<std::string>>(R"("hi")");
   ASSERT_TRUE(r.has_value());
   EXPECT_EQ(*r, "hi");
 }
@@ -1809,16 +1809,16 @@ TEST(AutoSerial, OptionalString) {
 
 TEST(AutoSerial, VectorInt) {
   std::vector<int> v = {1, 2, 3};
-  EXPECT_EQ(beast::write(v), "[1,2,3]");
-  auto r = beast::read<std::vector<int>>("[10,20,30]");
+  EXPECT_EQ(qbuem::write(v), "[1,2,3]");
+  auto r = qbuem::read<std::vector<int>>("[10,20,30]");
   ASSERT_EQ(r.size(), 3u);
   EXPECT_EQ(r[1], 20);
 }
 
 TEST(AutoSerial, VectorString) {
   std::vector<std::string> v = {"a", "b"};
-  std::string json = beast::write(v);
-  auto r = beast::read<std::vector<std::string>>(json);
+  std::string json = qbuem::write(v);
+  auto r = qbuem::read<std::vector<std::string>>(json);
   ASSERT_EQ(r.size(), 2u);
   EXPECT_EQ(r[0], "a");
   EXPECT_EQ(r[1], "b");
@@ -1826,8 +1826,8 @@ TEST(AutoSerial, VectorString) {
 
 TEST(AutoSerial, VectorNested) {
   std::vector<std::vector<int>> v = {{1,2},{3,4}};
-  std::string json = beast::write(v);
-  auto r = beast::read<std::vector<std::vector<int>>>(json);
+  std::string json = qbuem::write(v);
+  auto r = qbuem::read<std::vector<std::vector<int>>>(json);
   ASSERT_EQ(r.size(), 2u);
   EXPECT_EQ(r[0][1], 2);
   EXPECT_EQ(r[1][0], 3);
@@ -1835,9 +1835,9 @@ TEST(AutoSerial, VectorNested) {
 
 TEST(AutoSerial, VectorOptional) {
   std::vector<std::optional<int>> v = {1, std::nullopt, 3};
-  std::string json = beast::write(v);
+  std::string json = qbuem::write(v);
   EXPECT_EQ(json, "[1,null,3]");
-  auto r = beast::read<std::vector<std::optional<int>>>(json);
+  auto r = qbuem::read<std::vector<std::optional<int>>>(json);
   ASSERT_EQ(r.size(), 3u);
   EXPECT_TRUE(r[0].has_value());
   EXPECT_FALSE(r[1].has_value());
@@ -1848,15 +1848,15 @@ TEST(AutoSerial, VectorOptional) {
 
 TEST(AutoSerial, SetInt) {
   std::set<int> s = {3, 1, 2};
-  std::string json = beast::write(s);  // sorted: [1,2,3]
-  auto r = beast::read<std::set<int>>(json);
+  std::string json = qbuem::write(s);  // sorted: [1,2,3]
+  auto r = qbuem::read<std::set<int>>(json);
   EXPECT_EQ(r, s);
 }
 
 TEST(AutoSerial, UnorderedSet) {
   std::unordered_set<std::string> s = {"x", "y"};
-  std::string json = beast::write(s);
-  auto r = beast::read<std::unordered_set<std::string>>(json);
+  std::string json = qbuem::write(s);
+  auto r = qbuem::read<std::unordered_set<std::string>>(json);
   EXPECT_EQ(r, s);
 }
 
@@ -1864,24 +1864,24 @@ TEST(AutoSerial, UnorderedSet) {
 
 TEST(AutoSerial, MapStringInt) {
   std::map<std::string, int> m = {{"a",1}, {"b",2}};
-  std::string json = beast::write(m);
-  auto r = beast::read<std::map<std::string, int>>(json);
+  std::string json = qbuem::write(m);
+  auto r = qbuem::read<std::map<std::string, int>>(json);
   EXPECT_EQ(r["a"], 1);
   EXPECT_EQ(r["b"], 2);
 }
 
 TEST(AutoSerial, MapStringVector) {
   std::map<std::string, std::vector<int>> m = {{"evens",{2,4,6}},{"odds",{1,3,5}}};
-  std::string json = beast::write(m);
-  auto r = beast::read<std::map<std::string, std::vector<int>>>(json);
+  std::string json = qbuem::write(m);
+  auto r = qbuem::read<std::map<std::string, std::vector<int>>>(json);
   ASSERT_EQ(r["evens"].size(), 3u);
   EXPECT_EQ(r["evens"][1], 4);
 }
 
 TEST(AutoSerial, UnorderedMapRoundTrip) {
   std::unordered_map<std::string, double> m = {{"pi",3.14},{"e",2.72}};
-  std::string json = beast::write(m);
-  auto r = beast::read<std::unordered_map<std::string, double>>(json);
+  std::string json = qbuem::write(m);
+  auto r = qbuem::read<std::unordered_map<std::string, double>>(json);
   EXPECT_NEAR(r["pi"], 3.14, 1e-9);
 }
 
@@ -1889,14 +1889,14 @@ TEST(AutoSerial, UnorderedMapRoundTrip) {
 
 TEST(AutoSerial, FixedArray) {
   std::array<int, 4> a = {10, 20, 30, 40};
-  EXPECT_EQ(beast::write(a), "[10,20,30,40]");
-  auto r = beast::read<std::array<int, 4>>("[1,2,3,4]");
+  EXPECT_EQ(qbuem::write(a), "[10,20,30,40]");
+  auto r = qbuem::read<std::array<int, 4>>("[1,2,3,4]");
   EXPECT_EQ(r[2], 3);
 }
 
 TEST(AutoSerial, FixedArrayPartialInput) {
   // JSON array shorter than std::array — remaining elements keep default
-  auto r = beast::read<std::array<int, 3>>("[7,8]");
+  auto r = qbuem::read<std::array<int, 3>>("[7,8]");
   EXPECT_EQ(r[0], 7);
   EXPECT_EQ(r[1], 8);
   EXPECT_EQ(r[2], 0);  // default-constructed
@@ -1906,16 +1906,16 @@ TEST(AutoSerial, FixedArrayPartialInput) {
 
 TEST(AutoSerial, Pair) {
   std::pair<int, std::string> p = {5, "five"};
-  std::string json = beast::write(p);  // [5,"five"]
-  auto r = beast::read<std::pair<int, std::string>>(json);
+  std::string json = qbuem::write(p);  // [5,"five"]
+  auto r = qbuem::read<std::pair<int, std::string>>(json);
   EXPECT_EQ(r.first,  5);
   EXPECT_EQ(r.second, "five");
 }
 
 TEST(AutoSerial, Tuple) {
   std::tuple<int, std::string, bool> t = {42, "hello", true};
-  std::string json = beast::write(t);
-  auto r = beast::read<std::tuple<int, std::string, bool>>(json);
+  std::string json = qbuem::write(t);
+  auto r = qbuem::read<std::tuple<int, std::string, bool>>(json);
   EXPECT_EQ(std::get<0>(r), 42);
   EXPECT_EQ(std::get<1>(r), "hello");
   EXPECT_TRUE(std::get<2>(r));
@@ -1927,41 +1927,41 @@ TEST(AutoSerial, FromJsonHelper) {
   Document doc;
   auto root = parse(doc, R"([1,2,3])");
   std::vector<int> v;
-  beast::from_json(root, v);
+  qbuem::from_json(root, v);
   ASSERT_EQ(v.size(), 3u);
   EXPECT_EQ(v[1], 2);
 }
 
 TEST(AutoSerial, ToJsonStrHelper) {
   std::vector<bool> v = {true, false, true};
-  EXPECT_EQ(beast::to_json_str(v), "[true,false,true]");
+  EXPECT_EQ(qbuem::to_json_str(v), "[true,false,true]");
 }
 
 // ============================================================================
-// BEAST_JSON_FIELDS — Tier 2: macro-based struct binding
+// QBUEM_JSON_FIELDS — Tier 2: macro-based struct binding
 // ============================================================================
 
 // ── Simple struct ─────────────────────────────────────────────────────────────
 
 struct MacroPoint { int x = 0; int y = 0; };
-BEAST_JSON_FIELDS(MacroPoint, x, y)
+QBUEM_JSON_FIELDS(MacroPoint, x, y)
 
 TEST(MacroFields, Simple) {
-  MacroPoint p = beast::read<MacroPoint>(R"({"x":3,"y":7})");
+  MacroPoint p = qbuem::read<MacroPoint>(R"({"x":3,"y":7})");
   EXPECT_EQ(p.x, 3);
   EXPECT_EQ(p.y, 7);
 }
 
 TEST(MacroFields, SimpleWrite) {
   MacroPoint p{10, 20};
-  std::string json = beast::write(p);
-  auto r = beast::read<MacroPoint>(json);
+  std::string json = qbuem::write(p);
+  auto r = qbuem::read<MacroPoint>(json);
   EXPECT_EQ(r.x, 10);
   EXPECT_EQ(r.y, 20);
 }
 
 TEST(MacroFields, MissingFieldsUseDefault) {
-  MacroPoint p = beast::read<MacroPoint>(R"({"x":5})");
+  MacroPoint p = qbuem::read<MacroPoint>(R"({"x":5})");
   EXPECT_EQ(p.x, 5);
   EXPECT_EQ(p.y, 0);  // default
 }
@@ -1969,7 +1969,7 @@ TEST(MacroFields, MissingFieldsUseDefault) {
 // ── Nested struct ─────────────────────────────────────────────────────────────
 
 struct MacroAddress { std::string city; std::string country; };
-BEAST_JSON_FIELDS(MacroAddress, city, country)
+QBUEM_JSON_FIELDS(MacroAddress, city, country)
 
 struct MacroPerson {
   std::string              name;
@@ -1977,7 +1977,7 @@ struct MacroPerson {
   MacroAddress             addr;
   std::vector<std::string> hobbies;
 };
-BEAST_JSON_FIELDS(MacroPerson, name, age, addr, hobbies)
+QBUEM_JSON_FIELDS(MacroPerson, name, age, addr, hobbies)
 
 TEST(MacroFields, NestedStruct) {
   constexpr auto JSON = R"({
@@ -1986,7 +1986,7 @@ TEST(MacroFields, NestedStruct) {
     "addr": {"city": "Seoul", "country": "KR"},
     "hobbies": ["coding", "reading"]
   })";
-  auto p = beast::read<MacroPerson>(JSON);
+  auto p = qbuem::read<MacroPerson>(JSON);
   EXPECT_EQ(p.name,         "Alice");
   EXPECT_EQ(p.age,          30);
   EXPECT_EQ(p.addr.city,    "Seoul");
@@ -1997,8 +1997,8 @@ TEST(MacroFields, NestedStruct) {
 
 TEST(MacroFields, NestedRoundTrip) {
   MacroPerson original{"Bob", 25, {"Busan","KR"}, {"hiking","gaming","cooking"}};
-  std::string json = beast::write(original);
-  auto restored = beast::read<MacroPerson>(json);
+  std::string json = qbuem::write(original);
+  auto restored = qbuem::read<MacroPerson>(json);
   EXPECT_EQ(restored.name,         original.name);
   EXPECT_EQ(restored.age,          original.age);
   EXPECT_EQ(restored.addr.city,    original.addr.city);
@@ -2013,17 +2013,17 @@ struct MacroWithOpt {
   std::optional<int>       score;
   std::optional<MacroPoint> pos;
 };
-BEAST_JSON_FIELDS(MacroWithOpt, name, score, pos)
+QBUEM_JSON_FIELDS(MacroWithOpt, name, score, pos)
 
 TEST(MacroFields, OptionalAbsent) {
-  auto r = beast::read<MacroWithOpt>(R"({"name":"test"})");
+  auto r = qbuem::read<MacroWithOpt>(R"({"name":"test"})");
   EXPECT_EQ(r.name, "test");
   EXPECT_FALSE(r.score.has_value());
   EXPECT_FALSE(r.pos.has_value());
 }
 
 TEST(MacroFields, OptionalPresent) {
-  auto r = beast::read<MacroWithOpt>(R"({"name":"ok","score":99,"pos":{"x":1,"y":2}})");
+  auto r = qbuem::read<MacroWithOpt>(R"({"name":"ok","score":99,"pos":{"x":1,"y":2}})");
   ASSERT_TRUE(r.score.has_value());
   EXPECT_EQ(*r.score, 99);
   ASSERT_TRUE(r.pos.has_value());
@@ -2033,8 +2033,8 @@ TEST(MacroFields, OptionalPresent) {
 
 TEST(MacroFields, OptionalRoundTrip) {
   MacroWithOpt original{"hello", 77, MacroPoint{3, 4}};
-  std::string json = beast::write(original);
-  auto r = beast::read<MacroWithOpt>(json);
+  std::string json = qbuem::write(original);
+  auto r = qbuem::read<MacroWithOpt>(json);
   ASSERT_TRUE(r.score.has_value());
   EXPECT_EQ(*r.score, 77);
   ASSERT_TRUE(r.pos.has_value());
@@ -2053,7 +2053,7 @@ struct MacroAllTypes {
   std::map<std::string, int>    props;
   std::array<int, 3>            rgb     = {};
 };
-BEAST_JSON_FIELDS(MacroAllTypes, flag, count, ratio, label, note, nums, props, rgb)
+QBUEM_JSON_FIELDS(MacroAllTypes, flag, count, ratio, label, note, nums, props, rgb)
 
 TEST(MacroFields, AllTypesRoundTrip) {
   MacroAllTypes original;
@@ -2066,8 +2066,8 @@ TEST(MacroFields, AllTypesRoundTrip) {
   original.props = {{"a", 1}, {"b", 2}};
   original.rgb   = {255, 128, 0};
 
-  std::string json = beast::write(original);
-  auto r = beast::read<MacroAllTypes>(json);
+  std::string json = qbuem::write(original);
+  auto r = qbuem::read<MacroAllTypes>(json);
 
   EXPECT_TRUE(r.flag);
   EXPECT_EQ(r.count, 42);
@@ -2089,7 +2089,7 @@ struct MacroConfig {
   std::map<std::string, std::vector<int>> datasets;
   std::optional<MacroPerson>            owner;
 };
-BEAST_JSON_FIELDS(MacroConfig, version, datasets, owner)
+QBUEM_JSON_FIELDS(MacroConfig, version, datasets, owner)
 
 TEST(MacroFields, DeepNested) {
   constexpr auto JSON = R"({
@@ -2097,7 +2097,7 @@ TEST(MacroFields, DeepNested) {
     "datasets": {"train":[1,2,3],"test":[4,5]},
     "owner": {"name":"Carol","age":35,"addr":{"city":"Jeju","country":"KR"},"hobbies":[]}
   })";
-  auto cfg = beast::read<MacroConfig>(JSON);
+  auto cfg = qbuem::read<MacroConfig>(JSON);
   EXPECT_EQ(cfg.version, "1.0");
   EXPECT_EQ(cfg.datasets.at("train").size(), 3u);
   EXPECT_EQ(cfg.datasets.at("test")[1], 5);
@@ -2112,8 +2112,8 @@ TEST(MacroFields, DeepNestedRoundTrip) {
   original.datasets = {{"x", {1,2}}, {"y", {3}}};
   original.owner    = MacroPerson{"Dave", 40, {"Incheon","KR"}, {"music"}};
 
-  std::string json = beast::write(original);
-  auto r = beast::read<MacroConfig>(json);
+  std::string json = qbuem::write(original);
+  auto r = qbuem::read<MacroConfig>(json);
 
   EXPECT_EQ(r.version, "2.0");
   EXPECT_EQ(r.datasets.at("x")[0], 1);
@@ -2126,8 +2126,8 @@ TEST(MacroFields, DeepNestedRoundTrip) {
 
 TEST(MacroFields, VectorOfStructs) {
   std::vector<MacroPoint> pts = {{1,2},{3,4},{5,6}};
-  std::string json = beast::write(pts);
-  auto r = beast::read<std::vector<MacroPoint>>(json);
+  std::string json = qbuem::write(pts);
+  auto r = qbuem::read<std::vector<MacroPoint>>(json);
   ASSERT_EQ(r.size(), 3u);
   EXPECT_EQ(r[1].x, 3);
   EXPECT_EQ(r[2].y, 6);
@@ -2137,7 +2137,7 @@ TEST(MacroFields, VectorOfStructs) {
 
 TEST(MacroFields, MapOfStructs) {
   std::map<std::string, MacroPoint> m = {{"origin",{0,0}},{"end",{10,10}}};
-  std::string json = beast::write(m);
-  auto r = beast::read<std::map<std::string, MacroPoint>>(json);
+  std::string json = qbuem::write(m);
+  auto r = qbuem::read<std::map<std::string, MacroPoint>>(json);
   EXPECT_EQ(r.at("end").x, 10);
 }

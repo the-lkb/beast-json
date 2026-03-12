@@ -1,8 +1,8 @@
 """
-beast_json.py — Python bindings for Beast JSON via ctypes
+qbuem_json.py — Python bindings for qbuem-json via ctypes
 
 Usage:
-    from beast_json import BeastJSON, Document
+    from qbuem_json import QbuemJSON, Document
 
     # Parse
     doc = Document('{"name":"Alice","age":30,"tags":["a","b"]}')
@@ -36,12 +36,12 @@ Usage:
         print(e)  # RFC 8259 violation: trailing comma
 
 Requirements:
-    The shared library 'libeast_json_c.so' (or .dylib/.dll) must be
+    The shared library 'liqbuem_json_c.so' (or .dylib/.dll) must be
     findable via LD_LIBRARY_PATH / DYLD_LIBRARY_PATH.
 
     Build it with:
-        cmake -S . -B build -DBEAST_JSON_BUILD_BINDINGS=ON
-        cmake --build build --target beast_json_c
+        cmake -S . -B build -DQBUEM_JSON_BUILD_BINDINGS=ON
+        cmake --build build --target qbuem_json_c
 """
 
 import ctypes
@@ -55,17 +55,17 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 # ── Library loading ───────────────────────────────────────────────────────────
 
 def _find_library() -> ctypes.CDLL:
-    """Search for libeast_json_c in common locations."""
+    """Search for liqbuem_json_c in common locations."""
     system = platform.system()
     if system == "Linux":
-        names = ["libbeast_json_c.so", "libbeast_json_c.so.1",
-                 "libbeast_json_c.so.1.0.0"]
+        names = ["libqbuem_json_c.so", "libqbuem_json_c.so.1",
+                 "libqbuem_json_c.so.1.0.0"]
     elif system == "Darwin":
-        names = ["libbeast_json_c.dylib", "libbeast_json_c.1.dylib"]
+        names = ["libqbuem_json_c.dylib", "libqbuem_json_c.1.dylib"]
     elif system == "Windows":
-        names = ["beast_json_c.dll"]
+        names = ["qbuem_json_c.dll"]
     else:
-        names = ["libbeast_json_c.so"]
+        names = ["libqbuem_json_c.so"]
 
     # Search paths: same dir as this script, LD_LIBRARY_PATH, then system
     search_dirs = [
@@ -73,7 +73,7 @@ def _find_library() -> ctypes.CDLL:
         str(Path(__file__).parent.parent.parent / "build" / "bindings" / "c"),
         str(Path(__file__).parent.parent.parent / "build"),
     ]
-    env_path = os.environ.get("BEAST_JSON_LIB_PATH", "")
+    env_path = os.environ.get("QBUEM_JSON_LIB_PATH", "")
     if env_path:
         search_dirs.insert(0, env_path)
 
@@ -84,14 +84,14 @@ def _find_library() -> ctypes.CDLL:
                 return ctypes.CDLL(candidate)
 
     # Fall back to system linker
-    found = ctypes.util.find_library("beast_json_c")
+    found = ctypes.util.find_library("qbuem_json_c")
     if found:
         return ctypes.CDLL(found)
 
     raise RuntimeError(
-        "Could not find libeast_json_c. "
-        "Build it with: cmake --build <build-dir> --target beast_json_c\n"
-        "Then set BEAST_JSON_LIB_PATH=/path/to/dir"
+        "Could not find liqbuem_json_c. "
+        "Build it with: cmake --build <build-dir> --target qbuem_json_c\n"
+        "Then set QBUEM_JSON_LIB_PATH=/path/to/dir"
     )
 
 
@@ -408,7 +408,7 @@ def _to_raw_json(value: Any) -> str:
 
 class Document:
     """
-    Beast JSON document context.
+    qbuem-json document context.
 
     Parses JSON and provides access to the root Value.
 
@@ -486,7 +486,7 @@ def loads(json_str: Union[str, bytes], strict: bool = False) -> Any:
     """
     Parse a JSON string and return the equivalent Python object.
 
-    Like json.loads() but uses Beast JSON for parsing.
+    Like json.loads() but uses qbuem-json for parsing.
 
     Returns: dict, list, str, int, float, bool, or None.
     """
@@ -496,7 +496,7 @@ def loads(json_str: Union[str, bytes], strict: bool = False) -> Any:
 
 def dumps(obj: Any) -> str:
     """
-    Serialize a Python object to a JSON string via Beast JSON.
+    Serialize a Python object to a JSON string via qbuem-json.
 
     For simple types (dict, list, str, int, float, bool, None),
     this is equivalent to json.dumps().

@@ -121,7 +121,7 @@ onUnmounted(() => clearTimer())
           <span class="tvt-col__icon">📼</span>
           <div>
             <div class="tvt-col__title">Lazy Tape DOM</div>
-            <div class="tvt-col__sub">Beast JSON — contiguous array</div>
+            <div class="tvt-col__sub">qbuem-json — contiguous array</div>
           </div>
         </div>
 

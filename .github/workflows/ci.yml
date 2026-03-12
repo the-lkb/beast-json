@@ -148,8 +148,8 @@ jobs:
       run: >
         cmake -B build
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DBEAST_JSON_BUILD_TESTS=ON
-        -DBEAST_JSON_BUILD_BENCHMARKS=OFF
+        -DQBUEM_JSON_BUILD_TESTS=ON
+        -DQBUEM_JSON_BUILD_BENCHMARKS=OFF
         -DCMAKE_C_COMPILER_LAUNCHER=ccache
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 

@@ -8,7 +8,7 @@ on:
       - 'docs/**'
       - '!docs/public/benchmark-results.json'
       - '.github/workflows/docs.yml'
-      - 'include/beast_json/beast_json.hpp'
+      - 'include/qbuem_json/qbuem_json.hpp'
   # Deploy after benchmarks finish so benchmark-results.json is up-to-date.
   # workflow_run fires after the Benchmark workflow commits the updated JSON.
   workflow_run:

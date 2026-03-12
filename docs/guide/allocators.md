@@ -1,6 +1,6 @@
 # Custom Allocators
 
-Beast JSON is designed for environments where memory management is critical. It fully supports the C++17/20 **Polymorphic Memory Resource (PMR)** model, allowing you to control exactly where and how memory is allocated.
+qbuem-json is designed for environments where memory management is critical. It fully supports the C++17/20 **Polymorphic Memory Resource (PMR)** model, allowing you to control exactly where and how memory is allocated.
 
 ## 🧠 Why Custom Allocators?
 
@@ -11,7 +11,7 @@ While the default allocator is fast, certain scenarios benefit from specialized 
 
 ## 🛠️ Using `std::pmr`
 
-The `beast::json::Document` class and the `parse` functions accept an optional `std::pmr::memory_resource*`.
+The `qbuem::json::Document` class and the `parse` functions accept an optional `std::pmr::memory_resource*`.
 
 ### 1. Stack-Based Parsing (Zero Heap)
 Use a `std::pmr::monotonic_buffer_resource` with a stack-allocated array for absolute peak performance and zero heap noise.
@@ -25,7 +25,7 @@ void process_small_json(std::string_view json) {
     std::pmr::monotonic_buffer_resource pool(buffer, sizeof(buffer));
 
     // This document and its Tape will reside entirely on the stack
-    auto doc = beast::json::parse(json, &pool);
+    auto doc = qbuem::json::parse(json, &pool);
     
     // ... use doc ...
 }
@@ -38,14 +38,14 @@ For high-concurrency servers, use a pool allocator to reduce contention.
 std::pmr::synchronized_pool_resource global_pool;
 
 void on_request(std::string_view payload) {
-    auto doc = beast::json::parse(payload, &global_pool);
+    auto doc = qbuem::json::parse(payload, &global_pool);
     // ...
 }
 ```
 
 ## 🏗️ Technical Details
 
-Beast JSON's internal `Tape` is a `std::pmr::vector<TapeNode>`. 
+qbuem-json's internal `Tape` is a `std::pmr::vector<TapeNode>`. 
 - When a `memory_resource` is provided, the vector uses it for all growth operations.
 - All subsequent `Value` accessors and `dump()` operations inherit this memory context where appropriate.
 

@@ -19,7 +19,7 @@
  *   - Special key names + empty containers nested
  */
 
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 
 #include <array>
@@ -33,7 +33,7 @@
 #include <unordered_set>
 #include <vector>
 
-using namespace beast;
+using namespace qbuem;
 
 // ─── Struct definitions
 // ────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ using namespace beast;
 struct Point2D {
   double x{}, y{};
 };
-BEAST_JSON_FIELDS(Point2D, x, y)
+QBUEM_JSON_FIELDS(Point2D, x, y)
 
 struct City {
   std::string name;
@@ -49,7 +49,7 @@ struct City {
   double lat{}, lng{};
   std::vector<std::string> districts;
 };
-BEAST_JSON_FIELDS(City, name, population, lat, lng, districts)
+QBUEM_JSON_FIELDS(City, name, population, lat, lng, districts)
 
 struct Region {
   std::string name;
@@ -57,7 +57,7 @@ struct Region {
   std::map<std::string, int> stats;
   std::optional<std::string> capital;
 };
-BEAST_JSON_FIELDS(Region, name, cities, stats, capital)
+QBUEM_JSON_FIELDS(Region, name, cities, stats, capital)
 
 struct World {
   std::string version;
@@ -66,7 +66,7 @@ struct World {
   std::optional<int> year;
   int total_cities{};
 };
-BEAST_JSON_FIELDS(World, version, regions, tags, year, total_cities)
+QBUEM_JSON_FIELDS(World, version, regions, tags, year, total_cities)
 
 // ─── MegaStruct: split into sub-structs (BEAST_FOR_EACH max = 16 fields) ─────
 
@@ -80,7 +80,7 @@ struct MegaPrimitivePart {
   std::optional<std::string> opt_str;
   std::optional<std::vector<int>> opt_vec;
 };
-BEAST_JSON_FIELDS(MegaPrimitivePart, flag, i32, i64, dbl, str, opt_int, opt_str,
+QBUEM_JSON_FIELDS(MegaPrimitivePart, flag, i32, i64, dbl, str, opt_int, opt_str,
                   opt_vec)
 
 struct MegaSequencePart {
@@ -93,7 +93,7 @@ struct MegaSequencePart {
   std::set<std::string> s_str;
   std::unordered_set<int> us_int;
 };
-BEAST_JSON_FIELDS(MegaSequencePart, vec_int, vec_dbl, vec_str, lst, deq, s_int,
+QBUEM_JSON_FIELDS(MegaSequencePart, vec_int, vec_dbl, vec_str, lst, deq, s_int,
                   s_str, us_int)
 
 struct MegaMapPart {
@@ -106,7 +106,7 @@ struct MegaMapPart {
   std::vector<Point2D> points;
   std::map<std::string, Point2D> named_pts;
 };
-BEAST_JSON_FIELDS(MegaMapPart, m_int, m_str, m_vec, um_dbl, arr4, pair_is,
+QBUEM_JSON_FIELDS(MegaMapPart, m_int, m_str, m_vec, um_dbl, arr4, pair_is,
                   points, named_pts)
 
 struct MegaStruct {
@@ -115,13 +115,13 @@ struct MegaStruct {
   MegaMapPart maps;
   Point2D pt;
 };
-BEAST_JSON_FIELDS(MegaStruct, prims, seqs, maps, pt)
+QBUEM_JSON_FIELDS(MegaStruct, prims, seqs, maps, pt)
 
 // ─── Helper
 // ───────────────────────────────────────────────────────────────────
 
 template <typename T> static T roundtrip(const T &v) {
-  return beast::read<T>(beast::write(v));
+  return qbuem::read<T>(qbuem::write(v));
 }
 
 // ─── 100-depth nested JSON

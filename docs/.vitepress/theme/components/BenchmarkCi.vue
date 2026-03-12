@@ -62,15 +62,15 @@
       <div class="chart">
         <div v-for="(r, i) in sortedResults" :key="r.library" class="bar-row">
           <div class="rank" :class="{ gold: i === 0 }">{{ i + 1 }}</div>
-          <div class="lib" :class="{ beast: r.isBeast }">{{ r.library }}</div>
+          <div class="lib" :class="{ qbuem: r.isQbuem }">{{ r.library }}</div>
           <div class="track">
             <div
               class="fill"
-              :class="{ beast: r.isBeast, na: r.value <= 0 }"
+              :class="{ qbuem: r.isQbuem, na: r.value <= 0 }"
               :style="{ width: r.value > 0 ? pct(r.value) : '0%' }"
             />
           </div>
-          <div class="val" :class="{ beast: r.isBeast }">
+          <div class="val" :class="{ qbuem: r.isQbuem }">
             {{ r.value > 0 ? fmtVal(r.value) : '—' }}
           </div>
         </div>
@@ -209,7 +209,7 @@ const sortedResults = computed(() => {
     .map(r => ({
       ...r,
       value: r[key] as number,
-      isBeast: r.library.toLowerCase().includes('beast'),
+      isQbuem: r.library.toLowerCase().includes('qbuem'),
     }))
     .sort((a, b) => {
       if (a.value <= 0) return 1
@@ -239,7 +239,7 @@ function archIcon(arch: string):  string { return ARCH_ICON[arch]  ?? '💻' }
 
 onMounted(async () => {
   try {
-    const res = await fetch('/beast-json/benchmark-results.json')
+    const res = await fetch('/qbuem-json/benchmark-results.json')
     if (res.ok) {
       const json: BenchData = await res.json()
       if (json.platforms?.length) {
@@ -426,7 +426,7 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.lib.beast { color: var(--vp-c-brand-1); font-weight: 700; }
+.lib.qbuem { color: var(--vp-c-brand-1); font-weight: 700; }
 
 .track {
   position: relative;
@@ -442,7 +442,7 @@ onMounted(async () => {
   background: var(--vp-c-gray-2, #ccc);
   transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.fill.beast { background: var(--vp-c-brand-1); opacity: 0.85; }
+.fill.qbuem { background: var(--vp-c-brand-1); opacity: 0.85; }
 .fill.na { background: transparent; }
 
 .val {
@@ -452,7 +452,7 @@ onMounted(async () => {
   text-align: right;
   white-space: nowrap;
 }
-.val.beast { color: var(--vp-c-brand-1); font-weight: 700; }
+.val.qbuem { color: var(--vp-c-brand-1); font-weight: 700; }
 
 /* ── Misc ────────────────────────────────────────────────────────────── */
 .bench-note {

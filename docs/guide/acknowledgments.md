@@ -1,6 +1,6 @@
 # Acknowledgments & References
 
-Beast JSON is built on the shoulders of giants. Our performance and correctness are
+qbuem-json is built on the shoulders of giants. Our performance and correctness are
 the result of integrating decades of research in parsing, numerical algorithms, string
 processing, and systems engineering.
 
@@ -15,7 +15,7 @@ theory pages.
 ### Raffaello Giulietti — Schubfach Algorithm
 
 - **What we use:** The core double-to-decimal algorithm that produces the **shortest
-  round-trip decimal string** for any IEEE 754 `double`. Used in `bj_nc::to_chars(double)`.
+  round-trip decimal string** for any IEEE 754 `double`. Used in `qj_nc::to_chars(double)`.
 - **Why it matters:** Schubfach guarantees that parsing the output gives back the exact
   same `double`. No fallback path, no precision loss, no trailing-zero bloat.
 - **Source:** *"The Schubfach way to render doubles,"* Raffaello Giulietti, 2020.
@@ -29,12 +29,12 @@ theory pages.
 
   | Adapted component | Origin in yyjson |
   |:---|:---|
-  | `bj_nc::to_chars(uint32/int32/uint64/int64)` | `yy_write_u32` / `yy_write_u64` integer routines |
-  | `bj_nc::to_chars(double)` | `yyjson_write_double` + `f64_bin_to_dec` (Schubfach) |
+  | `qj_nc::to_chars(uint32/int32/uint64/int64)` | `yy_write_u32` / `yy_write_u64` integer routines |
+  | `qj_nc::to_chars(double)` | `yyjson_write_double` + `f64_bin_to_dec` (Schubfach) |
   | 128-bit pow10 table (1,336 entries) | `f64_pow10_sig_table` in `yyjson.c` |
   | 2-digit ASCII table `char_table[200]` | `yy_digit_table` in `yyjson.c` |
 
-- **License:** MIT. Beast JSON preserves this in both source comments and here.
+- **License:** MIT. qbuem-json preserves this in both source comments and here.
 - **Repository:** [https://github.com/ibireme/yyjson](https://github.com/ibireme/yyjson)
 
 > **Why yyjson's implementation?**
@@ -51,7 +51,7 @@ theory pages.
 
 - **Fast Unrounded Scaling**: The cornerstone of our bit-accurate **number parsing**.
   His research simplified what was historically a complex and error-prone part of
-  systems programming. Beast JSON uses this for `parse()` stage-2 number reading.
+  systems programming. qbuem-json uses this for `parse()` stage-2 number reading.
 - [Floating-Point Printing and Parsing Can Be Simple and Fast (2026)](https://research.swtch.com/fp-all/)
 
 ### Daniel Lemire & Michael Eisel
@@ -85,7 +85,7 @@ own Lazy Tape design and provided a direct competitive reference point.
 
 - **What we drew from:** The [glaze](https://github.com/stephenberry/glaze) library's
   approach to **compile-time struct registration** and **FNV-1a hash dispatch** for
-  field mapping informed the design of Beast JSON's Nexus Fusion engine.
+  field mapping informed the design of qbuem-json's Nexus Fusion engine.
   Specifically:
   - Compile-time `consteval` FNV-1a hashing for zero-overhead field lookup
   - The `if constexpr` dispatch chain used in `append_json<W, T>` for type-generic serialization
@@ -94,9 +94,9 @@ own Lazy Tape design and provided a direct competitive reference point.
 - **License:** MIT.
 - [https://github.com/stephenberry/glaze](https://github.com/stephenberry/glaze)
 
-> **Transparency note:** Beast JSON benchmarks include glaze as a primary competitor.
+> **Transparency note:** qbuem-json benchmarks include glaze as a primary competitor.
 > We believe open acknowledgment of mutual influence strengthens the ecosystem.
-> Where Beast Nexus wins, it is because we extended these ideas further.
+> Where qbuem-json Nexus wins, it is because we extended these ideas further.
 > Where glaze wins (or ties), those results are published honestly in our CI benchmarks.
 
 ### RapidJSON
@@ -143,6 +143,6 @@ own Lazy Tape design and provided a direct competitive reference point.
 
 ::: tip ❤️ To the C++ Community
 To the C++ community: thank you for pushing the boundaries of what is possible with
-modern C++. Every open-source library listed here made Beast JSON possible.
+modern C++. Every open-source library listed here made qbuem-json possible.
 We hope to contribute back in kind.
 :::

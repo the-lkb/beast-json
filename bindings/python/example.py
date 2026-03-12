@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-example.py — Beast JSON Python bindings usage demo
+example.py — qbuem-json Python bindings usage demo
 
 Build the shared library first:
-    cmake -S ../.. -B ../../build -DBEAST_JSON_BUILD_BINDINGS=ON
-    cmake --build ../../build --target beast_json_c
+    cmake -S ../.. -B ../../build -DQBUEM_JSON_BUILD_BINDINGS=ON
+    cmake --build ../../build --target qbuem_json_c
 
 Then run:
     python3 example.py
@@ -16,7 +16,7 @@ import os
 # Allow running from the bindings/python directory
 sys.path.insert(0, os.path.dirname(__file__))
 
-from beast_json import Document, loads, dumps
+from qbuem_json import Document, loads, dumps
 
 def main():
     # ── Basic parsing ─────────────────────────────────────────────────────────

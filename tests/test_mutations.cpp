@@ -1,8 +1,8 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <string>
 
-using namespace beast;
+using namespace qbuem;
 
 // ── Issue #61: Segfault when assigning via operator[] on a missing key ─────────
 //

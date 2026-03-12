@@ -65,8 +65,8 @@ jobs:
       run: >
         cmake -B build_bench
         -DCMAKE_BUILD_TYPE=Release
-        -DBEAST_JSON_BUILD_TESTS=OFF
-        -DBEAST_JSON_BUILD_BENCHMARKS=ON
+        -DQBUEM_JSON_BUILD_TESTS=OFF
+        -DQBUEM_JSON_BUILD_BENCHMARKS=ON
         -DCMAKE_C_COMPILER_LAUNCHER=ccache
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 

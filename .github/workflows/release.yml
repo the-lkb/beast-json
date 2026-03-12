@@ -20,7 +20,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Beast JSON ${{ github.ref_name }}: The Ultimate High-Performance C++20 JSON Parser"
+          name: "qbuem-json ${{ github.ref_name }}: The Ultimate High-Performance C++20 JSON Parser"
           generate_release_notes: true
           files: |
-            include/beast_json/beast_json.hpp
+            include/qbuem_json/qbuem_json.hpp

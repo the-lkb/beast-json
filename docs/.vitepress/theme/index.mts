@@ -23,7 +23,7 @@ export default {
     // Doxygen pages are static HTML served outside VitePress's route system.
     // Using a capture-phase click listener (fires before Vue's handlers) so
     // the SPA router never sees the click. link.href gives the fully-resolved
-    // absolute URL, correctly including the site's base path (/beast-json/).
+    // absolute URL, correctly including the site's base path (/qbuem-json/).
     if (typeof window !== 'undefined') {
       document.addEventListener('click', (e) => {
         const link = (e.target as Element).closest('a') as HTMLAnchorElement | null

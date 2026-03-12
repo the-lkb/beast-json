@@ -1,8 +1,8 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <string_view>
 
-using namespace beast;
+using namespace qbuem;
 
 // NOTE: lazy::Parser does not support C-style comments.
 // '/' is not a recognized JSON token; any JSON with comment syntax fails.

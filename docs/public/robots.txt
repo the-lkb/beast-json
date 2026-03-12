@@ -9,4 +9,4 @@ User-agent: SemrushBot
 Crawl-delay: 10
 
 # Sitemap location
-Sitemap: https://qbuem.github.io/beast-json/sitemap.xml
+Sitemap: https://qbuem.github.io/qbuem-json/sitemap.xml

@@ -1,6 +1,6 @@
 # Performance Benchmarks
 
-Beast JSON is engineered to be the benchmark leader in both parsing and serialization across all major architectures.
+qbuem-json is engineered to be the benchmark leader in both parsing and serialization across all major architectures.
 
 Automatically updated on every push to `main` that touches `include/` or `benchmarks/`.
 Runs in parallel on three native GitHub-hosted runners (x86\_64 / Apple Silicon / Linux AArch64).

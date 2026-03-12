@@ -1,8 +1,8 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <string>
 
-using namespace beast;
+using namespace qbuem;
 
 // NOTE: Neither rtsm::Parser nor lazy::Parser validates UTF-8 byte sequences.
 // scan_string_swar / scan_string_end only scan for '"' and '\'.

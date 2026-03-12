@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(beast_json_benchmarks)
+project(qbuem_json_benchmarks)
 
 include(FetchContent)
 
@@ -142,29 +142,29 @@ endif()
 
 
 
-# Unified benchmark: beast::lazy + yyjson + nlohmann, all 4 standard files
+# Unified benchmark: qbuem::lazy + yyjson + nlohmann, all 4 standard files
 # Usage: ./bench_all [file.json]  OR  ./bench_all --all
 add_executable(bench_all bench_all.cpp)
 target_link_libraries(bench_all PRIVATE
-    beast_json::beast_json
+    qbuem_json::qbuem_json
     nlohmann_json::nlohmann_json
     yyjson
     simdjson
 )
 target_include_directories(bench_all PRIVATE ${rapidjson_SOURCE_DIR}/include)
 
-# Struct benchmark: beast-json vs glaze
+# Struct benchmark: qbuem-json vs glaze
 add_executable(bench_structs bench_structs.cpp)
 target_link_libraries(bench_structs PRIVATE
-    beast_json::beast_json
+    qbuem_json::qbuem_json
     nlohmann_json::nlohmann_json
 )
 target_include_directories(bench_structs PRIVATE ${rapidjson_SOURCE_DIR}/include)
 
-# HFT benchmark: beast-json vs glaze vs simdjson vs rapidjson vs nlohmann
+# HFT benchmark: qbuem-json vs glaze vs simdjson vs rapidjson vs nlohmann
 add_executable(bench_hft bench_hft.cpp)
 target_link_libraries(bench_hft PRIVATE
-    beast_json::beast_json
+    qbuem_json::qbuem_json
     nlohmann_json::nlohmann_json
     simdjson
 )
@@ -177,7 +177,7 @@ target_include_directories(bench_hft PRIVATE ${rapidjson_SOURCE_DIR}/include)
 #      ./bench --section structs
 add_executable(bench bench.cpp)
 target_link_libraries(bench PRIVATE
-    beast_json::beast_json
+    qbuem_json::qbuem_json
     nlohmann_json::nlohmann_json
     yyjson
     simdjson
@@ -246,7 +246,7 @@ endif()
 #       Clang with -march=native + LTO emits SVE at link time even when source
 #         only uses arm_neon.h intrinsics (LTO can inline + auto-vectorize).
 #       -fno-vectorize -fno-slp-vectorize -fno-lto: required safety guards.
-#       beast_json's explicit NEON intrinsics are unaffected by -fno-vectorize.
+#       qbuem_json's explicit NEON intrinsics are unaffected by -fno-vectorize.
 #       Graviton 3/4 (Linux, SVE exposed): use -march=armv8.4-a+sve explicitly
 #         rather than -march=native to avoid accidental SVE2/SME emission.
 

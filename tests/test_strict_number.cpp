@@ -1,8 +1,8 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <string_view>
 
-using namespace beast;
+using namespace qbuem;
 
 // NOTE: lazy::Parser uses a lenient digit scanner: any sequence starting
 // with '-' or '0'-'9' is accepted as a number. Leading zeros, trailing

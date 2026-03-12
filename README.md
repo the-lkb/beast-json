@@ -1,14 +1,14 @@
 <div align="center">
 
   <p>
-    <a href="https://github.com/qbuem/beast-json/actions/workflows/ci.yml"><img src="https://github.com/qbuem/beast-json/actions/workflows/ci.yml/badge.svg" alt="C++20 CI"></a>
-    <a href="https://github.com/qbuem/beast-json/actions/workflows/codeql.yml"><img src="https://github.com/qbuem/beast-json/actions/workflows/codeql.yml/badge.svg" alt="CodeQL Static Analysis"></a>
-    <a href="https://github.com/qbuem/beast-json/releases"><img src="https://img.shields.io/badge/Version-v1.0.5-blue" alt="Version 1.0.5"></a>
+    <a href="https://github.com/qbuem/qbuem-json/actions/workflows/ci.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/ci.yml/badge.svg" alt="C++20 CI"></a>
+    <a href="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml/badge.svg" alt="CodeQL Static Analysis"></a>
+    <a href="https://github.com/qbuem/qbuem-json/releases"><img src="https://img.shields.io/badge/Version-v1.0.5-blue" alt="Version 1.0.5"></a>
     <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
   </p>
 
   <p>
-    <a href="https://qbuem.github.io/beast-json/">
+    <a href="https://qbuem.github.io/qbuem-json/">
       <img src="https://img.shields.io/badge/Documentation-Hub-orange?style=for-the-badge&logo=vitepress" alt="Documentation Hub">
     </a>
   </p>
@@ -17,19 +17,19 @@
 
 ---
 
-**Beast JSON** is a high-performance C++20 JSON engine providing a **Hybrid Strategy** for modern workloads. It offers two specialized engines: **Beast (DOM)** for massive-scale throughput and **Beast (Nexus)** for micro-latency Zero-Tape mapping.
+**qbuem-json** is a high-performance C++20 JSON engine providing a **Hybrid Strategy** for modern workloads. It offers two specialized engines: **qbuem-json DOM** for massive-scale throughput and **qbuem-json Nexus** for micro-latency Zero-Tape mapping.
 
-By leveraging **C++20 Concepts**, **SIMD (AVX-512, NEON)**, and **Nexus Fusion (Zero-Tape)** technology, Beast JSON eliminates traditional tree-based DOM overhead while retaining a beautiful, type-safe API.
+By leveraging **C++20 Concepts**, **SIMD (AVX-512, NEON)**, and **Nexus Fusion (Zero-Tape)** technology, qbuem-json eliminates traditional tree-based DOM overhead while retaining a beautiful, type-safe API.
 
 ---
 
 ## 🚀 Features
 
-* **Dual-Engine Architecture** — Choose between **Beast (DOM)** for bulk processing and **Beast (Nexus)** for sub-microsecond struct mapping.
+* **Dual-Engine Architecture** — Choose between **qbuem-json DOM** for bulk processing and **qbuem-json Nexus** for sub-microsecond struct mapping.
 * **World-Class Performance** — Outperforms `yyjson`, `simdjson`, and `glaze` in real-world complex STL benchmarks.
 * **Nexus Fusion (Zero-Tape)** — Direct JSON-to-struct mapping in a single pass. Zero Tape allocations.
 * **Zero-Allocation Execution** — Sequential memory layout and zero-copy strings for deterministic performance.
-* **Single Header** — Drop `beast_json.hpp` into your project and you're ready.
+* **Single Header** — Drop `qbuem_json.hpp` into your project and you're ready.
 
 ```cpp
 struct User {
@@ -39,14 +39,14 @@ struct User {
     bool active;
 };
 
-BEAST_JSON_FIELDS(User, id, username, tags, active)
+QBUEM_JSON_FIELDS(User, id, username, tags, active)
 ```
 
 ---
 
 ## ⚡ Performance
 
-**[→ Live CI Benchmark Results](https://qbuem.github.io/beast-json/guide/benchmarks)**
+**[→ Live CI Benchmark Results](https://qbuem.github.io/qbuem-json/guide/benchmarks)**
 
 Benchmarks run automatically on every push to `main` across three native GitHub-hosted runners.
 Results cover all standard datasets (`twitter`, `canada`, `citm`, `gsoc`, `harsh`) with **Parse**, **Serialize**, and **Memory (Alloc KB)** metrics.
@@ -61,20 +61,20 @@ Results cover all standard datasets (`twitter`, `canada`, `citm`, `gsoc`, `harsh
 
 ## 📖 Documentation
 
-**[qbuem.github.io/beast-json](https://qbuem.github.io/beast-json/)**
+**[qbuem.github.io/qbuem-json](https://qbuem.github.io/qbuem-json/)**
 
 | Category | Topics |
 |:---|:---|
-| **Engineering Theory** | [Tape DOM](https://qbuem.github.io/beast-json/theory/architecture), [Nexus Fusion](https://qbuem.github.io/beast-json/theory/nexus-fusion), [SIMD Acceleration](https://qbuem.github.io/beast-json/theory/simd), [Russ Cox Algorithm](https://qbuem.github.io/beast-json/theory/russ-cox) |
-| **Advanced Usage** | [HFT Optimization Patterns](https://qbuem.github.io/beast-json/guide/hft-patterns), [Custom Allocators](https://qbuem.github.io/beast-json/guide/allocators), [Language Bindings](https://qbuem.github.io/beast-json/guide/bindings) |
-| **Guides** | [Getting Started](https://qbuem.github.io/beast-json/guide/getting-started), [Object Mapping](https://qbuem.github.io/beast-json/guide/mapping), [Error Handling](https://qbuem.github.io/beast-json/guide/errors) |
-| **API Reference** | [Full C++ Doxygen Reference](https://qbuem.github.io/beast-json/api/reference/index.html) |
+| **Engineering Theory** | [Tape DOM](https://qbuem.github.io/qbuem-json/theory/architecture), [Nexus Fusion](https://qbuem.github.io/qbuem-json/theory/nexus-fusion), [SIMD Acceleration](https://qbuem.github.io/qbuem-json/theory/simd), [Russ Cox Algorithm](https://qbuem.github.io/qbuem-json/theory/russ-cox) |
+| **Advanced Usage** | [HFT Optimization Patterns](https://qbuem.github.io/qbuem-json/guide/hft-patterns), [Custom Allocators](https://qbuem.github.io/qbuem-json/guide/allocators), [Language Bindings](https://qbuem.github.io/qbuem-json/guide/bindings) |
+| **Guides** | [Getting Started](https://qbuem.github.io/qbuem-json/guide/getting-started), [Object Mapping](https://qbuem.github.io/qbuem-json/guide/mapping), [Error Handling](https://qbuem.github.io/qbuem-json/guide/errors) |
+| **API Reference** | [Full C++ Doxygen Reference](https://qbuem.github.io/qbuem-json/api/reference/index.html) |
 
 ---
 
 ## 🤝 Open Source Commitment
 
-Beast JSON is licensed under the **Apache License 2.0** — permissive commercial use, modification, and distribution without copyleft friction.
+qbuem-json is licensed under the **Apache License 2.0** — permissive commercial use, modification, and distribution without copyleft friction.
 
 * **Transparent Benchmarking** — All benchmark suites and data files are open and independently verifiable.
 * **Community-Driven** — Contributions, critiques, and ideas are welcome.
@@ -84,7 +84,7 @@ Beast JSON is licensed under the **Apache License 2.0** — permissive commercia
 ## 💡 Inspiration & Acknowledgements
 
 * **[Raffaello Giulietti](https://drive.google.com/file/d/1IEeATSVnEE6TkrHlCYNY2GjaraBjOT4f)** — Schubfach algorithm (2020), foundation for shortest round-trip double serialization.
-* **[yyjson / ibireme (Y. Yuan)](https://github.com/ibireme/yyjson)** — MIT-licensed source of the Schubfach port and yy-itoa integer serialization used in Beast JSON's `bj_nc` namespace.
+* **[yyjson / ibireme (Y. Yuan)](https://github.com/ibireme/yyjson)** — MIT-licensed source of the Schubfach port and yy-itoa integer serialization used in qbuem-json's `qj_nc` namespace.
 * **[Russ Cox](https://research.swtch.com/fp-all/)** — Fast Unrounded Scaling algorithm (2026), foundation for bit-accurate number **parsing**.
 * **[Daniel Lemire](https://github.com/lemire) & Michael Eisel** — Eisel-Lemire algorithm and [`fast_float`](https://github.com/fastfloat/fast_float), defining modern 64-bit float parsing.
 * **[simdjson](https://github.com/simdjson/simdjson)** — Pioneered SIMD-accelerated JSON parsing at L1-cache speeds.
@@ -105,9 +105,9 @@ Beast JSON is licensed under the **Apache License 2.0** — permissive commercia
 
 ## ⚖️ License
 
-Beast JSON is licensed under the **Apache License 2.0**.
+qbuem-json is licensed under the **Apache License 2.0**.
 
-* **Open Attribution** — The `bj_nc` numeric serialization namespace is adapted from
+* **Open Attribution** — The `qj_nc` numeric serialization namespace is adapted from
   [yyjson](https://github.com/ibireme/yyjson) (MIT License, Y. Yuan) with full attribution
   in source and documentation. All other code is an original C++20 implementation.
 * **Fair Use & Citation** — Academic and blog citations provided for attribution under fair use.

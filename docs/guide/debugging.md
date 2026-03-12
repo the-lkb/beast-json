@@ -1,6 +1,6 @@
 # Debugging Guide
 
-This guide explains exactly how Beast JSON reads and stores data at the core level, then shows you how to diagnose every category of error — from beginner mistakes to expert-level memory issues.
+This guide explains exactly how qbuem-json reads and stores data at the core level, then shows you how to diagnose every category of error — from beginner mistakes to expert-level memory issues.
 
 ---
 
@@ -50,7 +50,7 @@ Understanding the data flow is the foundation of effective debugging. Every pars
       </div>
     </div>
     <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
-    <div class="bd-box bd-box--brand"><code>beast::Value { doc*, idx }</code> <small>— 16-byte lazy handle</small></div>
+    <div class="bd-box bd-box--brand"><code>qbuem::Value { doc*, idx }</code> <small>— 16-byte lazy handle</small></div>
   </div>
 </div>
 
@@ -111,7 +111,7 @@ Click any node below to see its exact encoding:
 
 ### String Storage: Zero-Copy
 
-The most important thing to understand about Beast JSON strings:
+The most important thing to understand about qbuem-json strings:
 
 <div class="bd-diagram">
   <div class="bd-col">
@@ -151,7 +151,7 @@ The most important thing to understand about Beast JSON strings:
   </div>
 </div>
 
-**Lifetime rule:** A `string_view` from Beast JSON is valid only while **both** the `Document` and the input buffer are alive. The moment either is destroyed, every `string_view` from that parse becomes a dangling pointer.
+**Lifetime rule:** A `string_view` from qbuem-json is valid only while **both** the `Document` and the input buffer are alive. The moment either is destroyed, every `string_view` from that parse becomes a dangling pointer.
 
 ### Integer Storage: Fully Inline
 
@@ -209,33 +209,33 @@ Explore every error category interactively — from what causes it to how to fix
 
 ### 🟢 Beginner: Catching and Reading Errors
 
-**All Beast JSON errors derive from `beast::json::error`.**
+**All qbuem-json errors derive from `qbuem::json::error`.**
 
 ```cpp
-#include <beast/json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 
 try {
-    auto doc  = beast::parse(input);
+    auto doc  = qbuem::parse(input);
     auto name = doc.root()["name"].as<std::string_view>();
     auto age  = doc.root()["age"].as<int>();
 }
-catch (const beast::parse_error& e) {
+catch (const qbuem::parse_error& e) {
     // Malformed JSON — bad input from network, file, etc.
     std::cerr << "Parse failed: " << e.what()   << "\n";
     std::cerr << "At byte:      " << e.position() << "\n";
     std::cerr << "Context:      " << e.context()  << "\n";
     // e.context() returns up to 20 bytes around the error site
 }
-catch (const beast::type_error& e) {
+catch (const qbuem::type_error& e) {
     // Wrong .as<T>() call
     std::cerr << "Type error: " << e.what() << "\n";
 }
-catch (const beast::access_error& e) {
+catch (const qbuem::access_error& e) {
     // Key not found, index out of range
     std::cerr << "Access error: " << e.what() << "\n";
 }
-catch (const beast::json::error& e) {
-    // Catch-all for any Beast JSON error
+catch (const qbuem::json::error& e) {
+    // Catch-all for any qbuem-json error
     std::cerr << "JSON error: " << e.what() << "\n";
 }
 ```
@@ -253,7 +253,7 @@ catch (const beast::json::error& e) {
 Always check before you extract:
 
 ```cpp
-auto doc  = beast::parse(input);
+auto doc  = qbuem::parse(input);
 auto root = doc.root();
 
 // ❌ Fragile — throws if key missing or wrong type
@@ -281,7 +281,7 @@ auto count = root["count"].as<int>(/*default=*/ 0);
 When you get a `parse_error`, the context string is your best diagnostic tool:
 
 ```cpp
-catch (const beast::parse_error& e) {
+catch (const qbuem::parse_error& e) {
     auto pos = e.position();      // byte offset into input
     auto ctx = e.context();       // up to 20 bytes around the error
 
@@ -295,7 +295,7 @@ catch (const beast::parse_error& e) {
 **Reading a `type_error` message:**
 
 <div class="bd-callout" style="font-size:0.82rem;">
-  <code>beast::type_error: expected INT64/UINT64, got STRING at tape[2]</code><br>
+  <code>qbuem::type_error: expected INT64/UINT64, got STRING at tape[2]</code><br>
   <div class="bd-row" style="gap:2rem;margin-top:0.5rem;font-size:0.72rem;color:var(--vp-c-text-2);justify-content:flex-start;flex-wrap:wrap;">
     <span>↑ what you called <code>.as&lt;&gt;()</code> with</span>
     <span>↑ what the tape actually contains</span>
@@ -312,7 +312,7 @@ For hot paths receiving untrusted input (network, files), validate cheaply befor
 
 ```cpp
 // Quick structural check — does not allocate
-bool looks_valid = beast::validate(input);
+bool looks_valid = qbuem::validate(input);
 
 // Check document size (prevent tape exhaustion DoS)
 if (input.size() > MAX_DOCUMENT_BYTES) {
@@ -321,7 +321,7 @@ if (input.size() > MAX_DOCUMENT_BYTES) {
 
 // Only parse if validation passes
 if (looks_valid) {
-    auto root = beast::parse(doc, input);
+    auto root = qbuem::parse(doc, input);
     // ...
 }
 ```
@@ -330,13 +330,13 @@ if (looks_valid) {
 
 ### 🟡 Intermediate: Lifetime Safety Patterns
 
-The most common source of hard-to-debug crashes in Beast JSON code is lifetime violations:
+The most common source of hard-to-debug crashes in qbuem-json code is lifetime violations:
 
 ```cpp
 // ❌ WRONG — string_view outlives the input
 std::string_view get_name(std::string_view json_text) {
-    beast::Document doc;
-    auto root = beast::parse(doc, json_text);
+    qbuem::Document doc;
+    auto root = qbuem::parse(doc, json_text);
     return root["name"].as<std::string_view>();
     // ^ This string_view points into json_text.
     //   If json_text was a temporary std::string, it's now dangling.
@@ -344,8 +344,8 @@ std::string_view get_name(std::string_view json_text) {
 
 // ✅ CORRECT — return owned data
 std::string get_name(std::string_view json_text) {
-    beast::Document doc;
-    auto root = beast::parse(doc, json_text);
+    qbuem::Document doc;
+    auto root = qbuem::parse(doc, json_text);
     auto sv   = root["name"].as<std::string_view>();
     return std::string(sv);  // copy out before return
 }
@@ -353,14 +353,14 @@ std::string get_name(std::string_view json_text) {
 // ✅ CORRECT — keep everything alive together
 struct ParseResult {
     std::string      input;     // keeps the buffer alive
-    beast::Document  doc;       // keeps the tape alive
-    beast::Value     root;      // safe to use
+    qbuem::Document  doc;       // keeps the tape alive
+    qbuem::Value     root;      // safe to use
 };
 
 ParseResult parse_and_keep(std::string json) {
     ParseResult r;
     r.input = std::move(json);
-    r.root  = beast::parse(r.doc, r.input);
+    r.root  = qbuem::parse(r.doc, r.input);
     return r;  // everything lives together — safe
 }
 ```
@@ -374,13 +374,13 @@ ParseResult parse_and_keep(std::string json) {
 When you have a hard-to-reproduce parse bug, dump the tape directly to understand what the parser saw:
 
 ```cpp
-#include <beast/json/debug.hpp>  // debug utilities
+#include <qbuem_json/qbuem_json.hpp>  // debug utilities
 
-beast::Document doc;
-auto root = beast::parse(doc, input);
+qbuem::Document doc;
+auto root = qbuem::parse(doc, input);
 
 // Print the entire tape as human-readable text
-beast::debug::dump_tape(doc, std::cerr);
+qbuem::debug::dump_tape(doc, std::cerr);
 ```
 
 Sample output:
@@ -413,7 +413,7 @@ Stage1Index:  24 structural positions
 
 ### 🔴 Expert: AddressSanitizer for Lifetime Bugs
 
-Beast JSON's zero-copy design means lifetime bugs produce **no exception** — only silent UB that may or may not crash. AddressSanitizer catches them reliably:
+qbuem-json's zero-copy design means lifetime bugs produce **no exception** — only silent UB that may or may not crash. AddressSanitizer catches them reliably:
 
 ```bash
 # Build with ASan
@@ -423,7 +423,7 @@ clang++ -fsanitize=address,undefined -g -O1 your_code.cpp -o app
 ./app
 ```
 
-A dangling `string_view` from Beast JSON produces an ASan report like:
+A dangling `string_view` from qbuem-json produces an ASan report like:
 
 ```
 =================================================================
@@ -452,7 +452,7 @@ The 56-bit payload holds a 48-bit virtual address and an 8-bit length hint. For 
 
 #### NEON path on ARM: no `VCOMPRESSB`
 
-ARM NEON lacks the `VCOMPRESSB` instruction. On ARM64, Beast JSON uses a `VBSL`-based gather instead. The structural iteration in Stage 2 uses a slightly longer scalar loop. Throughput on ARM is approximately 40-60% of the AVX-512 path, which is still 20–30× faster than a naive scalar parser.
+ARM NEON lacks the `VCOMPRESSB` instruction. On ARM64, qbuem-json uses a `VBSL`-based gather instead. The structural iteration in Stage 2 uses a slightly longer scalar loop. Throughput on ARM is approximately 40-60% of the AVX-512 path, which is still 20–30× faster than a naive scalar parser.
 
 #### Escaped quotes near the 64-byte boundary
 
@@ -462,7 +462,7 @@ ARM NEON lacks the `VCOMPRESSB` instruction. On ARM64, Beast JSON uses a `VBSL`-
 // window N+1 starts at:   value"...
 ```
 
-The prefix-XOR carry value is passed between windows. If an escaped quote (`\"`) sits at the boundary, the carry must correctly suppress the `"` in window N+1. Beast JSON propagates the carry via a thread-local scalar variable. If you find a parse bug that only appears on inputs whose escaped-quote positions are multiples of 64 bytes, this is the area to investigate.
+The prefix-XOR carry value is passed between windows. If an escaped quote (`\"`) sits at the boundary, the carry must correctly suppress the `"` in window N+1. qbuem-json propagates the carry via a thread-local scalar variable. If you find a parse bug that only appears on inputs whose escaped-quote positions are multiples of 64 bytes, this is the area to investigate.
 
 ---
 
@@ -537,7 +537,7 @@ Use this when an error occurs and you're not sure where to start:
       </div>
     </div>
     <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
-    <div class="bd-box bd-box--brand"><code>beast::Value</code> <small>— lazy handle (16 bytes)</small></div>
+    <div class="bd-box bd-box--brand"><code>qbuem::Value</code> <small>— lazy handle (16 bytes)</small></div>
     <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">.as&lt;T&gt;() on demand</div></div>
     <div class="bd-box bd-box--green">Typed C++ value <small>— zero allocation</small></div>
     <div class="bd-row" style="gap:1rem;margin-top:0.75rem;flex-wrap:wrap;">
@@ -554,4 +554,4 @@ Use this when an error occurs and you're not sure where to start:
   </div>
 </div>
 
-If in doubt: **copy `string_view` to `std::string`** before the input or `Document` goes out of scope. Every other performance characteristic of Beast JSON survives this one safety net.
+If in doubt: **copy `string_view` to `std::string`** before the input or `Document` goes out of scope. Every other performance characteristic of qbuem-json survives this one safety net.

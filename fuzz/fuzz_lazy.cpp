@@ -1,4 +1,4 @@
-// fuzz_lazy.cpp – libFuzzer target for beast::json::lazy internals.
+// fuzz_lazy.cpp – libFuzzer target for qbuem::json::lazy internals.
 //
 // Directly exercises the tape-based zero-copy lazy parser (parse_reuse),
 // plus the full Value accessor / mutation / serializer surface.
@@ -7,13 +7,13 @@
 //
 // Build / run: see fuzz_parse.cpp header comment; swap target name to fuzz_lazy.
 
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 #include <string_view>
 
-using namespace beast::json::lazy;
+using namespace qbuem::json::lazy;
 
 // One DocumentView per fuzzing process.
 static DocumentView g_doc;

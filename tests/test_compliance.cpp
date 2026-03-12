@@ -1,7 +1,7 @@
 /**
  * test_rfc8259.cpp — RFC 8259 Compliance Tests
  *
- * Tests beast::parse_strict() against RFC 8259 (the JSON specification).
+ * Tests qbuem::parse_strict() against RFC 8259 (the JSON specification).
  * Test naming follows the JSONTestSuite convention:
  *   y_ → must accept (valid JSON)
  *   n_ → must reject (invalid JSON)
@@ -10,12 +10,12 @@
  * RFC 8259 §2: A JSON text is a serialized value (any type at top level).
  */
 
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <stdexcept>
 #include <string_view>
 
-using namespace beast;
+using namespace qbuem;
 
 // ── Helpers
 // ───────────────────────────────────────────────────────────────────

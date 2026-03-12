@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Hexagon base -->
+  <path d="M60 6 L108 31 L108 81 L60 106 L12 81 L12 31 Z"
+        fill="#1a2744"/>
+  <!-- Subtle inner highlight -->
+  <path d="M60 13 L101 35 L101 78 L60 100 L19 78 L19 35 Z"
+        fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="1.5"/>
+
+  <!-- Q character (white, bold italic style) -->
+  <!-- Q circle body -->
+  <ellipse cx="50" cy="60" rx="18" ry="20" fill="none"
+           stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
+  <!-- Q tail (gold diagonal) -->
+  <line x1="57" y1="72" x2="70" y2="84"
+        stroke="#c4a052" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Curly brace } in gold -->
+  <text x="72" y="72" font-family="'Georgia', 'Times New Roman', serif"
+        font-size="32" font-weight="bold" font-style="normal"
+        fill="#c4a052" dominant-baseline="middle">}</text>
+</svg>

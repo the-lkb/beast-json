@@ -1,8 +1,8 @@
-# 📊 Beast JSON 1.0 Release — Technical API Blueprint
+# 📊 qbuem-json 1.0 Release — Technical API Blueprint
 
-This document is a detailed **Technical Blueprint** designed to guide future agents in flawlessly executing the **"Beast JSON 1.0 Official Release."** It specifies the physical identifiers of the Legacy code that must be deleted, and outlines the new `beast` API architecture that must be built.
+This document is a detailed **Technical Blueprint** designed to guide future agents in flawlessly executing the **"qbuem-json 1.0 Official Release."** It specifies the physical identifiers of the Legacy code that must be deleted, and outlines the new `qbuem` API architecture that must be built.
 
-It has been analyzed based on the current source code (`beast_json.hpp`) in the `main` branch.
+It has been analyzed based on the current source code (`qbuem_json.hpp`) in the `main` branch.
 
 ---
 
@@ -18,10 +18,10 @@ These classes are DOM objects based on slow dynamic memory allocation. Remove al
 - `struct JsonMember`
 - `class Document` (DOM Document)
 - `class StringBuffer` / `class TapeSerializer` 
-  - (Note: The new Serializer logic used inside `beast::lazy::Value::dump()` must be preserved)
+  - (Note: The new Serializer logic used inside `qbuem::lazy::Value::dump()` must be preserved)
 
 ### 1-2. Target Parser Backends for Deletion (Syntax Analysis Logic)
-The target for `beast` uses highly optimized parsers like the `TapeArena`-based 2-Pass `parse_staged`. The older string tokenizers are targets for deletion.
+The target for `qbuem` uses highly optimized parsers like the `TapeArena`-based 2-Pass `parse_staged`. The older string tokenizers are targets for deletion.
 - Older structures inside `class Parser`:
   - All parser methods prior to Phase 50 that directly return or construct DOM objects (`Value`), such as `void parse()`, `parse_string()`, `parse_number()`, `parse_object()`, `parse_array()`.
   - Legacy scalar/vector fallback functions like `parse_string_swar()`, `skip_whitespace_swar()`, `vgetq_lane` variants (Identify and remove 100% of the functions currently NOT used by the Tape-based Lazy Parser).
@@ -33,24 +33,24 @@ End-users should not need to know whether the parser uses lazy evaluation or bui
 
 We adopt the following 3-Tier Architecture for expert-level library design.
 
-### Layer 1: The Core Engine (`namespace beast::core`)
+### Layer 1: The Core Engine (`namespace qbuem::core`)
 The absolute "engine" that physically parses and serializes JSON. The outside world (users) will not interact with implementations or classes in this layer directly.
 - **Includes**: SIMD/SWAR scanners (`simd`, `lookup`), escape parsers, number parsing (Russ Cox `PowMantissa`, `Unrounded`), `TapeArena`, `Stage1Index`, core `Parser` and `Serializer`.
 - **Goals**: 100% RFC 8259 compliance, zero-allocation, maximum processing speed via ILP (Instruction-Level Parallelism).
 
-### Layer 2: The Utilities (`namespace beast::utils` or `beast::ext`)
+### Layer 2: The Utilities (`namespace qbuem::utils` or `qbuem::ext`)
 A utility/plugin layer that adds extended functionality on top of the core data.
 - **Includes**: C++ macro/template-based automatic O/R mappers (`to_json`, `from_json`, `BEAST_DEFINE_STRUCT`), JSON Pointer (RFC 6901), JSON Patch (RFC 6902), etc.
 - **Goals**: Maximize productivity by allowing inclusion/usage only when necessary, without compromising the lightweight nature of the core engine.
 
-### Layer 3: The Public API (`namespace beast`)
+### Layer 3: The Public API (`namespace qbuem`)
 The single "Facade" entry point that the user ultimately encounters. The implementation-dependent namespace `lazy` is hidden internally, exposing standard nomenclature.
 
-- **`beast::Value` (Evolution of the former `beast::lazy::Value`)**:
-  - Users only receive `beast::Value` through `beast::parse("...")`.
+- **`qbuem::Value` (Evolution of the former `qbuem::lazy::Value`)**:
+  - Users only receive `qbuem::Value` through `qbuem::parse("...")`.
   - Internally, it is a Lazy object holding a Tape reference, but externally it behaves perfectly like a conventional DOM object.
   - **Required Accessors**: `as_int64()`, `as_double()`, `as_string_view()`, `as_bool()`, `operator[](std::string_view)`, `operator[](size_t)`.
-- **`beast::parse()`**: A wrapper function around the core's `parse_staged()`.
+- **`qbuem::parse()`**: A wrapper function around the core's `parse_staged()`.
 
 ### Layer 4: Modern Error Handling (`std::optional`) & Fluent Chaining
 Instead of throwing complex exceptions or returning arcane error codes, we leverage C++17's `std::optional` to build a **"safe and intuitive error handling"** system.
@@ -66,7 +66,7 @@ Instead of throwing complex exceptions or returning arcane error codes, we lever
   - **3) Range-based For Loop & Structured Binding**: Perfectly supports C++17 structured bindings like `for (auto [key, val] : obj.items()) { ... }`, offering extreme convenience identical to iterating a Python dictionary.
 
 ## 🏆 PART 4: Target API Benchmarking & "World's Best Usability" Design
-We must dominate competing libraries not just in pure performance, but also in "Developer Experience (DX)". We analyze the pros and cons of recent trendsetters `nlohmann/json`, `glaze`, and `rapidjson` to design **Beast JSON's Ultimate API**.
+We must dominate competing libraries not just in pure performance, but also in "Developer Experience (DX)". We analyze the pros and cons of recent trendsetters `nlohmann/json`, `glaze`, and `rapidjson` to design **qbuem-json's Ultimate API**.
 
 ### 4-1. Competitor API Usability Analysis
 1. **nlohmann/json ("The King of Intuition")**
@@ -85,14 +85,14 @@ We must dominate competing libraries not just in pure performance, but also in "
    - **Pros**: The world's fastest C JSON parser. Pure pointer structure with zero dynamic allocations.
    - **Cons**: Composed of entirely C APIs, completely unable to utilize modern C++ features like structured bindings (`for(auto[k, v])`) or `std::optional` flexibility.
 
-### 4-2. 🔥 The Ultimate Conclusion of Expert Debates: "Beast's Unique Paradigm Design"
+### 4-2. 🔥 The Ultimate Conclusion of Expert Debates: "qbuem-json's Unique Paradigm Design"
 While nlohmann's intuition, Glaze's meta-parsing, and simdjson's speed are excellent, they each have critical design limitations (forced Exception throws, complex error codes, lack of flexibility).
-After expert deliberation, Beast JSON 1.0 proposes a completely unique paradigm—**"An entirely unique and elegant API found nowhere else in the world"**—combining the latest C++ trends rather than simply mimicking competitors.
+After expert deliberation, qbuem-json 1.0 proposes a completely unique paradigm—**"An entirely unique and elegant API found nowhere else in the world"**—combining the latest C++ trends rather than simply mimicking competitors.
 
 Our core paradigm is the **"Zero-Overhead Monadic Proxy"**.
 
 #### 💡 Unique Innovation 1: "Miraculous Fallback utilizing the Pipe (`|`) Operator"
-During JSON traversal, if a key is missing or the type is wrong, programs either crash (nlohmann) or force checking complex error codes (simdjson). Beast silently propagates the error state (Monad) upon traversal failure, allowing users to immediately provide a Default value via the C++ Pipe (`|`) operator.
+During JSON traversal, if a key is missing or the type is wrong, programs either crash (nlohmann) or force checking complex error codes (simdjson). qbuem-json silently propagates the error state (Monad) upon traversal failure, allowing users to immediately provide a Default value via the C++ Pipe (`|`) operator.
 ```cpp
 // Even if "users" is not an array, its first element is missing, or "age" is missing/not an integer, 
 // you securely receive 18 without a single Exception or branch statement (if).
@@ -104,7 +104,7 @@ std::string_view name = doc["users"][0]["name"] | "Guest";
 This single line of code completely crushes the 10-line `if-else` error handling codes of other libraries.
 
 #### 💡 Unique Innovation 2: "Zero-Allocation Typed Views"
-Traditional libraries allocate memory on the heap to create an array when iterating `[1, 2, 3]`. Beast immediately casts C++ types while reading the Tape, offering stream-like iteration capabilities.
+Traditional libraries allocate memory on the heap to create an array when iterating `[1, 2, 3]`. qbuem-json immediately casts C++ types while reading the Tape, offering stream-like iteration capabilities.
 ```cpp
 // Memory allocation (dynamic array creation) size 0 Bytes! Casts to int immediately while reading the tape
 for(int id : doc["user_ids"].as_array<int>()) {
@@ -130,7 +130,7 @@ doc["variable_field"].match(
 ```
 
 #### 💡 Feature 5: Perfect Dual-Compatibility with Glaze/nlohmann Styles
-Even while equipped with all the unique weapons above, we still 100% support 1-Line auto-serialization of C++ `struct`s (`beast::read<T>`) and nlohmann-style implicit type conversions like `int a = doc["age"];`.
+Even while equipped with all the unique weapons above, we still 100% support 1-Line auto-serialization of C++ `struct`s (`qbuem::read<T>`) and nlohmann-style implicit type conversions like `int a = doc["age"];`.
 
 > **Design Conclusion**: The moment users abandon the archaic and rough APIs of other libraries and taste the Pipe (`|`) operator and Typed Views, they will never be able to return to another JSON library. It is an architecture that will achieve **undisputed Global #1 not just in speed, but in Developer Experience (DX)**.
 
@@ -148,7 +148,7 @@ Implementation details to achieve the "integrity" that will strongly appeal to d
 
 ## 🧩 PART 5: 1.0 Release Verification (Overhead Defense Line)
 - **Goal: 0% Overhead in API Layer**:
-  - All accessors like `get_int64()` inside `beast::Value` must be strictly set to register `inline` to reduce Function Call Stack costs to zero.
+  - All accessors like `get_int64()` inside `qbuem::Value` must be strictly set to register `inline` to reduce Function Call Stack costs to zero.
   - Test the final bastion of floating-point `get_double()` operations to analytically prove how much delay the Russ Cox algorithm introduces at runtime using `cmp_benchmark.cpp`.
   - Re-verify the structural completeness of the 81 core test suites utilizing `TEST_P` (GTest Equivalent).
 
@@ -160,4 +160,4 @@ In order to dominate global ecosystems rather than just remaining a C++ library,
 
 ---
 
-> **Final Conclusion**: Once all structural reorganization in the Blueprint above is complete, Beast JSON will be reborn as the perfect `1.0 Version`, claiming the Global #1 spot not only in Speed (Phase 1-48) but also in **Developer Experience (DX), Stability, and Extensibility**. We are ready to begin.
+> **Final Conclusion**: Once all structural reorganization in the Blueprint above is complete, qbuem-json will be reborn as the perfect `1.0 Version`, claiming the Global #1 spot not only in Speed (Phase 1-48) but also in **Developer Experience (DX), Stability, and Extensibility**. We are ready to begin.

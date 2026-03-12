@@ -1,9 +1,9 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
 
-using namespace beast;
+using namespace qbuem;
 
 // Helper: parse + dump in one step
 static std::string roundtrip(std::string_view json) {

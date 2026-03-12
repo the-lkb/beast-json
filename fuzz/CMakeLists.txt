@@ -1,4 +1,4 @@
-# fuzz/CMakeLists.txt – libFuzzer targets for beast-json
+# fuzz/CMakeLists.txt – libFuzzer targets for qbuem-json
 #
 # Prerequisites
 # ─────────────
@@ -8,9 +8,9 @@
 # Quick-start
 # ───────────
 #   cmake -B build-fuzz \
-#         -DBEAST_JSON_BUILD_FUZZ=ON \
-#         -DBEAST_JSON_BUILD_TESTS=OFF \
-#         -DBEAST_JSON_BUILD_BENCHMARKS=OFF \
+#         -DQBUEM_JSON_BUILD_FUZZ=ON \
+#         -DQBUEM_JSON_BUILD_TESTS=OFF \
+#         -DQBUEM_JSON_BUILD_BENCHMARKS=OFF \
 #         -DCMAKE_CXX_COMPILER=clang++
 #   cmake --build build-fuzz
 #
@@ -25,7 +25,7 @@
 # ── Compiler guard ────────────────────────────────────────────────────────────
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     message(FATAL_ERROR
-        "BEAST_JSON_BUILD_FUZZ requires Clang (pass -DCMAKE_CXX_COMPILER=clang++). "
+        "QBUEM_JSON_BUILD_FUZZ requires Clang (pass -DCMAKE_CXX_COMPILER=clang++). "
         "Detected compiler: ${CMAKE_CXX_COMPILER_ID}")
 endif()
 
@@ -35,7 +35,7 @@ set(FUZZ_SANITIZERS "fuzzer,address,undefined")
 # ── Helper function ───────────────────────────────────────────────────────────
 function(add_fuzz_target name)
     add_executable(${name} ${name}.cpp)
-    target_link_libraries(${name} PRIVATE beast_json::beast_json)
+    target_link_libraries(${name} PRIVATE qbuem_json::qbuem_json)
     target_compile_features(${name} PRIVATE cxx_std_20)
     target_compile_options(${name} PRIVATE
         -g
@@ -49,6 +49,6 @@ function(add_fuzz_target name)
 endfunction()
 
 # ── Fuzz targets ──────────────────────────────────────────────────────────────
-add_fuzz_target(fuzz_parse)    # High-level beast::parse() + full accessor surface
-add_fuzz_target(fuzz_lazy)     # Lazy tape parser: beast::json::lazy::parse_reuse()
+add_fuzz_target(fuzz_parse)    # High-level qbuem::parse() + full accessor surface
+add_fuzz_target(fuzz_lazy)     # Lazy tape parser: qbuem::json::lazy::parse_reuse()
 add_fuzz_target(fuzz_rfc8259)  # parse_reuse consistency: tape-reuse vs fresh allocation

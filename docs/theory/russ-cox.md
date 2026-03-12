@@ -1,6 +1,6 @@
 # Float Parsing: Russ Cox Fast Unrounded Scaling
 
-Standard library functions like `strtod` and `atof` are notoriously slow for high-throughput parsing. Beast JSON replaces them with a two-stage integer-only algorithm that produces bit-accurate IEEE-754 `double` results without touching the FPU rounding mode.
+Standard library functions like `strtod` and `atof` are notoriously slow for high-throughput parsing. qbuem-json replaces them with a two-stage integer-only algorithm that produces bit-accurate IEEE-754 `double` results without touching the FPU rounding mode.
 
 ---
 
@@ -69,7 +69,7 @@ The goal of float parsing: compute these three fields from a decimal string usin
 
 ## The Two-Stage Decision Pipeline
 
-Beast JSON never calls `strtod`. Every decimal string goes through two integer-only stages:
+qbuem-json never calls `strtod`. Every decimal string goes through two integer-only stages:
 
 <div class="bd-diagram">
   <div class="bd-col">
@@ -110,7 +110,7 @@ Beast JSON never calls `strtod`. Every decimal string goes through two integer-o
   </div>
 </div>
 
-There is **no third stage**. Beast JSON never falls back to `strtod`.
+There is **no third stage**. qbuem-json never falls back to `strtod`.
 
 ---
 
@@ -181,7 +181,7 @@ The precomputed table stores a 64-bit approximation of `10^e`. The product `m ×
 
 ## Stage 2: Russ Cox 128-bit Exact Path
 
-For the ~1% of inputs where Eisel-Lemire is ambiguous, Beast JSON uses a precomputed **128-bit exact multiplier** for each power of 10:
+For the ~1% of inputs where Eisel-Lemire is ambiguous, qbuem-json uses a precomputed **128-bit exact multiplier** for each power of 10:
 
 <div class="bd-diagram">
   <div class="bd-col">
@@ -299,7 +299,7 @@ The table covers `10^−342` through `10^308` — the full range of IEEE-754 `do
 
 ## Correctness Guarantee
 
-Beast JSON produces the **correctly rounded IEEE-754 result** for all possible finite decimal inputs:
+qbuem-json produces the **correctly rounded IEEE-754 result** for all possible finite decimal inputs:
 
 - All decimal strings with ≤ 15 significant digits: provably exact via Eisel-Lemire
 - All remaining inputs: provably exact via the 128-bit Russ Cox path

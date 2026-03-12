@@ -1,5 +1,5 @@
 // benchmarks/bench_all.cpp
-// Unified benchmark: beast::json::lazy vs yyjson vs nlohmann/json
+// Unified benchmark: qbuem::json::lazy vs yyjson vs nlohmann/json
 // Measures parse + serialize throughput on 4 standard JSON files.
 //
 // Usage:
@@ -9,7 +9,7 @@
 //   ./bench_all --parse-only --all       # PGO GENERATE: parse paths only
 
 #include "utils.hpp"
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <fstream>
 #ifdef BEAST_HAS_GLAZE
 #include <glaze/glaze.hpp>
@@ -48,7 +48,7 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
               << "  Iterations: " << N << "\n";
     bench::print_table_header();
 
-    std::vector<std::string> libs = {"beast::lazy", "simdjson",  "yyjson",
+    std::vector<std::string> libs = {"qbuem::lazy", "simdjson",  "yyjson",
                                      "RapidJSON",   "Glaze DOM", "nlohmann"};
     for (const auto &lib : libs) {
 #ifndef BEAST_HAS_GLAZE
@@ -74,24 +74,24 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
     return;
   }
 
-  // ── 1. beast::json::lazy (production path) ──────────────────────────────
-  if (lib_filter == "beast::lazy") {
+  // ── 1. qbuem::json::lazy (production path) ──────────────────────────────
+  if (lib_filter == "qbuem::lazy") {
     // Memory: RSS before vs after cold parse — measures tape arena size
     size_t rss0 = bench::get_current_rss_kb();
-    beast::Document ctx;
-    beast::parse(ctx, content); // cold parse: allocates and sizes the tape
+    qbuem::Document ctx;
+    qbuem::parse(ctx, content); // cold parse: allocates and sizes the tape
     size_t rss1 = bench::get_current_rss_kb();
     size_t alloc_kb = (rss1 > rss0) ? rss1 - rss0 : 0;
 
     bench::Timer pt, st;
     pt.start();
     for (size_t i = 0; i < N; ++i)
-      beast::parse(ctx, content);
+      qbuem::parse(ctx, content);
     double p_ns = pt.elapsed_ns() / N;
 
     double s_ns = 0.0;
     bool ok = true;
-    auto doc = beast::parse(ctx, content);
+    auto doc = qbuem::parse(ctx, content);
 
     if (!parse_only) {
       std::string dump_buf;
@@ -104,7 +104,7 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
       ok = !out.empty();
     }
 
-    bench::Result{"beast::lazy", p_ns, s_ns, ok, alloc_kb}.print();
+    bench::Result{"qbuem::lazy", p_ns, s_ns, ok, alloc_kb}.print();
   }
 
   // ── 1.5 simdjson ─────────────────────────────────────────────────────────

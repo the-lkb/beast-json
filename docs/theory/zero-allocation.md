@@ -1,6 +1,6 @@
 # Zero-Allocation Principle
 
-The single greatest source of latency jitter in C++ is the heap. Every `malloc` call can stall a thread for microseconds. Beast JSON eliminates all heap allocations from its hot path through three complementary techniques.
+The single greatest source of latency jitter in C++ is the heap. Every `malloc` call can stall a thread for microseconds. qbuem-json eliminates all heap allocations from its hot path through three complementary techniques.
 
 ---
 
@@ -35,7 +35,7 @@ For a library parsing thousands of messages per second, these costs compound int
 
 ## The Three-Layer Solution
 
-Beast JSON eliminates heap allocations with three coordinated techniques:
+qbuem-json eliminates heap allocations with three coordinated techniques:
 
 <div class="bd-diagram">
   <div class="bd-col">
@@ -44,21 +44,21 @@ Beast JSON eliminates heap allocations with three coordinated techniques:
         <div class="bd-step__num" style="background:#0097a7;">1</div>
         <div class="bd-step__body">
           <div class="bd-step__title" style="color:#0097a7;">Layer 1 — Pre-allocated Tape</div>
-          <div class="bd-step__desc">beast::Document owns one contiguous tape[]. All TapeNodes written here. Capacity grows once, reused forever.</div>
+          <div class="bd-step__desc">qbuem::Document owns one contiguous tape[]. All TapeNodes written here. Capacity grows once, reused forever.</div>
         </div>
       </div>
       <div class="bd-step">
         <div class="bd-step__num" style="background:#9c27b0;">2</div>
         <div class="bd-step__body">
           <div class="bd-step__title" style="color:#9c27b0;">Layer 2 — Zero-Copy String Views</div>
-          <div class="bd-step__desc">beast::Value stores std::string_view pointing into the caller's input buffer. No memcpy, no heap string.</div>
+          <div class="bd-step__desc">qbuem::Value stores std::string_view pointing into the caller's input buffer. No memcpy, no heap string.</div>
         </div>
       </div>
       <div class="bd-step">
         <div class="bd-step__num" style="background:#4caf50;">3</div>
         <div class="bd-step__body">
           <div class="bd-step__title" style="color:#4caf50;">Layer 3 — Stream-Push Serialization</div>
-          <div class="bd-step__desc">beast::write_to(buffer, value) writes tokens directly into the caller's buffer. No intermediate tree, no temporary string.</div>
+          <div class="bd-step__desc">qbuem::write_to(buffer, value) writes tokens directly into the caller's buffer. No intermediate tree, no temporary string.</div>
         </div>
       </div>
     </div>
@@ -69,7 +69,7 @@ Beast JSON eliminates heap allocations with three coordinated techniques:
 
 ## Layer 1: Tape Pre-Allocation and Reuse
 
-`beast::Document` allocates its internal tape **once** on first use. Every subsequent `parse()` call on the same `Document` resets the write pointer to zero — reusing existing memory without any allocator involvement:
+`qbuem::Document` allocates its internal tape **once** on first use. Every subsequent `parse()` call on the same `Document` resets the write pointer to zero — reusing existing memory without any allocator involvement:
 
 <div class="bd-diagram">
   <div class="bd-split" style="max-width:600px;margin:0 auto;">
@@ -99,11 +99,11 @@ Beast JSON eliminates heap allocations with three coordinated techniques:
 ### What this looks like in a hot loop
 
 ```cpp
-beast::Document doc;         // tape is empty — no allocation yet
+qbuem::Document doc;         // tape is empty — no allocation yet
 
 while (true) {
     auto msg  = recv_message();
-    auto root = beast::parse(doc, msg);  // zero malloc after first call
+    auto root = qbuem::parse(doc, msg);  // zero malloc after first call
     handle(root);
     // tape is implicitly reused on the next loop iteration
 }
@@ -137,7 +137,7 @@ In practice, documents in a single application tend to have stable schemas — a
 
 ## Layer 2: Zero-Copy String Views
 
-When Beast JSON encounters a string literal, it does **not** allocate a `std::string` or call `memcpy`. Instead, the `KEY` or `STRING` TapeNode stores a `std::string_view` pointing directly into the caller's input buffer:
+When qbuem-json encounters a string literal, it does **not** allocate a `std::string` or call `memcpy`. Instead, the `KEY` or `STRING` TapeNode stores a `std::string_view` pointing directly into the caller's input buffer:
 
 <div class="bd-diagram">
   <div class="bd-col">
@@ -182,7 +182,7 @@ Accessing `root["name"]` returns a `string_view` pointing at `buf[2]` with `len=
       </div>
     </div>
     <div class="bd-group">
-      <div class="bd-group__title" style="color:#0097a7;border-bottom-color:#0097a7;">beast::json</div>
+      <div class="bd-group__title" style="color:#0097a7;border-bottom-color:#0097a7;">qbuem::json</div>
       <div class="bd-group__body">
         <div class="bd-box" style="font-size:0.78rem;">Input: { name: Bob }</div>
         <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
@@ -197,7 +197,7 @@ Accessing `root["name"]` returns a `string_view` pointing at `buf[2]` with `len=
 
 ## Layer 3: Stream-Push Serialization
 
-Traditional serializers construct an intermediate in-memory JSON tree, then walk it to produce the output string. Beast JSON uses a **stream-push model**: it walks your data structure once and writes tokens directly into the output buffer:
+Traditional serializers construct an intermediate in-memory JSON tree, then walk it to produce the output string. qbuem-json uses a **stream-push model**: it walks your data structure once and writes tokens directly into the output buffer:
 
 <div class="bd-diagram">
   <div class="bd-split" style="max-width:640px;margin:0 auto;gap:1rem;">
@@ -212,7 +212,7 @@ Traditional serializers construct an intermediate in-memory JSON tree, then walk
       </div>
     </div>
     <div class="bd-group">
-      <div class="bd-group__title">Beast JSON — stream-push</div>
+      <div class="bd-group__title">qbuem-json — stream-push</div>
       <div class="bd-group__body">
         <div class="bd-box" style="font-size:0.78rem;">User data (your structs)</div>
         <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">single pass · zero intermediate · zero copies</div></div>
@@ -228,7 +228,7 @@ buf.reserve(8192);          // warm up once
 
 for (auto& event : stream) {
     buf.clear();
-    beast::write_to(buf, event);   // zero malloc — writes directly into buf
+    qbuem::write_to(buf, event);   // zero malloc — writes directly into buf
     send_to_kafka(buf);
 }
 ```
@@ -239,7 +239,7 @@ After the first call warms the buffer, **every subsequent serialization is alloc
 
 ## Allocation Profile: Measured on twitter.json (631 KB)
 
-| Operation | nlohmann/json | simdjson | Beast JSON |
+| Operation | nlohmann/json | simdjson | qbuem-json |
 |:---|---:|---:|---:|
 | **Allocations per parse** | ~11,000 | 2 (workspace) | **0** (after warmup) |
 | **Allocations per serialize** | ~5,000 | N/A (read-only) | **0** (with `write_to`) |
@@ -253,10 +253,10 @@ After the first call warms the buffer, **every subsequent serialization is alloc
 
 For real-time systems, **tail latency** matters more than average. Heap allocations cause unpredictable spikes:
 
-| Percentile | nlohmann/json | Beast JSON |
+| Percentile | nlohmann/json | qbuem-json |
 |:---|---:|---:|
 | **p50** | 6 μs | **0.3 μs** |
 | **p99** | 47 μs ← malloc pressure | **0.4 μs** |
 | **p99.9** | 312 μs ← OS page fault | **0.5 μs** |
 
-For systems with a 1 μs parse budget (co-located HFT, kernel-bypass networking, FPGA gateway), the difference between `nlohmann` and Beast JSON is not "faster" — it is the difference between **viable** and **not viable**.
+For systems with a 1 μs parse budget (co-located HFT, kernel-bypass networking, FPGA gateway), the difference between `nlohmann` and qbuem-json is not "faster" — it is the difference between **viable** and **not viable**.

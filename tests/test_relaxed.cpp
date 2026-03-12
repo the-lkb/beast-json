@@ -1,8 +1,8 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <string>
 
-using namespace beast;
+using namespace qbuem;
 
 // Helper: attempt parse with lazy parser, return true if succeeded
 static bool lazy_ok(std::string_view json) {

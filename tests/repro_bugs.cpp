@@ -1,4 +1,4 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <map>
@@ -6,7 +6,7 @@
 #include <set>
 #include <string>
 
-using namespace beast;
+using namespace qbuem;
 
 // Bug 1: Segfault after moving Document
 TEST(ReproBugs, MoveDocumentSegfault) {
@@ -60,20 +60,20 @@ TEST(ReproBugs, EraseIgnoredByAs) {
   EXPECT_THROW(v.as<int>(), std::runtime_error);
 }
 
-// ── BUG-1: beast::parse_reuse not exposed in public facade ───────────────────
+// ── BUG-1: qbuem::parse_reuse not exposed in public facade ───────────────────
 //
-// beast::json::parse_reuse existed internally but beast::parse_reuse was not
-// forwarded in the public beast:: namespace.
-// Use explicit qualification to avoid ADL ambiguity with beast::json::parse_reuse.
+// qbuem::json::parse_reuse existed internally but qbuem::parse_reuse was not
+// forwarded in the public qbuem:: namespace.
+// Use explicit qualification to avoid ADL ambiguity with qbuem::json::parse_reuse.
 TEST(ReproBugs2, ParseReusePublicFacade) {
-  beast::Document doc;
+  qbuem::Document doc;
   // First parse
-  beast::Value v1 = beast::parse_reuse(doc, R"({"a":1})");
+  qbuem::Value v1 = qbuem::parse_reuse(doc, R"({"a":1})");
   EXPECT_TRUE(v1.is_object());
   EXPECT_EQ(v1["a"].as<int>(), 1);
 
   // Reuse same document handle for a second parse
-  beast::Value v2 = beast::parse_reuse(doc, R"({"b":2})");
+  qbuem::Value v2 = qbuem::parse_reuse(doc, R"({"b":2})");
   EXPECT_TRUE(v2.is_object());
   EXPECT_EQ(v2["b"].as<int>(), 2);
 }

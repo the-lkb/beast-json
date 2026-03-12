@@ -1,8 +1,8 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <string_view>
 
-using namespace beast;
+using namespace qbuem;
 
 // NOTE: Neither rtsm::Parser nor lazy::Parser validates control characters
 // in strings. scan_string_swar / scan_string_end only stop at '"' and '\'.

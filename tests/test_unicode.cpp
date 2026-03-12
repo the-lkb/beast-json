@@ -1,8 +1,8 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <string>
 
-using namespace beast;
+using namespace qbuem;
 
 // The lazy parser stores strings as raw bytes from source. Unicode escape
 // sequences (\uXXXX) are NOT decoded; they are stored and re-emitted as-is.

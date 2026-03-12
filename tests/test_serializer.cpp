@@ -1,8 +1,8 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <gtest/gtest.h>
 #include <string>
 
-using namespace beast;
+using namespace qbuem;
 
 TEST(Serializer, BasicTypes) {
   std::string json = "[null,true,false,123,-456,3.14,\"hello\"]";

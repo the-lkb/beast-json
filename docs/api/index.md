@@ -1,39 +1,39 @@
 # API Reference
 
-A complete reference for all public APIs in Beast JSON v1.0.5.
+A complete reference for all public APIs in qbuem-json v1.0.5.
 
 > [!TIP]
-> Looking for auto-generated class/struct documentation? The **[Doxygen Reference](/beast-json/api/reference/index.html)** is rebuilt automatically whenever `beast_json.hpp` changes and deployed to Pages alongside this guide.
+> Looking for auto-generated class/struct documentation? The **[Doxygen Reference](/qbuem-json/api/reference/index.html)** is rebuilt automatically whenever `qbuem_json.hpp` changes and deployed to Pages alongside this guide.
 
 ---
 
 ## 🏛️ Core Types
 
-### `beast::Document`
+### `qbuem::Document`
 
 The **owner** of all parsed JSON data. It holds the tape arena and must outlive all `Value` objects derived from it.
 
 ```cpp
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 
 // Create a document and parse into it
-beast::Document doc;
-beast::Value root = beast::parse(doc, R"({"name": "Alice"})");
+qbuem::Document doc;
+qbuem::Value root = qbuem::parse(doc, R"({"name": "Alice"})");
 
 // Re-parse into the same document (reuses capacity — zero malloc after warmup)
-beast::Value root2 = beast::parse(doc, R"({"name": "Bob"})");
+qbuem::Value root2 = qbuem::parse(doc, R"({"name": "Bob"})");
 // ⚠️ root is now invalid! Always use the latest returned Value.
 ```
 
 ---
 
-### `beast::Value`
+### `qbuem::Value`
 
 A lightweight **16-byte handle** into the tape. It supports type checking, typed access, DOM navigation, iteration, and mutation.
 
 ---
 
-### `beast::SafeValue`
+### `qbuem::SafeValue`
 
 A **never-throws proxy** created via `Value::get()`. Propagates the "absent" state through entire access chains. Use for untrusted or optional data.
 
@@ -46,11 +46,11 @@ auto city = root.get("address").get("city").value_or(std::string{"Unknown"});
 
 ## 🔵 Free Functions
 
-### `beast::parse(doc, json)` — Parse JSON String
+### `qbuem::parse(doc, json)` — Parse JSON String
 
 ```cpp
-beast::Document doc;
-beast::Value root = beast::parse(doc, R"({"id": 1, "active": true})");
+qbuem::Document doc;
+qbuem::Value root = qbuem::parse(doc, R"({"id": 1, "active": true})");
 ```
 
 | Parameter | Type | Description |
@@ -58,22 +58,22 @@ beast::Value root = beast::parse(doc, R"({"id": 1, "active": true})");
 | `doc` | `Document&` | The document that will own the tape. |
 | `json` | `std::string_view` | The JSON text to parse. |
 
-**Returns**: `beast::Value` pointing at the root of the parsed document.
-**Does not throw.** Malformed or non-standard JSON is parsed on a best-effort basis. For strict RFC 8259 enforcement with exception-based error handling, use `beast::parse_strict`.
+**Returns**: `qbuem::Value` pointing at the root of the parsed document.
+**Does not throw.** Malformed or non-standard JSON is parsed on a best-effort basis. For strict RFC 8259 enforcement with exception-based error handling, use `qbuem::parse_strict`.
 
 ---
 
-### `beast::parse_reuse(doc, json)` — Explicit Hot-Loop Reuse
+### `qbuem::parse_reuse(doc, json)` — Explicit Hot-Loop Reuse
 
-Identical to `beast::parse()` — resets the tape and mutation overlays, then parses. Provided as a self-documenting alias to make reuse intent explicit in high-frequency parsing loops.
+Identical to `qbuem::parse()` — resets the tape and mutation overlays, then parses. Provided as a self-documenting alias to make reuse intent explicit in high-frequency parsing loops.
 
 ```cpp
-beast::Document doc;
+qbuem::Document doc;
 doc.reserve(4 * 1024); // optional: pre-warm
 
 while (running) {
     auto msg = source.receive();
-    beast::Value root = beast::parse_reuse(doc, msg); // zero malloc after warmup
+    qbuem::Value root = qbuem::parse_reuse(doc, msg); // zero malloc after warmup
     if (!root.is_valid()) continue;
     dispatch(root);
 }
@@ -81,15 +81,15 @@ while (running) {
 
 ---
 
-### `beast::parse_strict(doc, json)` — RFC 8259 Strict Parse
+### `qbuem::parse_strict(doc, json)` — RFC 8259 Strict Parse
 
 Performs strict RFC 8259 validation before parsing. Rejects trailing commas, leading zeros, lone surrogates, and more.
 
 ```cpp
-beast::Document doc;
+qbuem::Document doc;
 try {
-    auto root = beast::parse_strict(doc, R"({"key": "value"})"); // OK
-    auto bad  = beast::parse_strict(doc, "[1, 2,]");             // throws!
+    auto root = qbuem::parse_strict(doc, R"({"key": "value"})"); // OK
+    auto bad  = qbuem::parse_strict(doc, "[1, 2,]");             // throws!
 } catch (const std::runtime_error& e) {
     std::cerr << e.what() << "\n"; // RFC 8259 violation at offset 7
 }
@@ -97,14 +97,14 @@ try {
 
 ---
 
-### `beast::rfc8259::validate(json)` — Validate Only (No Parse)
+### `qbuem::rfc8259::validate(json)` — Validate Only (No Parse)
 
 Validates JSON text without building a DOM. Throws `std::runtime_error` on violation.
 
 ```cpp
 try {
-    beast::rfc8259::validate(R"({"valid": true})");  // OK — no throw
-    beast::rfc8259::validate("[1, 2,]");              // throws
+    qbuem::rfc8259::validate(R"({"valid": true})");  // OK — no throw
+    qbuem::rfc8259::validate("[1, 2,]");              // throws
 } catch (const std::runtime_error& e) {
     std::cerr << e.what() << "\n";
 }
@@ -112,62 +112,62 @@ try {
 
 ---
 
-### `beast::read<T>(json)` — Deserialize Directly to C++ Type
+### `qbuem::read<T>(json)` — Deserialize Directly to C++ Type
 
 The highest-level API. Combines parsing and deserialization in one call.
 
 ```cpp
 // Scalars
-int    n = beast::read<int>("42");
-double d = beast::read<double>("3.14");
-bool   b = beast::read<bool>("true");
+int    n = qbuem::read<int>("42");
+double d = qbuem::read<double>("3.14");
+bool   b = qbuem::read<bool>("true");
 
 // STL containers
-auto vec = beast::read<std::vector<int>>("[1, 2, 3]");
-auto map = beast::read<std::map<std::string, int>>(R"({"a":1,"b":2})");
-auto opt = beast::read<std::optional<int>>("null");    // → std::nullopt
-auto tup = beast::read<std::tuple<int, std::string>>("[42, \"hi\"]");
+auto vec = qbuem::read<std::vector<int>>("[1, 2, 3]");
+auto map = qbuem::read<std::map<std::string, int>>(R"({"a":1,"b":2})");
+auto opt = qbuem::read<std::optional<int>>("null");    // → std::nullopt
+auto tup = qbuem::read<std::tuple<int, std::string>>("[42, \"hi\"]");
 
-// Custom struct (requires BEAST_JSON_FIELDS)
+// Custom struct (requires QBUEM_JSON_FIELDS)
 struct User { std::string name; int age; };
-BEAST_JSON_FIELDS(User, name, age)
-auto user = beast::read<User>(R"({"name": "Alice", "age": 30})");
+QBUEM_JSON_FIELDS(User, name, age)
+auto user = qbuem::read<User>(R"({"name": "Alice", "age": 30})");
 ```
 
 ---
 
-### `beast::write(value)` — Serialize Any Type to JSON String
+### `qbuem::write(value)` — Serialize Any Type to JSON String
 
 ```cpp
 // Scalars
-std::string s1 = beast::write(42);           // "42"
-std::string s2 = beast::write(3.14);         // "3.14"
-std::string s3 = beast::write(true);         // "true"
-std::string s4 = beast::write(nullptr);      // "null"
-std::string s5 = beast::write("hello");      // "\"hello\""
+std::string s1 = qbuem::write(42);           // "42"
+std::string s2 = qbuem::write(3.14);         // "3.14"
+std::string s3 = qbuem::write(true);         // "true"
+std::string s4 = qbuem::write(nullptr);      // "null"
+std::string s5 = qbuem::write("hello");      // "\"hello\""
 
 // STL containers
-beast::write(std::vector<int>{1, 2, 3});           // "[1,2,3]"
-beast::write(std::map<std::string,int>{{"a",1}});  // "{\"a\":1}"
-beast::write(std::optional<int>{});                 // "null"
-beast::write(std::tuple{1, "x", true});            // "[1,\"x\",true]"
-beast::write(std::pair{"key", 99});                 // "[\"key\",99]"
+qbuem::write(std::vector<int>{1, 2, 3});           // "[1,2,3]"
+qbuem::write(std::map<std::string,int>{{"a",1}});  // "{\"a\":1}"
+qbuem::write(std::optional<int>{});                 // "null"
+qbuem::write(std::tuple{1, "x", true});            // "[1,\"x\",true]"
+qbuem::write(std::pair{"key", 99});                 // "[\"key\",99]"
 
 // Custom struct
 struct Config { std::string host; int port; };
-BEAST_JSON_FIELDS(Config, host, port)
+QBUEM_JSON_FIELDS(Config, host, port)
 Config cfg{"localhost", 8080};
-beast::write(cfg); // "{\"host\":\"localhost\",\"port\":8080}"
+qbuem::write(cfg); // "{\"host\":\"localhost\",\"port\":8080}"
 ```
 
-### `beast::write(value, indent)` — Pretty Print
+### `qbuem::write(value, indent)` — Pretty Print
 
 ```cpp
-beast::write(cfg, 2);  // 2-space indented JSON
-beast::write(cfg, 4);  // 4-space indented JSON
+qbuem::write(cfg, 2);  // 2-space indented JSON
+qbuem::write(cfg, 4);  // 4-space indented JSON
 ```
 
-### `beast::write_to(buffer, value)` — Append to Existing Buffer (Zero-Alloc)
+### `qbuem::write_to(buffer, value)` — Append to Existing Buffer (Zero-Alloc)
 
 For hot loops where you want to **reuse** a pre-allocated string buffer:
 
@@ -177,7 +177,7 @@ buf.reserve(4096);
 
 for (auto& event : live_events) {
     buf.clear();
-    beast::write_to(buf, event);   // no heap allocation after warmup!
+    qbuem::write_to(buf, event);   // no heap allocation after warmup!
     send_to_network(buf);
 }
 ```
@@ -189,8 +189,8 @@ for (auto& event : live_events) {
 All type checkers return `bool` and **never throw**. They correctly reflect any in-place mutations.
 
 ```cpp
-beast::Document doc;
-auto root = beast::parse(doc, R"({"n": 42, "s": "hi", "arr": [1,2], "obj": {}})");
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"n": 42, "s": "hi", "arr": [1,2], "obj": {}})");
 
 auto v = root["n"];
 v.is_valid();    // true  — Value points to a real node
@@ -220,7 +220,7 @@ std::string_view tname = root["n"].type_name(); // "int"
 ### `.as<T>()` — Strict (Throws on Mismatch)
 
 ```cpp
-auto root = beast::parse(doc, R"({"id":42,"score":9.87,"tag":"vip","flag":true})");
+auto root = qbuem::parse(doc, R"({"id":42,"score":9.87,"tag":"vip","flag":true})");
 
 int64_t      id    = root["id"].as<int64_t>();
 double       score = root["score"].as<double>();
@@ -311,14 +311,14 @@ int port = root.get("server").get("port") | 8080;
 ### `.at(json_pointer)` — RFC 6901 JSON Pointer
 
 ```cpp
-auto root = beast::parse(doc, R"({"store": {"books": [{"title": "C++ Primer"}]}})");
+auto root = qbuem::parse(doc, R"({"store": {"books": [{"title": "C++ Primer"}]}})");
 
 // Runtime JSON Pointer (string)
 std::string t = root.at("/store/books/0/title").as<std::string>();
 // "C++ Primer"
 
 // Compile-time JSON Pointer (zero runtime overhead)
-using namespace beast::literals;
+using namespace qbuem::literals;
 auto title = root.at("/store/books/0/title"_jptr).as<std::string>();
 ```
 
@@ -331,7 +331,7 @@ auto title = root.at("/store/books/0/title"_jptr).as<std::string>();
 Accepts `int`, `unsigned int`, or `size_t` — no cast needed. Returns an invalid `Value{}` if the index is out of range or negative (never throws).
 
 ```cpp
-auto root = beast::parse(doc, R"({"tags": ["cpp", "simd", "hft"]})");
+auto root = qbuem::parse(doc, R"({"tags": ["cpp", "simd", "hft"]})");
 std::string first  = root["tags"][0].as<std::string>(); // "cpp"
 std::string second = root["tags"][1].as<std::string>(); // "simd"
 std::string third  = root["tags"][2].as<std::string>(); // "hft"
@@ -361,7 +361,7 @@ bool is_empty = root["tags"].empty(); // false
 Iterates all key-value pairs, including keys added via `insert()` after parsing.
 
 ```cpp
-auto root = beast::parse(doc, R"({"a": 1, "b": 2})");
+auto root = qbuem::parse(doc, R"({"a": 1, "b": 2})");
 root.insert("c", 3); // structural addition
 
 for (auto [key, val] : root.items()) {
@@ -377,7 +377,7 @@ for (auto val : root.values()) { /* ... */ }
 ### `.elements()` — Array Elements
 
 ```cpp
-auto root = beast::parse(doc, R"({"scores": [95, 87, 100]})");
+auto root = qbuem::parse(doc, R"({"scores": [95, 87, 100]})");
 
 for (auto elem : root["scores"].elements()) {
     std::cout << elem.as<int>() << " ";  // 95 87 100
@@ -420,12 +420,12 @@ auto max_val = std::ranges::max(root["scores"].as_array<int>());
 
 ## 🟡 Serialization — `dump()` vs `write()`
 
-> **Quick rule:** use `.dump()` on a **parsed** `Value`; use `beast::write()` for **C++ objects**.
+> **Quick rule:** use `.dump()` on a **parsed** `Value`; use `qbuem::write()` for **C++ objects**.
 >
 > | You have… | Use… |
 > | :--- | :--- |
-> | `beast::Value` from `beast::parse()` | `value.dump()` |
-> | C++ struct / STL container / scalar | `beast::write(obj)` |
+> | `qbuem::Value` from `qbuem::parse()` | `value.dump()` |
+> | C++ struct / STL container / scalar | `qbuem::write(obj)` |
 
 ## 🟡 `Value` — Serialization
 
@@ -461,12 +461,12 @@ for (int i = 0; i < 1'000'000; ++i) {
 
 ## 🔴 `Value` — Mutations
 
-Beast JSON uses **non-destructive mutations**: the original tape is immutable. Changes live in a fast overlay map.
+qbuem-json uses **non-destructive mutations**: the original tape is immutable. Changes live in a fast overlay map.
 
 ### Scalar Mutation — `set(v)` / `operator=(v)`
 
 ```cpp
-auto root = beast::parse(doc, R"({"id": 1, "name": "Alice", "score": 87.5})");
+auto root = qbuem::parse(doc, R"({"id": 1, "name": "Alice", "score": 87.5})");
 
 root["id"]    = 99;           // integer
 root["name"]  = "Bob";        // string
@@ -548,7 +548,7 @@ root["ids"].push_back_json("99");
 ### `.merge(other)` / `.merge_patch(json)` — RFC 7396 Merge Patch
 
 ```cpp
-auto root = beast::parse(doc, R"({"a": 1, "b": 2, "c": 3})");
+auto root = qbuem::parse(doc, R"({"a": 1, "b": 2, "c": 3})");
 
 // Merge: fields in `other` override/add fields; null removes
 root.merge_patch(R"({"b": 99, "c": null, "d": "new"})");
@@ -595,9 +595,9 @@ if (auto sv = root.get("optional_key")) {
 
 ---
 
-## 🟣 `BEAST_JSON_FIELDS` Macro
+## 🟣 `QBUEM_JSON_FIELDS` Macro
 
-Auto-generates `from_beast_json` / `to_beast_json` free functions at compile time. Place it **outside** the struct definition.
+Auto-generates `from_qbuem_json` / `to_qbuem_json` free functions at compile time. Place it **outside** the struct definition.
 
 ```cpp
 struct Address {
@@ -605,7 +605,7 @@ struct Address {
     std::string city;
     std::string country;
 };
-BEAST_JSON_FIELDS(Address, street, city, country)   // ← outside!
+QBUEM_JSON_FIELDS(Address, street, city, country)   // ← outside!
 
 struct User {
     uint64_t    id;
@@ -615,18 +615,18 @@ struct User {
     std::optional<double>    score;                  // null when empty
     bool        active = true;
 };
-BEAST_JSON_FIELDS(User, id, username, address, tags, score, active)
+QBUEM_JSON_FIELDS(User, id, username, address, tags, score, active)
 
 // Deserialize
-auto user = beast::read<User>(R"({
+auto user = qbuem::read<User>(R"({
     "id": 1, "username": "alice",
     "address": {"street": "Main St", "city": "Seoul", "country": "KR"},
     "tags": ["admin"], "score": 99.5, "active": true
 })");
 
 // Serialize
-std::string json = beast::write(user);
-std::string pretty = beast::write(user, 2); // pretty print
+std::string json = qbuem::write(user);
+std::string pretty = qbuem::write(user, 2); // pretty print
 ```
 
 **Rules:**
@@ -640,7 +640,7 @@ std::string pretty = beast::write(user, 2); // pretty print
 
 ## 🟣 Large Structs (> 16 fields) {#large-structs-16-fields}
 
-`BEAST_JSON_FIELDS` is a variadic macro and supports a maximum of **16 fields**. For structs with more fields, define `from_beast_json` / `to_beast_json` / `append_beast_json` free functions manually in the **same namespace** as the struct. This is the same ADL hook mechanism that the macro generates — just written by hand.
+`QBUEM_JSON_FIELDS` is a variadic macro and supports a maximum of **16 fields**. For structs with more fields, define `from_qbuem_json` / `to_qbuem_json` / `append_qbuem_json` free functions manually in the **same namespace** as the struct. This is the same ADL hook mechanism that the macro generates — just written by hand.
 
 ```cpp
 struct BigOrder {
@@ -663,53 +663,53 @@ struct BigOrder {
     std::string time_in_force; // 17th field — macro limit exceeded
 };
 
-inline void from_beast_json(const beast::json::Value& v, BigOrder& o) {
-    beast::json::detail::from_json_field(v, "id",           o.id);
-    beast::json::detail::from_json_field(v, "symbol",       o.symbol);
-    beast::json::detail::from_json_field(v, "price",        o.price);
-    beast::json::detail::from_json_field(v, "qty",          o.qty);
-    beast::json::detail::from_json_field(v, "filled_qty",   o.filled_qty);
-    beast::json::detail::from_json_field(v, "side",         o.side);
-    beast::json::detail::from_json_field(v, "type",         o.type);
-    beast::json::detail::from_json_field(v, "status",       o.status);
-    beast::json::detail::from_json_field(v, "client_id",    o.client_id);
-    beast::json::detail::from_json_field(v, "exchange_id",  o.exchange_id);
-    beast::json::detail::from_json_field(v, "created_at",   o.created_at);
-    beast::json::detail::from_json_field(v, "updated_at",   o.updated_at);
-    beast::json::detail::from_json_field(v, "fee",          o.fee);
-    beast::json::detail::from_json_field(v, "fee_asset",    o.fee_asset);
-    beast::json::detail::from_json_field(v, "reduce_only",  o.reduce_only);
-    beast::json::detail::from_json_field(v, "post_only",    o.post_only);
-    beast::json::detail::from_json_field(v, "time_in_force",o.time_in_force);
+inline void from_qbuem_json(const qbuem::json::Value& v, BigOrder& o) {
+    qbuem::json::detail::from_json_field(v, "id",           o.id);
+    qbuem::json::detail::from_json_field(v, "symbol",       o.symbol);
+    qbuem::json::detail::from_json_field(v, "price",        o.price);
+    qbuem::json::detail::from_json_field(v, "qty",          o.qty);
+    qbuem::json::detail::from_json_field(v, "filled_qty",   o.filled_qty);
+    qbuem::json::detail::from_json_field(v, "side",         o.side);
+    qbuem::json::detail::from_json_field(v, "type",         o.type);
+    qbuem::json::detail::from_json_field(v, "status",       o.status);
+    qbuem::json::detail::from_json_field(v, "client_id",    o.client_id);
+    qbuem::json::detail::from_json_field(v, "exchange_id",  o.exchange_id);
+    qbuem::json::detail::from_json_field(v, "created_at",   o.created_at);
+    qbuem::json::detail::from_json_field(v, "updated_at",   o.updated_at);
+    qbuem::json::detail::from_json_field(v, "fee",          o.fee);
+    qbuem::json::detail::from_json_field(v, "fee_asset",    o.fee_asset);
+    qbuem::json::detail::from_json_field(v, "reduce_only",  o.reduce_only);
+    qbuem::json::detail::from_json_field(v, "post_only",    o.post_only);
+    qbuem::json::detail::from_json_field(v, "time_in_force",o.time_in_force);
 }
 
-inline void to_beast_json(beast::json::Value& v, const BigOrder& o) {
-    beast::json::detail::to_json_field(v, "id",           o.id);
-    beast::json::detail::to_json_field(v, "symbol",       o.symbol);
-    beast::json::detail::to_json_field(v, "price",        o.price);
-    beast::json::detail::to_json_field(v, "qty",          o.qty);
-    beast::json::detail::to_json_field(v, "filled_qty",   o.filled_qty);
-    beast::json::detail::to_json_field(v, "side",         o.side);
-    beast::json::detail::to_json_field(v, "type",         o.type);
-    beast::json::detail::to_json_field(v, "status",       o.status);
-    beast::json::detail::to_json_field(v, "client_id",    o.client_id);
-    beast::json::detail::to_json_field(v, "exchange_id",  o.exchange_id);
-    beast::json::detail::to_json_field(v, "created_at",   o.created_at);
-    beast::json::detail::to_json_field(v, "updated_at",   o.updated_at);
-    beast::json::detail::to_json_field(v, "fee",          o.fee);
-    beast::json::detail::to_json_field(v, "fee_asset",    o.fee_asset);
-    beast::json::detail::to_json_field(v, "reduce_only",  o.reduce_only);
-    beast::json::detail::to_json_field(v, "post_only",    o.post_only);
-    beast::json::detail::to_json_field(v, "time_in_force",o.time_in_force);
+inline void to_qbuem_json(qbuem::json::Value& v, const BigOrder& o) {
+    qbuem::json::detail::to_json_field(v, "id",           o.id);
+    qbuem::json::detail::to_json_field(v, "symbol",       o.symbol);
+    qbuem::json::detail::to_json_field(v, "price",        o.price);
+    qbuem::json::detail::to_json_field(v, "qty",          o.qty);
+    qbuem::json::detail::to_json_field(v, "filled_qty",   o.filled_qty);
+    qbuem::json::detail::to_json_field(v, "side",         o.side);
+    qbuem::json::detail::to_json_field(v, "type",         o.type);
+    qbuem::json::detail::to_json_field(v, "status",       o.status);
+    qbuem::json::detail::to_json_field(v, "client_id",    o.client_id);
+    qbuem::json::detail::to_json_field(v, "exchange_id",  o.exchange_id);
+    qbuem::json::detail::to_json_field(v, "created_at",   o.created_at);
+    qbuem::json::detail::to_json_field(v, "updated_at",   o.updated_at);
+    qbuem::json::detail::to_json_field(v, "fee",          o.fee);
+    qbuem::json::detail::to_json_field(v, "fee_asset",    o.fee_asset);
+    qbuem::json::detail::to_json_field(v, "reduce_only",  o.reduce_only);
+    qbuem::json::detail::to_json_field(v, "post_only",    o.post_only);
+    qbuem::json::detail::to_json_field(v, "time_in_force",o.time_in_force);
 }
 
-inline void append_beast_json(std::string& out, const BigOrder& o) {
+inline void append_qbuem_json(std::string& out, const BigOrder& o) {
     out += '{';
     size_t prev = out.size();
-    beast::json::detail::append_json(out, "id",           o.id);
-    beast::json::detail::append_json(out, "symbol",       o.symbol);
+    qbuem::json::detail::append_json(out, "id",           o.id);
+    qbuem::json::detail::append_json(out, "symbol",       o.symbol);
     // ... repeat for all fields ...
-    beast::json::detail::append_json(out, "time_in_force",o.time_in_force);
+    qbuem::json::detail::append_json(out, "time_in_force",o.time_in_force);
     if (out.size() > prev) out.pop_back(); // remove trailing comma
     out += '}';
 }
@@ -717,16 +717,16 @@ inline void append_beast_json(std::string& out, const BigOrder& o) {
 
 **Alternative: split into sub-structs**
 
-If logically possible, decompose a large struct into smaller nested ones — each with ≤ 16 fields — and use `BEAST_JSON_FIELDS` on all of them:
+If logically possible, decompose a large struct into smaller nested ones — each with ≤ 16 fields — and use `QBUEM_JSON_FIELDS` on all of them:
 
 ```cpp
 struct OrderCore   { uint64_t id; std::string symbol; double price; double qty; /* ... */ };
 struct OrderFlags  { bool reduce_only; bool post_only; std::string time_in_force; /* ... */ };
 struct BigOrder    { OrderCore core; OrderFlags flags; /* ... */ };
 
-BEAST_JSON_FIELDS(OrderCore,  id, symbol, price, qty, ...)
-BEAST_JSON_FIELDS(OrderFlags, reduce_only, post_only, time_in_force, ...)
-BEAST_JSON_FIELDS(BigOrder,   core, flags)
+QBUEM_JSON_FIELDS(OrderCore,  id, symbol, price, qty, ...)
+QBUEM_JSON_FIELDS(OrderFlags, reduce_only, post_only, time_in_force, ...)
+QBUEM_JSON_FIELDS(BigOrder,   core, flags)
 ```
 
 > **Note:** The sub-struct approach changes the JSON shape (fields are now nested under `"core"` / `"flags"`). Use manual ADL hooks when you need to preserve a flat JSON layout.
@@ -739,16 +739,16 @@ If you cannot modify a struct (e.g., from an external library), define these two
 
 ```cpp
 namespace glm {
-    // Teach Beast JSON to parse glm::vec3 from a JSON array
-    inline void from_beast_json(const beast::Value& v, vec3& out) {
+    // Teach qbuem-json to parse glm::vec3 from a JSON array
+    inline void from_qbuem_json(const qbuem::Value& v, vec3& out) {
         out.x = v[0].as<float>();
         out.y = v[1].as<float>();
         out.z = v[2].as<float>();
     }
 
-    // Teach Beast JSON to serialize glm::vec3 to a JSON array
-    inline void to_beast_json(beast::Value& root, const vec3& in) {
-        root = beast::Value::array();
+    // Teach qbuem-json to serialize glm::vec3 to a JSON array
+    inline void to_qbuem_json(qbuem::Value& root, const vec3& in) {
+        root = qbuem::Value::array();
         root.push_back(in.x);
         root.push_back(in.y);
         root.push_back(in.z);
@@ -756,8 +756,8 @@ namespace glm {
 }
 
 // Now glm::vec3 works natively!
-glm::vec3 pos = beast::read<glm::vec3>("[1.0, 2.0, 3.5]");
-std::string json = beast::write(pos); // "[1.0,2.0,3.5]"
+glm::vec3 pos = qbuem::read<glm::vec3>("[1.0, 2.0, 3.5]");
+std::string json = qbuem::write(pos); // "[1.0,2.0,3.5]"
 ```
 
 ---
@@ -766,13 +766,13 @@ std::string json = beast::write(pos); // "[1.0,2.0,3.5]"
 
 | API | Throws? | Returns | Use When |
 | :--- | :---: | :--- | :--- |
-| `beast::parse(doc, s)` | ❌ | `Value` | Standard lenient parsing |
-| `beast::parse_strict(doc, s)` | ✅ | `Value` | Need RFC 8259 compliance |
-| `beast::rfc8259::validate(s)` | ✅ | `void` | Validation without DOM |
-| `beast::read<T>(s)` | ✅ | `T` | Deserialize directly |
-| `beast::write(v)` | ❌ | `std::string` | Serialize any type |
-| `beast::write(v, indent)` | ❌ | `std::string` | Pretty print |
-| `beast::write_to(buf, v)` | ❌ | `void` | Zero-alloc hot loops |
+| `qbuem::parse(doc, s)` | ❌ | `Value` | Standard lenient parsing |
+| `qbuem::parse_strict(doc, s)` | ✅ | `Value` | Need RFC 8259 compliance |
+| `qbuem::rfc8259::validate(s)` | ✅ | `void` | Validation without DOM |
+| `qbuem::read<T>(s)` | ✅ | `T` | Deserialize directly |
+| `qbuem::write(v)` | ❌ | `std::string` | Serialize any type |
+| `qbuem::write(v, indent)` | ❌ | `std::string` | Pretty print |
+| `qbuem::write_to(buf, v)` | ❌ | `void` | Zero-alloc hot loops |
 | `v.as<T>()` | ✅ | `T` | Confident typed access |
 | `v.try_as<T>()` | ❌ | `optional<T>` | Safe typed access |
 | `v \| default` | ❌ | `T` | Access with fallback |

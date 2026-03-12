@@ -1,17 +1,17 @@
 # Parsing & Access
 
-Beast JSON uses a **lazy DOM model** — it parses into a flat tape in a single pass, and you access values on demand. It's designed to be both fast and easy to use.
+qbuem-json uses a **lazy DOM model** — it parses into a flat tape in a single pass, and you access values on demand. It's designed to be both fast and easy to use.
 
 ## 🚀 Quick Start
 
 ```cpp
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 
 int main() {
     std::string json = R"({"name": "Alice", "age": 30, "active": true})";
 
-    beast::Document doc;
-    beast::Value root = beast::parse(doc, json);
+    qbuem::Document doc;
+    qbuem::Value root = qbuem::parse(doc, json);
 
     std::string name = root["name"].as<std::string>(); // Alice
     int         age  = root["age"].as<int>();           // 30
@@ -21,67 +21,67 @@ int main() {
 
 ## 📦 Parsing Entry Points
 
-### `beast::parse(doc, json)` — Standard Parse
+### `qbuem::parse(doc, json)` — Standard Parse
 
 The primary API. Takes a `Document` (which owns the tape memory) and a `string_view`.
 
 ```cpp
-beast::Document doc;
-beast::Value root = beast::parse(doc, R"({"key": "value"})");
+qbuem::Document doc;
+qbuem::Value root = qbuem::parse(doc, R"({"key": "value"})");
 ```
 
 > [!IMPORTANT]
 > `Document` must **outlive** all `Value` objects derived from it. Values are lightweight 16-byte handles pointing into the document's tape.
 
-### `beast::parse_reuse(doc, json)` — Explicit Reuse for Hot Loops
+### `qbuem::parse_reuse(doc, json)` — Explicit Reuse for Hot Loops
 
-For high-frequency parsing (e.g., JSON streams), use `beast::parse_reuse()` on the same document. It resets the tape and mutation overlays without reallocating heap memory, making the intent self-documenting in hot-loop code.
+For high-frequency parsing (e.g., JSON streams), use `qbuem::parse_reuse()` on the same document. It resets the tape and mutation overlays without reallocating heap memory, making the intent self-documenting in hot-loop code.
 
 ```cpp
-beast::Document doc;
+qbuem::Document doc;
 doc.reserve(4 * 1024); // optional: pre-warm to avoid first-parse realloc
 std::string line;
 
 while (std::getline(socket_stream, line)) {
     // Re-uses the previously allocated tape capacity — zero extra malloc
-    beast::Value root = beast::parse_reuse(doc, line);
+    qbuem::Value root = qbuem::parse_reuse(doc, line);
     if (!root.is_valid()) continue;
     process(root);
 }
 ```
 
 > [!NOTE]
-> `beast::parse()` and `beast::parse_reuse()` behave identically when called on the same `Document`. `parse_reuse()` is provided as a self-documenting alias that makes reuse intent explicit.
+> `qbuem::parse()` and `qbuem::parse_reuse()` behave identically when called on the same `Document`. `parse_reuse()` is provided as a self-documenting alias that makes reuse intent explicit.
 
-### `beast::parse_strict(doc, json)` — RFC 8259 Strict Mode
+### `qbuem::parse_strict(doc, json)` — RFC 8259 Strict Mode
 
 Throws `std::runtime_error` on any RFC 8259 violation: trailing commas, leading zeros, lone surrogates, etc.
 
 ```cpp
 try {
-    beast::Document doc;
-    auto root = beast::parse_strict(doc, "[1, 2,]"); // throws!
+    qbuem::Document doc;
+    auto root = qbuem::parse_strict(doc, "[1, 2,]"); // throws!
 } catch (const std::runtime_error& e) {
     // "RFC 8259 violation at offset 6: trailing comma"
     std::cerr << e.what() << "\n";
 }
 ```
 
-### `beast::read<T>(json)` — Deserialize via Tape-DOM
+### `qbuem::read<T>(json)` — Deserialize via Tape-DOM
 
 The standard way to map JSON to types. It first builds a Tape (SIMD) and then maps it to your type `T`. Excellent for large files and general purpose use.
 
 ```cpp
-auto user = beast::read<User>(R"({"name": "Alice", "age": 30})");
+auto user = qbuem::read<User>(R"({"name": "Alice", "age": 30})");
 ```
 
-### `beast::fuse<T>(json)` — Direct Fusion (Nexus Engine)
+### `qbuem::fuse<T>(json)` — Direct Fusion (Nexus Engine)
 
-The **lowest-latency** way to parse. It bypasses the Tape entirely and streams JSON directly into your struct. Requires your struct to be registered via `BEAST_JSON_FIELDS`.
+The **lowest-latency** way to parse. It bypasses the Tape entirely and streams JSON directly into your struct. Requires your struct to be registered via `QBUEM_JSON_FIELDS`.
 
 ```cpp
 // 0.0 Tape Allocation. O(1) Perfect Hash Dispatch.
-auto user = beast::fuse<User>(R"({"name": "Alice", "age": 30})");
+auto user = qbuem::fuse<User>(R"({"name": "Alice", "age": 30})");
 ```
 
 ---
@@ -93,8 +93,8 @@ auto user = beast::fuse<User>(R"({"name": "Alice", "age": 30})");
 Type-safe access that throws `std::runtime_error` on type mismatch.
 
 ```cpp
-beast::Document doc;
-auto root = beast::parse(doc, R"({"id": 101, "score": 9.87, "tag": "vip", "active": true})");
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"id": 101, "score": 9.87, "tag": "vip", "active": true})");
 
 int64_t id     = root["id"].as<int64_t>();
 double  score  = root["score"].as<double>();
@@ -142,7 +142,7 @@ std::string name = root["name"]  | std::string{"anonymous"};
 Perfect for deeply nested access without checking every level. Never throws.
 
 ```cpp
-auto root = beast::parse(doc, R"({
+auto root = qbuem::parse(doc, R"({
     "user": { "profile": { "city": "Seoul" } }
 })");
 
@@ -224,7 +224,7 @@ std::string mode = root.value("mode", std::string{"default"});
 ### Object Iteration (Key-Value Pairs)
 
 ```cpp
-auto root = beast::parse(doc, R"({"a": 1, "b": 2, "c": 3})");
+auto root = qbuem::parse(doc, R"({"a": 1, "b": 2, "c": 3})");
 
 // Structured bindings (C++20)
 for (auto [key, val] : root.items()) {
@@ -241,7 +241,7 @@ for (auto val : root.values()) { /* ... */ }
 ### Array Iteration
 
 ```cpp
-auto root = beast::parse(doc, R"({"scores": [95, 87, 100]})");
+auto root = qbuem::parse(doc, R"({"scores": [95, 87, 100]})");
 
 // Generic element access
 for (auto elem : root["scores"].elements()) {
@@ -279,7 +279,7 @@ std::cout << "Best: " << max_it->as<int>() << "\n";  // 100
 Access deeply nested values using a path string.
 
 ```cpp
-auto root = beast::parse(doc, R"({
+auto root = qbuem::parse(doc, R"({
     "store": { "book": [{"title": "C++ Primer"}, {"title": "Effective C++"}] }
 })");
 
@@ -287,7 +287,7 @@ auto root = beast::parse(doc, R"({
 std::string t = root.at("/store/book/0/title").as<std::string>(); // "C++ Primer"
 
 // Compile-time JSON Pointer (zero runtime overhead)
-using namespace beast::literals;
+using namespace qbuem::literals;
 auto title = root.at("/store/book/1/title"_jptr).as<std::string>(); // "Effective C++"
 ```
 
@@ -299,19 +299,19 @@ auto title = root.at("/store/book/1/title"_jptr).as<std::string>(); // "Effectiv
 
 ```cpp
 // ❌ WRONG — doc is destroyed before root is used
-beast::Value bad_parse() {
-    beast::Document doc;
-    return beast::parse(doc, R"({"x": 1})");
+qbuem::Value bad_parse() {
+    qbuem::Document doc;
+    return qbuem::parse(doc, R"({"x": 1})");
 } // doc destroyed here → dangling pointer!
 
 // ✅ CORRECT — keep them together
 struct ParseResult {
-    beast::Document doc;
-    beast::Value root;
+    qbuem::Document doc;
+    qbuem::Value root;
 };
 ParseResult good_parse(std::string_view json) {
     ParseResult r;
-    r.root = beast::parse(r.doc, json);
+    r.root = qbuem::parse(r.doc, json);
     return r;
 }
 ```

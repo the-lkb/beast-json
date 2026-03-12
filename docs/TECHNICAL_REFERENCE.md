@@ -1,13 +1,13 @@
-# Beast JSON — Technical Reference (v1.0)
+# qbuem-json — Technical Reference (v1.0)
 
-> This document is the unified technical reference for Beast JSON. It combines architecture details, performance data, the optimization roadmap, API reference, and lessons learned from optimization failures.
+> This document is the unified technical reference for qbuem-json. It combines architecture details, performance data, the optimization roadmap, API reference, and lessons learned from optimization failures.
 
 [TOC]
 
 
 ## 1. Introduction
 
-Beast JSON is a high-performance, header-only C++20 JSON parser and serializer. It operates on a **tape-based lazy DOM** and utilizes SIMD instructions (AVX-512, NEON) or SWAR (SIMD Within A Register) for peak performance. It is designed to be a drop-in single header library without dependencies.
+qbuem-json is a high-performance, header-only C++20 JSON parser and serializer. It operates on a **tape-based lazy DOM** and utilizes SIMD instructions (AVX-512, NEON) or SWAR (SIMD Within A Register) for peak performance. It is designed to be a drop-in single header library without dependencies.
 
 
 ## 2. Performance Benchmarks
@@ -30,8 +30,8 @@ All measurements are taken on dedicated bare-metal hardware. `yyjson` is the pri
 * **Parse**: Trails `yyjson` slightly on 3/4 files due to architectural limits (Apple Silicon's extreme 576-entry ROB favors flat arrays over tape indirection).
 
 ### 2.4 Sub-MegaByte Memory Efficiency
-Beast JSON uses a compact 8-byte `TapeNode` and zero-copy string references to achieve the lowest memory overhead in the C++ ecosystem. Measured via MacOS `mach_task` Resident Set Size (RSS) parsing `twitter.json` (631.5 KB):
-* **beast_json**: 2.76 MB Peak RSS (DOM Size: 236 KB / 0.37x overhead)
+qbuem-json uses a compact 8-byte `TapeNode` and zero-copy string references to achieve the lowest memory overhead in the C++ ecosystem. Measured via MacOS `mach_task` Resident Set Size (RSS) parsing `twitter.json` (631.5 KB):
+* **qbuem_json**: 2.76 MB Peak RSS (DOM Size: 236 KB / 0.37x overhead)
 * **simdjson**: 3.49 MB Peak RSS
 * **yyjson**: 3.58 MB Peak RSS
 * **Glaze**: 4.29 MB Peak RSS
@@ -41,7 +41,7 @@ Performance under extreme stress: measuring a massive 5.5MB file containing 50,0
 
 | Library | Parse Time | Serialize Time | Overall Edge |
 |:---|---:|---:|:---:|
-| **Beast JSON** | 5.28 ms | **2.32 ms** | **Fastest Serialization** |
+| **qbuem-json** | 5.28 ms | **2.32 ms** | **Fastest Serialization** |
 | `simdjson` | **4.89 ms** | 12.16 ms | Fastest Parse |
 | `yyjson` | 5.29 ms | 3.53 ms | - |
 | `RapidJSON` | 13.15 ms | 11.90 ms | - |
@@ -51,7 +51,7 @@ Performance under extreme stress: measuring a massive 5.5MB file containing 50,0
 
 ## 3. Architecture & Internals
 
-Beast JSON stores every JSON token as a flat `TapeNode` array (8 bytes/node) inside a pre-allocated `TapeArena`.
+qbuem-json stores every JSON token as a flat `TapeNode` array (8 bytes/node) inside a pre-allocated `TapeArena`.
 
 ### 3.1 TapeNode Layout
 ```text
@@ -71,19 +71,19 @@ Beast JSON stores every JSON token as a flat `TapeNode` array (8 bytes/node) ins
 2. **Stage 2 (Sequential)**: Iterates the positions array, skipping whitespace instantly and computing string lengths in O(1) time.
 
 ### 3.3 SWAR String Scanning
-For files > 2MB or on AArch64, Beast uses a 64-bit GPR SWAR scan (8 bytes/cycle) to find quotes or escape characters without heavy SIMD overhead.
+For files > 2MB or on AArch64, qbuem-json uses a 64-bit GPR SWAR scan (8 bytes/cycle) to find quotes or escape characters without heavy SIMD overhead.
 
 ### 3.4 KeyLenCache
-For repeated object schemas (e.g., `citm_catalog.json`), Beast caches the length of keys seen at specific depths. Once cached, scanning a key becomes a single-byte `O(1)` comparison.
+For repeated object schemas (e.g., `citm_catalog.json`), qbuem-json caches the length of keys seen at specific depths. Once cached, scanning a key becomes a single-byte `O(1)` comparison.
 
 
 ## 4. API Reference
 
-### 4.1 `beast::Document` and `beast::Value`
-`beast::Document` owns the tape. `beast::Value` is the 16-byte handle used for navigation.
+### 4.1 `qbuem::Document` and `qbuem::Value`
+`qbuem::Document` owns the tape. `qbuem::Value` is the 16-byte handle used for navigation.
 ```cpp
-beast::Document doc;
-auto root = beast::parse(doc, R"({"score": 9.9})");
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"score": 9.9})");
 
 // Typed Access (Throws on mismatch)
 double s = root["score"].as<double>();
@@ -139,56 +139,56 @@ struct User {
     int age = 0;
     std::optional<double> score;
 };
-BEAST_JSON_FIELDS(User, name, age, score)
+QBUEM_JSON_FIELDS(User, name, age, score)
 
-auto user = beast::read<User>(R"({"name": "Alice"})");
-std::string json = beast::write(user);
+auto user = qbuem::read<User>(R"({"name": "Alice"})");
+std::string json = qbuem::write(user);
 ```
 
 ### 5.1 Custom Third-Party Types via ADL
-If a type cannot be modified to use `BEAST_JSON_FIELDS` (e.g., a third-party struct like `glm::vec3`), you can opt into auto-serialization by defining two Argument-Dependent Lookup (ADL) functions in the same namespace as the type:
+If a type cannot be modified to use `QBUEM_JSON_FIELDS` (e.g., a third-party struct like `glm::vec3`), you can opt into auto-serialization by defining two Argument-Dependent Lookup (ADL) functions in the same namespace as the type:
 
 ```cpp
 #include <glm/vec3.hpp>
 
 namespace glm {
-    // 1. Define from_beast_json for parsing (must be in the same namespace)
-    inline void from_beast_json(const beast::json::Value& v, vec3& out) {
+    // 1. Define from_qbuem_json for parsing (must be in the same namespace)
+    inline void from_qbuem_json(const qbuem::json::Value& v, vec3& out) {
         // Read directly from the JSON array
         out.x = v[0].as_double();
         out.y = v[1].as_double();
         out.z = v[2].as_double();
     }
 
-    // 2. Define to_beast_json for serialization
-    inline void to_beast_json(beast::json::Value& root, const vec3& in) {
+    // 2. Define to_qbuem_json for serialization
+    inline void to_qbuem_json(qbuem::json::Value& root, const vec3& in) {
         // Construct the expected structure (e.g., a JSON array)
-        root = beast::json::Value::Array();
-        root.push_back(beast::json::Value(in.x));
-        root.push_back(beast::json::Value(in.y));
-        root.push_back(beast::json::Value(in.z));
+        root = qbuem::json::Value::Array();
+        root.push_back(qbuem::json::Value(in.x));
+        root.push_back(qbuem::json::Value(in.y));
+        root.push_back(qbuem::json::Value(in.z));
     }
 }
 ```
-`beast::read<T>` and `beast::write(T)` natively search for these ADL hooks during compile-time resolution.
+`qbuem::read<T>` and `qbuem::write(T)` natively search for these ADL hooks during compile-time resolution.
 
 
 ## 6. RFC 8259 Validator
 
 Strict validation mode that throws an exception with offset details on RFC violations (trailing commas, leading zeros, etc.).
 ```cpp
-beast::Document doc;
-auto root = beast::parse_strict(doc, "[1, 2,]"); // Throws std::runtime_error
+qbuem::Document doc;
+auto root = qbuem::parse_strict(doc, "[1, 2,]"); // Throws std::runtime_error
 ```
 
 
 ## 7. Language Bindings
 
-Beast JSON provides a C API and a Python `ctypes` wrapper.
+qbuem-json provides a C API and a Python `ctypes` wrapper.
 
 ### Python Example
 ```python
-from beast_json import Document, loads
+from qbuem_json import Document, loads
 doc = Document('{"name": "Alice"}')
 print(doc.root()["name"])
 ```
@@ -214,7 +214,7 @@ Optimization attempts that caused performance regressions provide vital architec
 
 ## 9. Development Roadmap & History
 
-Beast JSON achieved v1.0 goals entirely through an AI-driven optimization pipeline crossing 80+ distinct phases.
+qbuem-json achieved v1.0 goals entirely through an AI-driven optimization pipeline crossing 80+ distinct phases.
 
 * **Phase 1-40**: Legacy DOM creation and baseline parser implementation.
 * **Phase 44-53 (x86_64)**: AVX-512 integration, Stage 1/2 parsing, yielding massive parse throughput gains.
@@ -261,7 +261,7 @@ Beast JSON achieved v1.0 goals entirely through an AI-driven optimization pipeli
 ### 10.2 Fuzz Infrastructure
 
 Three libFuzzer targets (Clang 18, static ASan+UBSan, `-fsanitize=address,undefined`):
-1. `fuzz/fuzz_parse.cpp`: `beast::parse()`, typing, iterators, JSON Pointer
+1. `fuzz/fuzz_parse.cpp`: `qbuem::parse()`, typing, iterators, JSON Pointer
 2. `fuzz/fuzz_lazy.cpp`: same + `insert` / `erase` / `push_back` mutations
 3. `fuzz/fuzz_rfc8259.cpp`: Consistency oracle
 

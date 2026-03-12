@@ -1,5 +1,5 @@
 // benchmarks/bench.cpp
-// Unified beast-json benchmark — merges bench_all, bench_structs, bench_hft
+// Unified qbuem-json benchmark — merges bench_all, bench_structs, bench_hft
 //
 // Two measurement sections:
 //   general — DOM parse+serialize on real JSON files (twitter, canada, …)
@@ -10,10 +10,10 @@
 //   ./bench --section general --all # general section only
 //   ./bench --section structs       # structs section only
 //   ./bench twitter.json            # one file, general section
-//   ./bench twitter.json --iter 300 --lib "beast::lazy"  # subprocess dispatch
+//   ./bench twitter.json --iter 300 --lib "qbuem::lazy"  # subprocess dispatch
 
 #include "utils.hpp"
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <fstream>
 
 #ifdef BEAST_HAS_GLAZE
@@ -53,7 +53,7 @@ namespace nlohmann {
     };
 }
 
-using namespace beast::json;
+using namespace qbuem::json;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // A.  General C++ struct definitions
@@ -61,7 +61,7 @@ using namespace beast::json;
 
 // ── A1. Simple flat struct ──────────────────────────────────────────────────
 struct SimpleStruct { int id; double value; std::string name; bool active; };
-BEAST_JSON_FIELDS(SimpleStruct, id, value, name, active)
+QBUEM_JSON_FIELDS(SimpleStruct, id, value, name, active)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SimpleStruct, id, value, name, active)
 
 #ifdef BEAST_HAS_GLAZE
@@ -85,11 +85,11 @@ static void from_rapidjson(const rapidjson::Value& v, SimpleStruct& s) {
 
 // ── A2. Nested struct ───────────────────────────────────────────────────────
 struct Address { std::string street; std::string city; int zip; };
-BEAST_JSON_FIELDS(Address, street, city, zip)
+QBUEM_JSON_FIELDS(Address, street, city, zip)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Address, street, city, zip)
 
 struct NestedStruct { uint64_t user_id; Address address; std::vector<int> scores; };
-BEAST_JSON_FIELDS(NestedStruct, user_id, address, scores)
+QBUEM_JSON_FIELDS(NestedStruct, user_id, address, scores)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(NestedStruct, user_id, address, scores)
 
 #ifdef BEAST_HAS_GLAZE
@@ -128,11 +128,11 @@ static void from_rapidjson(const rapidjson::Value& v, NestedStruct& s) {
 
 // ── A3. Complex struct (map, optional, depth) ───────────────────────────────
 struct Metadata { std::optional<std::string> description; std::map<std::string,std::string> tags; };
-BEAST_JSON_FIELDS(Metadata, description, tags)
+QBUEM_JSON_FIELDS(Metadata, description, tags)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Metadata, description, tags)
 
 struct ComplexStruct { std::string title; std::vector<NestedStruct> history; Metadata meta_info; };
-BEAST_JSON_FIELDS(ComplexStruct, title, history, meta_info)
+QBUEM_JSON_FIELDS(ComplexStruct, title, history, meta_info)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ComplexStruct, title, history, meta_info)
 
 #ifdef BEAST_HAS_GLAZE
@@ -181,7 +181,7 @@ static void from_rapidjson(const rapidjson::Value& v, ComplexStruct& s) {
 
 // ── A4. Recursive tree ──────────────────────────────────────────────────────
 struct Node { int val; std::vector<Node> children; };
-BEAST_JSON_FIELDS(Node, val, children)
+QBUEM_JSON_FIELDS(Node, val, children)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Node, val, children)
 
 #ifdef BEAST_HAS_GLAZE
@@ -210,7 +210,7 @@ struct HarshNode {
     std::set<int> set; std::map<std::string,int> map; std::unordered_map<std::string,int> umap;
     std::vector<HarshNode> children; std::map<std::string,HarshNode> neighbors;
 };
-BEAST_JSON_FIELDS(HarshNode, id, data, score, vec, list, deque, set, map, umap, children, neighbors)
+QBUEM_JSON_FIELDS(HarshNode, id, data, score, vec, list, deque, set, map, umap, children, neighbors)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HarshNode, id, data, score, vec, list, deque, set, map, umap, children, neighbors)
 
 #ifdef BEAST_HAS_GLAZE
@@ -280,7 +280,7 @@ struct MarketTick {
     double bid = 0.0, ask = 0.0;
     int64_t bid_sz = 0, ask_sz = 0, ts_ns = 0;
 };
-BEAST_JSON_FIELDS(MarketTick, sym, bid, ask, bid_sz, ask_sz, ts_ns)
+QBUEM_JSON_FIELDS(MarketTick, sym, bid, ask, bid_sz, ask_sz, ts_ns)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MarketTick, sym, bid, ask, bid_sz, ask_sz, ts_ns)
 
 // New/cancel/modify order to matching engine
@@ -288,17 +288,17 @@ struct Order {
     std::string id, sym, side; double px = 0.0;
     int64_t qty = 0; std::string type; int64_t ts_ns = 0;
 };
-BEAST_JSON_FIELDS(Order, id, sym, side, px, qty, type, ts_ns)
+QBUEM_JSON_FIELDS(Order, id, sym, side, px, qty, type, ts_ns)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Order, id, sym, side, px, qty, type, ts_ns)
 
 // Trade / Execution report
 struct Trade { std::string sym; double px = 0.0; int64_t qty = 0; std::string aggressor; int64_t ts_ns = 0; };
-BEAST_JSON_FIELDS(Trade, sym, px, qty, aggressor, ts_ns)
+QBUEM_JSON_FIELDS(Trade, sym, px, qty, aggressor, ts_ns)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Trade, sym, px, qty, aggressor, ts_ns)
 
 // Single order book level
 struct BookLevel { double px = 0.0; int64_t sz = 0, cnt = 0; };
-BEAST_JSON_FIELDS(BookLevel, px, sz, cnt)
+QBUEM_JSON_FIELDS(BookLevel, px, sz, cnt)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BookLevel, px, sz, cnt)
 
 // L2 top-5 snapshot — std::array: fixed-size, no heap allocation
@@ -307,7 +307,7 @@ struct BookSnapshot {
     std::array<BookLevel,5> bids = {}, asks = {};
     int64_t ts_ns = 0;
 };
-BEAST_JSON_FIELDS(BookSnapshot, sym, bids, asks, ts_ns)
+QBUEM_JSON_FIELDS(BookSnapshot, sym, bids, asks, ts_ns)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BookSnapshot, sym, bids, asks, ts_ns)
 
 #ifdef BEAST_HAS_GLAZE
@@ -416,7 +416,7 @@ static void run_file(const std::string& exe_path, const std::string& lib_filter,
         std::cout << "Size: " << (content.size() / 1024.0) << " KB  Iterations: " << N << "\n";
         bench::print_table_header();
 
-        std::vector<std::string> libs = {"beast::lazy","simdjson","yyjson","RapidJSON","Glaze DOM","nlohmann"};
+        std::vector<std::string> libs = {"qbuem::lazy","simdjson","yyjson","RapidJSON","Glaze DOM","nlohmann"};
         for (const auto& lib : libs) {
 #ifndef BEAST_HAS_GLAZE
             if (lib == "Glaze DOM") continue;
@@ -434,25 +434,25 @@ static void run_file(const std::string& exe_path, const std::string& lib_filter,
     std::string content;
     try { content = bench::read_file(filename.c_str()); } catch (...) { return; }
 
-    if (lib_filter == "beast::lazy") {
+    if (lib_filter == "qbuem::lazy") {
         size_t rss0 = bench::get_current_rss_kb();
-        beast::Document ctx; beast::parse(ctx, content);
+        qbuem::Document ctx; qbuem::parse(ctx, content);
         size_t alloc_kb = bench::get_current_rss_kb() - rss0;
 
         bench::Timer pt, st;
         pt.start();
-        for (size_t i = 0; i < N; ++i) beast::parse(ctx, content);
+        for (size_t i = 0; i < N; ++i) qbuem::parse(ctx, content);
         double p_ns = pt.elapsed_ns() / N;
 
         double s_ns = 0.0; bool ok = true;
-        auto doc = beast::parse(ctx, content);
+        auto doc = qbuem::parse(ctx, content);
         if (!parse_only) {
             std::string buf; st.start();
             for (size_t i = 0; i < N; ++i) doc.dump(buf);
             s_ns = st.elapsed_ns() / N;
             ok = !doc.dump().empty();
         }
-        bench::Result{"beast::lazy", p_ns, s_ns, ok, alloc_kb}.print();
+        bench::Result{"qbuem::lazy", p_ns, s_ns, ok, alloc_kb}.print();
     }
 
     if (lib_filter == "simdjson") {
@@ -571,46 +571,46 @@ static void run_file(const std::string& exe_path, const std::string& lib_filter,
 template<typename T>
 static void run_benchmark(const std::string& name, const T& obj, size_t iterations) {
     bench::print_header("Struct: " + name);
-    std::string json_str = beast::write(obj);
+    std::string json_str = qbuem::write(obj);
     std::cout << "JSON Size: " << json_str.size() << " bytes\n";
     bench::print_table_header();
 
-    // ── Beast DOM ──
+    // ── qbuem-json DOM ──
     {
         bench::Timer pt, st;
         size_t rss0 = bench::get_current_rss_kb();
-        { T tmp{}; beast::Document doc; auto root = beast::parse(doc,json_str); beast::from_json(root,tmp); bench::do_not_optimize(tmp); }
+        { T tmp{}; qbuem::Document doc; auto root = qbuem::parse(doc,json_str); qbuem::from_json(root,tmp); bench::do_not_optimize(tmp); }
         size_t alloc_kb = bench::get_current_rss_kb() - rss0;
 
         pt.start();
         for (size_t i = 0; i < iterations; ++i) {
-            beast::Document doc; auto root = beast::parse(doc,json_str); T tmp{}; beast::from_json(root,tmp); bench::do_not_optimize(tmp);
+            qbuem::Document doc; auto root = qbuem::parse(doc,json_str); T tmp{}; qbuem::from_json(root,tmp); bench::do_not_optimize(tmp);
         }
         double p_ns = pt.elapsed_ns() / iterations;
 
         std::string out; out.reserve(json_str.size()+128);
         st.start();
-        for (size_t i = 0; i < iterations; ++i) { out.clear(); beast::write_to(out,obj); bench::do_not_optimize(out); }
+        for (size_t i = 0; i < iterations; ++i) { out.clear(); qbuem::write_to(out,obj); bench::do_not_optimize(out); }
         double s_ns = st.elapsed_ns() / iterations;
-        bench::Result{"Beast (DOM)", p_ns, s_ns, true, alloc_kb}.print();
+        bench::Result{"qbuem-json (DOM)", p_ns, s_ns, true, alloc_kb}.print();
     }
 
-    // ── Beast Nexus ──
+    // ── qbuem-json Nexus ──
     {
         bench::Timer pt, st;
         size_t rss0 = bench::get_current_rss_kb();
-        { T tmp = beast::fuse<T>(json_str); bench::do_not_optimize(tmp); }
+        { T tmp = qbuem::fuse<T>(json_str); bench::do_not_optimize(tmp); }
         size_t alloc_kb = bench::get_current_rss_kb() - rss0;
 
         pt.start();
-        for (size_t i = 0; i < iterations; ++i) { T tmp = beast::fuse<T>(json_str); bench::do_not_optimize(tmp); }
+        for (size_t i = 0; i < iterations; ++i) { T tmp = qbuem::fuse<T>(json_str); bench::do_not_optimize(tmp); }
         double p_ns = pt.elapsed_ns() / iterations;
 
         std::string out; out.reserve(json_str.size()+128);
         st.start();
-        for (size_t i = 0; i < iterations; ++i) { out.clear(); beast::write_to(out,obj); bench::do_not_optimize(out); }
+        for (size_t i = 0; i < iterations; ++i) { out.clear(); qbuem::write_to(out,obj); bench::do_not_optimize(out); }
         double s_ns = st.elapsed_ns() / iterations;
-        bench::Result{"Beast (Nexus)", p_ns, s_ns, true, alloc_kb}.print();
+        bench::Result{"qbuem-json (Nexus)", p_ns, s_ns, true, alloc_kb}.print();
     }
 
 #ifdef BEAST_HAS_GLAZE
@@ -755,7 +755,7 @@ int main(int argc, char** argv) {
 
         // General C++ structs
         run_benchmark("Simple Object",
-            SimpleStruct{123, 3.14159, "Beast Performance", true}, iter);
+            SimpleStruct{123, 3.14159, "qbuem-json Performance", true}, iter);
 
         run_benchmark("Nested Object",
             NestedStruct{9876543210ULL, {"Dynamic Drive","Silicon Valley",94025},
@@ -764,7 +764,7 @@ int main(int argc, char** argv) {
         Metadata meta{"High-performance JSON library", {{"lang","cpp20"},{"simd","swar"},{"speed","fastest"}}};
         NestedStruct ns{9876543210ULL,{"Main St","New York",10001},{1,2,3}};
         run_benchmark("Complex Object",
-            ComplexStruct{"Beast vs Glaze", {ns,ns,ns}, meta}, iter/5);
+            ComplexStruct{"qbuem-json vs Glaze", {ns,ns,ns}, meta}, iter/5);
 
         auto make_tree = [](auto self, int depth) -> Node {
             Node n{depth,{}}; if (depth>0) { n.children.push_back(self(self,depth-1)); n.children.push_back(self(self,depth-1)); } return n;

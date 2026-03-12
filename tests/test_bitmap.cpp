@@ -1,4 +1,4 @@
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <string>
@@ -25,8 +25,8 @@ TEST(Bitmap, LargeJsonManualVerify) {
   }
 
   // Build bitmap
-  beast::json::BitmapIndex idx;
-  beast::json::simd::fill_bitmap(buffer.data(), len, idx);
+  qbuem::json::BitmapIndex idx;
+  qbuem::json::simd::fill_bitmap(buffer.data(), len, idx);
 
   // Count bits in bitmap
   int bitmap_count = 0;

@@ -1,13 +1,13 @@
 // fuzz_parse.cpp – libFuzzer target for the beast high-level parse() API.
 //
-// Tests beast::parse(), Value accessors, iteration, and dump() with arbitrary
+// Tests qbuem::parse(), Value accessors, iteration, and dump() with arbitrary
 // byte inputs. AddressSanitizer + UBSanitizer catch memory errors and UB.
 //
 // Build:
 //   cmake -B build-fuzz \
-//         -DBEAST_JSON_BUILD_FUZZ=ON \
-//         -DBEAST_JSON_BUILD_TESTS=OFF \
-//         -DBEAST_JSON_BUILD_BENCHMARKS=OFF \
+//         -DQBUEM_JSON_BUILD_FUZZ=ON \
+//         -DQBUEM_JSON_BUILD_TESTS=OFF \
+//         -DQBUEM_JSON_BUILD_BENCHMARKS=OFF \
 //         -DCMAKE_CXX_COMPILER=clang++
 //   cmake --build build-fuzz --target fuzz_parse
 //
@@ -17,20 +17,20 @@
 // Reproduce a crash:
 //   ./build-fuzz/fuzz/fuzz_parse <crash-file>
 
-#include <beast_json/beast_json.hpp>
+#include <qbuem_json/qbuem_json.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
 #include <string_view>
 
 // One Document per fuzzing process — reuse across invocations.
-static beast::Document g_doc;
+static qbuem::Document g_doc;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     const std::string_view input(reinterpret_cast<const char *>(data), size);
 
     try {
-        beast::Value root = beast::parse(g_doc, input);
+        qbuem::Value root = qbuem::parse(g_doc, input);
 
         // Type accessors
         (void)root.is_object();
