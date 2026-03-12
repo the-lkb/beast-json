@@ -3,7 +3,7 @@
   <p>
     <a href="https://github.com/qbuem/qbuem-json/actions/workflows/ci.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/ci.yml/badge.svg" alt="C++20 CI"></a>
     <a href="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml/badge.svg" alt="CodeQL Static Analysis"></a>
-    <a href="https://github.com/qbuem/qbuem-json/releases"><img src="https://img.shields.io/badge/Version-v1.0.5-blue" alt="Version 1.0.5"></a>
+    <a href="https://github.com/qbuem/qbuem-json/releases"><img src="https://img.shields.io/badge/Version-v1.0.6-blue" alt="Version 1.0.6"></a>
     <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
   </p>
 

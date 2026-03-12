@@ -1,6 +1,6 @@
 /**
- * @brief qbuem-json v1.0.5 - High-Performance C++20 JSON Parser
- * @version 1.0.5
+ * @brief qbuem-json v1.0.6 - High-Performance C++20 JSON Parser
+ * @version 1.0.6
  *
  * 🏆 Ultimate C++20 JSON Library - 100% Complete!
  *

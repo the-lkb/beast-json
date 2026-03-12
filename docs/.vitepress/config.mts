@@ -51,7 +51,7 @@ export default withMermaid(
                 codeRepository: 'https://github.com/qbuem/qbuem-json',
                 programmingLanguage: 'C++',
                 runtimePlatform: 'C++20',
-                version: '1.0.5',
+                version: '1.0.6',
                 license: 'https://www.apache.org/licenses/LICENSE-2.0',
                 keywords: 'C++, JSON, SIMD, AVX-512, High-Performance, HFT, parser, serializer, zero-allocation',
                 offers: {
@@ -75,9 +75,9 @@ export default withMermaid(
                     ]
                 },
                 {
-                    text: 'v1.0.5',
+                    text: 'v1.0.6',
                     items: [
-                        { text: 'Release Notes', link: 'https://github.com/qbuem/qbuem-json/releases/tag/v1.0.5' },
+                        { text: 'Release Notes', link: 'https://github.com/qbuem/qbuem-json/releases/tag/v1.0.6' },
                         { text: 'All Releases', link: 'https://github.com/qbuem/qbuem-json/releases' }
                     ]
                 }

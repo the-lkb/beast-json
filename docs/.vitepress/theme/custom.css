@@ -176,7 +176,11 @@ body, .VPApp {
 .VPHero .name {
     font-family: 'Outfit', sans-serif;
     font-weight: 900;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.04em;
+    background: linear-gradient(135deg, var(--qj-navy) 0%, var(--qj-gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
 }
 
 .VPHero .text {
@@ -487,10 +491,33 @@ img:hover {
     div[style*="display: flex"] { flex-direction: column !important; }
 }
 @media (max-width: 480px) {
-    .VPHero .name { font-size: 1.6rem; }
-    .VPHero .text { font-size: 1rem; }
+    .VPHero .name { font-size: 2.4rem; }
+    .VPHero .text { font-size: 1.25rem; font-weight: 700; margin-top: 0.5rem; }
+    .VPHero .tagline { font-size: 0.95rem; margin-top: 1rem; }
     .VPHero .image-src { max-width: 90px !important; max-height: 100px !important; }
-    .VPNavBarTitle .title { font-size: 0.85rem; }
+    .VPNavBarTitle .title { font-size: 0.82rem; letter-spacing: -0.01em; }
+    .VPNavBarTitle .logo { width: 22px !important; height: 22px !important; }
+}
+
+/* ─── Galaxy Z Fold / Extremly Narrow Fix ─────────────────────────────────── */
+@media (max-width: 380px) {
+    .VPNavBarTitle .title { display: none !important; } /* Hide text title on ultra-narrow, keep logo */
+    .VPNavBarTitle .logo { margin-right: 0 !important; width: 24px !important; height: 24px !important; }
+    
+    /* Ensure mobile menu dropdown (NavScreen) is visible and clickable */
+    .VPNavScreen {
+        background: #ffffff !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 100 !important;
+    }
+    
+    .VPNavScreen.hidden {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
 }
 
 /* ══════════════════════════════════════════════════════════════════
