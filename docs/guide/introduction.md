@@ -1,34 +1,34 @@
 # Introduction
 
-Beast JSON is the flagship JSON engine for modern C++. It is engineered to deliver the absolute peak performance possible on today's superscalar CPUs.
-
-## 🏆 The Beast Identity
-
-"Beast" reflects the uncompromising nature of this library's performance. In an industry where "fast enough" is often the status quo, Beast JSON targets **hardware-limit performance.**
-
-### Design Priorities:
-1. **Speed First**: Outperform all competitors in real-world workloads.
-2. **Zero Overhead**: Eliminate pointer chasing and small allocations (the **Lazy Tape DOM** model).
-3. **C++20 Native**: Clean code over legacy SFINAE madness.
-4. **Safety**: 100% sanitizer-clean code with transactional safety.
-
-## 🚀 The Dual-Engine Strategy
-
-Beast JSON is unique in providing a **Hybrid Strategy**. We don't force a single "best" parser; instead, we offer two specialized engines to handle different data scales:
-
-- **Beast (DOM)**: The **High-Throughput Engine**. Optimized for SIMD Stage 1 structural scanning. It excels at massive datasets, skipping whitespace at 64B/cycle.
-- **Beast (Nexus)**: The **Low-Latency Engine**. Optimized for zero-intermediate mapping. By bypassing the Tape/DOM entirely, it delivers the lowest possible latency for structured C++ objects.
-
-By leveraging the latest C++20 features (Concepts, Ranges, `<charconv>`) and multi-architecture SIMD, we've created a tool that allows you to express your logic clearly while the engine handles the extreme optimization under the hood.
-
-## 🗺️ Scope of this Documentation
-
-This technical hub is designed for:
-- **Architects**: Looking to understand the Tape DOM and SIMD dispatching internals.
-- **Developers**: Needing a clean, automated mapping for their C++ types.
-- **HFT Engineers**: Seeking deterministic, zero-allocation runtime behavior.
-- **System Integrators**: Looking to bind the fastest JSON engine to other languages.
+Beast JSON is a C++20 JSON library built around two parsing engines: a tape-based DOM engine and a zero-tape struct mapping engine (Nexus). Both ship in a single header with no dependencies.
 
 ---
 
-Ready to experience the speed? Jump to the [Getting Started](/guide/getting-started) guide.
+## Two engines, one header
+
+**DOM engine (`beast::parse`)** builds a flat tape of nodes in a single pass. No pointer chasing, no tree allocation — the output is a contiguous array you can traverse or mutate. SIMD structural scanning (AVX-512 on x86, NEON on ARM) gets through the input at 64 bytes per cycle before the parser starts.
+
+**Nexus engine (`beast::fuse<T>`)** skips the tape entirely. It maps JSON keys directly to struct fields using compile-time FNV-1a hashes, writing each value into the struct as it's encountered. No intermediate representation, no second pass.
+
+```cpp
+beast::Document doc;
+auto root = beast::parse(doc, json);    // DOM: tape → Value tree
+
+User u;
+beast::fuse(u, json);                   // Nexus: stream → struct, no tape
+```
+
+The two engines handle different shapes of work. DOM is the right choice when the schema isn't known at compile time, or when you need to inspect, mutate, or partially traverse arbitrary JSON. Nexus is right when you have a fixed struct and want it filled as fast as possible.
+
+---
+
+## What's in the library
+
+- AVX-512 and ARM NEON structural indexing
+- Schubfach dtoa for shortest round-trip float serialization
+- yy-itoa for integer serialization without division
+- Russ Cox algorithm for decimal-to-double parsing
+- JSON Pointer (RFC 6901) and JSON Patch (RFC 6902)
+- Language bindings for Python and Go
+
+[Getting Started](/guide/getting-started) has the install step and first example.

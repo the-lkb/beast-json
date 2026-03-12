@@ -1,14 +1,6 @@
 # Vision & Roadmap
 
-Beast JSON is more than just another C++ JSON library; it is a commitment to absolute performance and safety in the modern era of systems programming.
-
-## 👁️ Our Vision
-
-We believe that **JSON processing should not be a performance tax.**
-
-In a world where data is increasingly exchanged via JSON, the efficiency of the parser directly impacts cloud costs, latency in HFT, and battery life on mobile devices. Our goal is to make Beast JSON the **de facto standard for high-performance C++20 JSON processing**, replacing legacy libraries with zero-cost, type-safe, and SIMD-accelerated alternatives.
-
-## 🗺️ Roadmap
+## Roadmap
 
 ### Phase 1: Foundations ✅
 - ✅ Zero-Allocation Tape DOM.
@@ -32,7 +24,3 @@ In a world where data is increasingly exchanged via JSON, the efficiency of the 
 - ⬜ Further micro-optimization of the Russ Cox algorithm via inline assembly where beneficial.
 - ⬜ Reduced binary footprint for embedded/IoT constraints.
 - ⬜ Predictive parsing hints for known schema structures.
-
----
-
-We are building for the future of C++. Join us in making the fastest JSON engine even better.
