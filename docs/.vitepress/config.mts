@@ -28,7 +28,7 @@ export default withMermaid(
             // Open Graph
             ['meta', { property: 'og:title', content: 'qbuem-json — Feel the Power of Ultimate JSON Speed' }],
             ['meta', { property: 'og:description', content: 'qbuem-json: small changes, big future. Bleeding-edge C++20 JSON library with AVX-512 SIMD acceleration, zero-allocation design, and single-header simplicity. Up to 2.7 GB/s parsing, 8.1 GB/s serialization.' }],
-            ['meta', { property: 'og:image', content: 'https://qbuem.github.io/qbuem-json/banner.svg' }],
+            ['meta', { property: 'og:image', content: 'https://qbuem.github.io/qbuem-json/banner.png' }],
             ['meta', { property: 'og:image:alt', content: 'qbuem-json Logo' }],
             ['meta', { property: 'og:type', content: 'website' }],
             ['meta', { property: 'og:url', content: 'https://qbuem.github.io/qbuem-json/' }],
@@ -39,7 +39,7 @@ export default withMermaid(
             ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
             ['meta', { name: 'twitter:title', content: 'qbuem-json — Feel the Power of Ultimate JSON Speed' }],
             ['meta', { name: 'twitter:description', content: 'qbuem-json: small changes, big future. AVX-512 SIMD, zero-allocation, single header C++20. Outperforms simdjson, yyjson, RapidJSON, and nlohmann.' }],
-            ['meta', { name: 'twitter:image', content: 'https://qbuem.github.io/qbuem-json/banner.svg' }],
+            ['meta', { name: 'twitter:image', content: 'https://qbuem.github.io/qbuem-json/banner.png' }],
 
             // JSON-LD Structured Data
             ['script', { type: 'application/ld+json' }, JSON.stringify({
@@ -62,7 +62,7 @@ export default withMermaid(
             })]
         ],
         themeConfig: {
-            logo: '/logo.svg',
+            logo: '/logo.png',
             nav: [
                 { text: 'Guide', link: '/guide/introduction' },
                 { text: 'Architecture', link: '/theory/architecture' },
