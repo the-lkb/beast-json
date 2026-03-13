@@ -194,6 +194,12 @@ int deep    = root.get("a")["b"]["c"].value_or(0);  // → 0 if any step missing
 
 // value_or with a SafeValue using pipe syntax
 int n = root.get("n") | 42;  // same as value_or(42)
+
+// size() and empty() — safe even when the key is absent
+size_t count = root.get("items").size();   // 0 if "items" missing
+bool   empty = root.get("items").empty();  // true if "items" missing
+
+// ⚠️  sv->size() throws bad_optional_access when absent — use sv.size() instead
 ```
 
 ### contains() and value()

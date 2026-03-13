@@ -85,6 +85,21 @@ The `|` operator is shorthand for `.value_or()` on a `SafeValue`:
 int port = root.get("server").get("port") | 8080; // 8080 if missing
 ```
 
+### `size()` and `empty()` — Safe Container Inspection
+
+`SafeValue` has its own `.size()` and `.empty()` that never throw — they return `0` / `true` when the value is absent.
+
+```cpp
+// ❌ THROWS bad_optional_access when "items" is missing
+size_t n = root.get("items")->size();
+
+// ✅ Returns 0 safely — never throws
+size_t n = root.get("items").size();
+bool   b = root.get("items").empty();
+```
+
+Always call `.size()` and `.empty()` directly on the `SafeValue` (without `->`) to stay in the no-throw zone.
+
 ---
 
 ## 🔍 Strategy 3: Boolean Type Checks (Explicit Validation)

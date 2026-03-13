@@ -334,3 +334,36 @@ Negative indices simply return an invalid (absent) value rather than throwing or
 auto bad = root["array"][-1];    // ✅ safe — returns invalid Value{}
 bad.is_valid();                   // false
 ```
+
+### 3. SafeValue Size — Use `sv.size()`, Not `sv->size()`
+
+`SafeValue` (returned by `.get()`) has its own `.size()` and `.empty()` that are **always safe** — they return `0` / `true` when the value is absent, without throwing.
+
+```cpp
+auto tags = root.get("tags");   // SafeValue — may be absent
+
+// ❌ THROWS bad_optional_access when "tags" is missing
+size_t n = tags->size();
+
+// ✅ Returns 0 safely when absent
+size_t n = tags.size();
+bool   b = tags.empty();
+```
+
+This is the primary motivation for calling `.get()` instead of `operator[]` when you intend to chain or inspect size:
+
+```cpp
+// Full safe pattern — no branching needed
+size_t tag_count = root.get("tags").size();     // 0 if key missing or not array
+bool   has_tags  = !root.get("tags").empty();   // false if key missing
+
+// Iterate only if present and non-empty
+auto sv = root.get("results");
+if (!sv.empty()) {
+    for (auto elem : sv.value().elements()) {
+        // process elem
+    }
+}
+```
+
+**Rule of thumb:** on a `SafeValue`, always call `.size()` and `.empty()` directly (without `->`).
