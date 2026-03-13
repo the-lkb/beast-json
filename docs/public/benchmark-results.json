@@ -1,5 +1,24 @@
 {
-  "timestamp": "2026-03-13T02:31:46Z",
-  "commit": "4580e349",
-  "platforms": []
+  "timestamp": "2026-03-13T03:04:51Z",
+  "commit": "193b1820",
+  "platforms": [
+    {
+      "arch": "x86_64",
+      "label": "x86_64 \u00b7 GCC 13 \u00b7 Ubuntu",
+      "general": [],
+      "structs": []
+    },
+    {
+      "arch": "apple-aarch64",
+      "label": "Apple Silicon \u00b7 Apple Clang \u00b7 macOS",
+      "general": [],
+      "structs": []
+    },
+    {
+      "arch": "linux-aarch64",
+      "label": "Linux aarch64 \u00b7 GCC 14 \u00b7 Ubuntu",
+      "general": [],
+      "structs": []
+    }
+  ]
 }
