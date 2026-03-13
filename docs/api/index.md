@@ -597,7 +597,11 @@ if (auto sv = root.get("optional_key")) {
 
 ## 🟣 `QBUEM_JSON_FIELDS` Macro
 
-Auto-generates `from_qbuem_json` / `to_qbuem_json` free functions at compile time. Place it **outside** the struct definition.
+Auto-generates `from_qbuem_json` / `to_qbuem_json` **free functions** at compile time via Argument-Dependent Lookup (ADL). It **must** be placed **outside** the struct definition.
+
+::: warning Why outside?
+`QBUEM_JSON_FIELDS` expands to free function definitions. If placed inside a struct body, they become **member functions** instead, and ADL cannot find them — `qbuem::read<T>()` and `qbuem::write()` will fail to compile with a "no matching function" error. Always place the macro at **namespace scope**, immediately after the closing `}` of the struct.
+:::
 
 ```cpp
 struct Address {
@@ -605,7 +609,7 @@ struct Address {
     std::string city;
     std::string country;
 };
-QBUEM_JSON_FIELDS(Address, street, city, country)   // ← outside!
+QBUEM_JSON_FIELDS(Address, street, city, country)   // ← outside, at namespace scope
 
 struct User {
     uint64_t    id;
@@ -615,7 +619,13 @@ struct User {
     std::optional<double>    score;                  // null when empty
     bool        active = true;
 };
-QBUEM_JSON_FIELDS(User, id, username, address, tags, score, active)
+QBUEM_JSON_FIELDS(User, id, username, address, tags, score, active) // ← outside
+
+// ❌ WRONG — placing it inside the struct makes from_qbuem_json a member function
+// struct Bad {
+//     int x;
+//     QBUEM_JSON_FIELDS(Bad, x)   // inside struct → ADL breaks → compile error
+// };
 
 // Deserialize
 auto user = qbuem::read<User>(R"({
@@ -633,14 +643,14 @@ std::string pretty = qbuem::write(user, 2); // pretty print
 - Missing JSON fields keep their C++ **default values** (not an error)
 - JSON `null` on a non-optional field is **silently skipped**
 - Extra JSON fields not in the struct are **ignored**
-- Supports up to **16 fields** per struct (see [Large Structs](#large-structs-16-fields) below)
+- Supports up to **32 fields** per struct (see [Large Structs](#large-structs-32-fields) below)
 - Works **recursively** for nested structs
 
 ---
 
-## 🟣 Large Structs (> 16 fields) {#large-structs-16-fields}
+## 🟣 Large Structs (> 32 fields) {#large-structs-32-fields}
 
-`QBUEM_JSON_FIELDS` is a variadic macro and supports a maximum of **16 fields**. For structs with more fields, define `from_qbuem_json` / `to_qbuem_json` / `append_qbuem_json` free functions manually in the **same namespace** as the struct. This is the same ADL hook mechanism that the macro generates — just written by hand.
+`QBUEM_JSON_FIELDS` is a variadic macro and supports a maximum of **32 fields**. For structs with more fields, define `from_qbuem_json` / `to_qbuem_json` / `append_qbuem_json` free functions manually in the **same namespace** as the struct. This is the same ADL hook mechanism that the macro generates — just written by hand.
 
 ```cpp
 struct BigOrder {
@@ -660,7 +670,7 @@ struct BigOrder {
     std::string fee_asset;
     bool        reduce_only;
     bool        post_only;
-    std::string time_in_force; // 17th field — macro limit exceeded
+    std::string time_in_force; // 33rd field — macro limit exceeded
 };
 
 inline void from_qbuem_json(const qbuem::json::Value& v, BigOrder& o) {
@@ -717,7 +727,7 @@ inline void append_qbuem_json(std::string& out, const BigOrder& o) {
 
 **Alternative: split into sub-structs**
 
-If logically possible, decompose a large struct into smaller nested ones — each with ≤ 16 fields — and use `QBUEM_JSON_FIELDS` on all of them:
+If logically possible, decompose a large struct into smaller nested ones — each with ≤ 32 fields — and use `QBUEM_JSON_FIELDS` on all of them:
 
 ```cpp
 struct OrderCore   { uint64_t id; std::string symbol; double price; double qty; /* ... */ };
