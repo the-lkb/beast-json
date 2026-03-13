@@ -91,6 +91,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=Release
         -DQBUEM_JSON_BUILD_TESTS=OFF
         -DQBUEM_JSON_BUILD_BENCHMARKS=ON
+        -DQBUEM_DISABLE_LTO=ON
         -DCMAKE_C_COMPILER_LAUNCHER=ccache
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         -DBENCHMARK_DATA_PREDOWNLOAD_DIR="${{ github.workspace }}/bench_data"
@@ -102,14 +103,20 @@ jobs:
     # bench uses system() to re-invoke itself per library for the general section,
     # so the working directory must contain both the binary and JSON data files.
     - name: Copy data files into build directory
+      if: always()
       run: |
         cp bench_data/*.json build_bench/benchmarks/ 2>/dev/null || true
 
     - name: Run benchmarks
+      if: always()
       working-directory: build_bench/benchmarks
       # Use "|| true" so a crash or non-zero exit does NOT skip the parse/upload
       # steps. bench_output.txt is always created by tee; we process whatever we got.
       run: |
+        if [ ! -f ./bench ]; then
+          echo "ERROR: bench binary not found — build step may have failed" | tee bench_output.txt
+          exit 0
+        fi
         ./bench --quick --all 2>&1 | tee bench_output.txt || true
 
     # Run even if the benchmark step failed/crashed — we still upload partial results.
@@ -121,9 +128,21 @@ jobs:
 
         import pathlib
         p = pathlib.Path("build_bench/benchmarks/bench_output.txt")
-        text = p.read_text(encoding="utf-8") if p.exists() else ""
+        if not p.exists():
+            print("bench_output.txt not found — bench binary likely missing (build failed)")
+            text = ""
+        else:
+            text = p.read_text(encoding="utf-8")
         if not text.strip():
-            print("bench_output.txt is empty or missing — no results to parse")
+            print("bench_output.txt is empty — bench did not produce output")
+        else:
+            lines = text.splitlines()
+            result_lines = [l for l in lines if "| Parse:" in l]
+            print(f"bench_output.txt: {len(lines)} lines, {len(result_lines)} result lines")
+            if not result_lines:
+                print("WARNING: No result lines found. First 20 lines of output:")
+                for l in lines[:20]:
+                    print("  " + repr(l))
 
         # Output format:
         #   ##section general          ← section switch marker

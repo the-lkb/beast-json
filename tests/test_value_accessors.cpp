@@ -744,6 +744,66 @@ TEST(SafeValue, DumpAbsent) {
   EXPECT_EQ(root.get("missing").dump(), "null");
 }
 
+// ── size() and empty() on SafeValue ───────────────────────────────────────────
+//
+// sv->size() throws bad_optional_access when absent.
+// sv.size()  returns 0 safely — the correct pattern.
+
+TEST(SafeValue, SizeArray) {
+  Document doc;
+  auto root = parse_root(doc, R"({"tags": ["a", "b", "c"]})");
+  auto tags = root.get("tags");
+  ASSERT_TRUE(tags.has_value());
+  EXPECT_EQ(tags.size(), 3u);
+}
+
+TEST(SafeValue, SizeObject) {
+  Document doc;
+  auto root = parse_root(doc, R"({"meta": {"k1": 1, "k2": 2}})");
+  EXPECT_EQ(root.get("meta").size(), 2u);
+}
+
+TEST(SafeValue, SizeEmptyArray) {
+  Document doc;
+  auto root = parse_root(doc, R"({"items": []})");
+  EXPECT_EQ(root.get("items").size(), 0u);
+  EXPECT_TRUE(root.get("items").empty());
+}
+
+TEST(SafeValue, SizeAbsent) {
+  // absent SafeValue: size() must return 0, not throw
+  Document doc;
+  auto root = parse_root(doc, R"({"x": 1})");
+  auto sv = root.get("missing");
+  EXPECT_FALSE(sv.has_value());
+  EXPECT_EQ(sv.size(), 0u);   // safe — no exception
+  EXPECT_TRUE(sv.empty());    // safe — no exception
+}
+
+TEST(SafeValue, SizeNonContainer) {
+  // scalar value: size() returns 0 (same as Value::size())
+  Document doc;
+  auto root = parse_root(doc, R"({"n": 42})");
+  EXPECT_EQ(root.get("n").size(), 0u);
+}
+
+TEST(SafeValue, IndexVsArrow) {
+  // sv[0] and sv.get(0) propagate absence safely.
+  // sv->get(0) throws if absent — caller must guard.
+  Document doc;
+  auto root = parse_root(doc, R"({"tags": ["a", "b"]})");
+  auto tags = root.get("tags");
+
+  // safe patterns
+  EXPECT_EQ(tags[0].value_or(std::string{""}), "a");
+  EXPECT_EQ(tags.get(1).value_or(std::string{""}), "b");
+
+  // absent chain: no throw
+  auto none = root.get("missing");
+  EXPECT_FALSE(none[0].has_value());
+  EXPECT_FALSE(none.get(0).has_value());
+}
+
 // ── Monadic operations ────────────────────────────────────────────────────────
 
 TEST(Monadic, AndThenPresent) {
