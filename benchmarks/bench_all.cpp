@@ -11,7 +11,7 @@
 #include "utils.hpp"
 #include <qbuem_json/qbuem_json.hpp>
 #include <fstream>
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
 #include <glaze/glaze.hpp>
 #endif
 #include <nlohmann/json.hpp>
@@ -51,7 +51,7 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
     std::vector<std::string> libs = {"qbuem::lazy", "simdjson",  "yyjson",
                                      "RapidJSON",   "Glaze DOM", "nlohmann"};
     for (const auto &lib : libs) {
-#ifndef BEAST_HAS_GLAZE
+#ifndef QBUEM_HAS_GLAZE
       if (lib == "Glaze DOM")
         continue;
 #endif
@@ -210,7 +210,7 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
   }
 
   // ── 4. Glaze (DOM glz::json_t) ───────────────────────────────────────────
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
   if (lib_filter == "Glaze DOM") {
     // Memory: one cold parse, document kept live while measuring
     size_t rss0 = bench::get_current_rss_kb();

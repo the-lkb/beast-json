@@ -506,7 +506,7 @@ Use this when an error occurs and you're not sure where to start:
 <div class="bd-checklist">
   <div class="bd-checklist-item">Are you passing a fixed-size <code>char[]</code> buffer? Use <code>std::string</code> with <code>reserve()</code> instead.</div>
   <div class="bd-checklist-item">Is the <code>write_to</code> return value checked for overflow errors?</div>
-  <div class="bd-checklist-item">Are custom serialization macros (<code>BEAST_SERIALIZE</code>) matching the struct fields exactly?</div>
+  <div class="bd-checklist-item">Are custom serialization macros (<code>QBUEM_JSON_FIELDS</code>) matching the struct fields exactly?</div>
 </div>
 
 ---

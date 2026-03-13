@@ -105,9 +105,9 @@
 // ============================================================================
 
 #if defined(__x86_64__) || defined(_M_X64)
-#define BEAST_ARCH_X86_64 1
+#define QBUEM_ARCH_X86_64 1
 #elif defined(__aarch64__) || defined(_M_ARM64)
-#define BEAST_ARCH_ARM64 1
+#define QBUEM_ARCH_ARM64 1
 // Apple Silicon (M1/M2/M3/M4 family) — distinct from generic AArch64:
 //   • 128-byte L1/L2 cache lines (vs 64-byte generic ARM64)
 //   • ~576-entry ROB (vs ~200 generic ARM64, ~300 on Neoverse)
@@ -116,38 +116,38 @@
 //   • SHA3 (EOR3) available on M2+ but not M1
 //   • AMX (Apple Matrix Coprocessor) — proprietary, not exposed via intrinsics
 #if defined(__APPLE__)
-#define BEAST_ARCH_APPLE_SILICON 1
+#define QBUEM_ARCH_APPLE_SILICON 1
 #endif
 #elif defined(__arm__) || defined(_M_ARM)
-#define BEAST_ARCH_ARM32 1
+#define QBUEM_ARCH_ARM32 1
 #elif defined(__mips__)
-#define BEAST_ARCH_MIPS 1
+#define QBUEM_ARCH_MIPS 1
 #elif defined(__riscv)
-#define BEAST_ARCH_RISCV 1
+#define QBUEM_ARCH_RISCV 1
 #elif defined(__s390x__)
-#define BEAST_ARCH_S390X 1
+#define QBUEM_ARCH_S390X 1
 #elif defined(__powerpc__) || defined(_M_PPC)
-#define BEAST_ARCH_PPC 1
+#define QBUEM_ARCH_PPC 1
 #endif
 
 // SIMD Detection (compile-time)
-#if defined(BEAST_ARCH_X86_64)
+#if defined(QBUEM_ARCH_X86_64)
 // SSE2 is mandatory on x86-64 (part of the ABI); always include it.
 #include <emmintrin.h>
 #if defined(__AVX512F__)
-#define BEAST_HAS_AVX512 1
-#define BEAST_HAS_AVX2 1 // AVX-512 is a superset of AVX2; all ymm code active
+#define QBUEM_HAS_AVX512 1
+#define QBUEM_HAS_AVX2 1 // AVX-512 is a superset of AVX2; all ymm code active
 #include <immintrin.h>
 #elif defined(__AVX2__)
-#define BEAST_HAS_AVX2 1
+#define QBUEM_HAS_AVX2 1
 #include <immintrin.h>
 #elif defined(__SSE4_2__)
-#define BEAST_HAS_SSE42 1
+#define QBUEM_HAS_SSE42 1
 #include <nmmintrin.h>
 #endif
-#elif defined(BEAST_ARCH_ARM64) || defined(BEAST_ARCH_ARM32)
+#elif defined(QBUEM_ARCH_ARM64) || defined(QBUEM_ARCH_ARM32)
 #if defined(__ARM_NEON) || defined(__aarch64__)
-#define BEAST_HAS_NEON 1
+#define QBUEM_HAS_NEON 1
 #include <arm_neon.h>
 #endif
 // ARM ISA extension detection — all require -march=native or explicit target
@@ -155,7 +155,7 @@
 //   Available on: Apple Silicon, ARM v8.2+ CPUs.
 //   Enables branchless 4-byte character classification in a single instruction.
 #if defined(__ARM_FEATURE_DOTPROD)
-#define BEAST_HAS_DOTPROD 1
+#define QBUEM_HAS_DOTPROD 1
 #endif
 // SVE: ARM Scalable Vector Extension (variable-width SIMD: 128–2048 bits).
 //   Available on: AWS Graviton 3 (Neoverse V1, 256-bit), Neoverse V2,
@@ -164,7 +164,7 @@
 //   supports it. Use only with explicit -march=armv8.4-a+sve guard or runtime
 //   detection.
 #if defined(__ARM_FEATURE_SVE)
-#define BEAST_HAS_SVE 1
+#define QBUEM_HAS_SVE 1
 #include <arm_sve.h>
 #endif
 // SHA3/EOR3: 3-way XOR (EOR3), rotate-XOR (RAX1), XOR-accumulate (XAR).
@@ -172,7 +172,7 @@
 //   NOT available on Apple M1.
 //   EOR3 enables single-instruction backslash-escape propagation in Stage 1.
 #if defined(__ARM_FEATURE_SHA3)
-#define BEAST_HAS_SHA3 1
+#define QBUEM_HAS_SHA3 1
 #endif
 #endif
 
@@ -182,13 +182,13 @@
 //
 // Architecture-specific tuning constants:
 //
-//  BEAST_CACHE_LINE_SIZE: L1 cache line size in bytes.
+//  QBUEM_CACHE_LINE_SIZE: L1 cache line size in bytes.
 //    Apple Silicon (M1/M2/M3): 128 bytes — double the ARM standard.
 //      Impacts: alignas() for hot tables, prefetch stride granularity.
 //    All other AArch64: 64 bytes (ARM standard).
 //    x86_64: 64 bytes (Intel/AMD standard).
 //
-//  BEAST_PREFETCH_DISTANCE: bytes to look ahead in __builtin_prefetch.
+//  QBUEM_PREFETCH_DISTANCE: bytes to look ahead in __builtin_prefetch.
 //    Optimal = (pipeline depth × clock speed × bytes/cycle).
 //    Apple Silicon L2 latency ≈ 10ns × 3.2 GHz ≈ 32 cycles.
 //      At 10 bytes/cycle parse throughput → 320B ideal; round to 384B
@@ -197,27 +197,27 @@
 //      A/B result: 256B optimal (4 × 64B cache lines).
 //    x86_64: 192B optimal (measured on Raptor Lake).
 //
-//  BEAST_PREFETCH_LOCALITY: __builtin_prefetch 'locality' hint (0-3).
+//  QBUEM_PREFETCH_LOCALITY: __builtin_prefetch 'locality' hint (0-3).
 //    0 = NTA (non-temporal, bypass L1/L2 — for once-through streaming)
 //    1 = L2 hint (data used soon but L1 has better uses) ← parse hot path
 //    3 = L1 hint (data used immediately) ← for x86 tight loops
 
-#if defined(BEAST_ARCH_APPLE_SILICON)
-#define BEAST_CACHE_LINE_SIZE 128
-#define BEAST_PREFETCH_DISTANCE 512 // 4 × 128B M1 cache lines
-#define BEAST_PREFETCH_LOCALITY 1   // L2 hint; parse consumes sequentially
-#elif defined(BEAST_ARCH_ARM64)
-#define BEAST_CACHE_LINE_SIZE 64
-#define BEAST_PREFETCH_DISTANCE 256 // 4 × 64B; A/B winner
-#define BEAST_PREFETCH_LOCALITY 1   // L2 hint (NTA hurt: )
-#elif defined(BEAST_ARCH_X86_64)
-#define BEAST_CACHE_LINE_SIZE 64
-#define BEAST_PREFETCH_DISTANCE 192 // measured optimum
-#define BEAST_PREFETCH_LOCALITY 1   // L2 hint
+#if defined(QBUEM_ARCH_APPLE_SILICON)
+#define QBUEM_CACHE_LINE_SIZE 128
+#define QBUEM_PREFETCH_DISTANCE 512 // 4 × 128B M1 cache lines
+#define QBUEM_PREFETCH_LOCALITY 1   // L2 hint; parse consumes sequentially
+#elif defined(QBUEM_ARCH_ARM64)
+#define QBUEM_CACHE_LINE_SIZE 64
+#define QBUEM_PREFETCH_DISTANCE 256 // 4 × 64B; A/B winner
+#define QBUEM_PREFETCH_LOCALITY 1   // L2 hint (NTA hurt: )
+#elif defined(QBUEM_ARCH_X86_64)
+#define QBUEM_CACHE_LINE_SIZE 64
+#define QBUEM_PREFETCH_DISTANCE 192 // measured optimum
+#define QBUEM_PREFETCH_LOCALITY 1   // L2 hint
 #else
-#define BEAST_CACHE_LINE_SIZE 64
-#define BEAST_PREFETCH_DISTANCE 128
-#define BEAST_PREFETCH_LOCALITY 1
+#define QBUEM_CACHE_LINE_SIZE 64
+#define QBUEM_PREFETCH_DISTANCE 128
+#define QBUEM_PREFETCH_LOCALITY 1
 #endif
 
 // ============================================================================
@@ -225,31 +225,31 @@
 // ============================================================================
 
 #ifdef __GNUC__
-#define BEAST_INLINE __attribute__((always_inline)) inline
-#define BEAST_NOINLINE __attribute__((noinline))
+#define QBUEM_INLINE __attribute__((always_inline)) inline
+#define QBUEM_NOINLINE __attribute__((noinline))
 // Read-ahead prefetch with architecture-tuned locality hint.
 // Always use this macro in the parse hot loop — never hardcode
 // distance/locality.
-#define BEAST_PREFETCH(addr)                                                   \
-  __builtin_prefetch((addr), 0, BEAST_PREFETCH_LOCALITY)
+#define QBUEM_PREFETCH(addr)                                                   \
+  __builtin_prefetch((addr), 0, QBUEM_PREFETCH_LOCALITY)
 #else
-#define BEAST_INLINE inline
-#define BEAST_NOINLINE
-#define BEAST_PREFETCH(addr) ((void)0)
+#define QBUEM_INLINE inline
+#define QBUEM_NOINLINE
+#define QBUEM_PREFETCH(addr) ((void)0)
 #endif
 
 // Branch hinting macros
 #ifdef __GNUC__
-#define BEAST_LIKELY(x) __builtin_expect(!!(x), 1)
-#define BEAST_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define QBUEM_LIKELY(x) __builtin_expect(!!(x), 1)
+#define QBUEM_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else
-#define BEAST_LIKELY(x) (x)
-#define BEAST_UNLIKELY(x) (x)
+#define QBUEM_LIKELY(x) (x)
+#define QBUEM_UNLIKELY(x) (x)
 #endif
 
 // Fallbacks for CLZ/CTZ use C++20 <bit> uniformly (already included above)
-#define BEAST_CLZ(x) std::countl_zero(static_cast<unsigned long long>(x))
-#define BEAST_CTZ(x) std::countr_zero(static_cast<unsigned long long>(x))
+#define QBUEM_CLZ(x) std::countl_zero(static_cast<unsigned long long>(x))
+#define QBUEM_CTZ(x) std::countr_zero(static_cast<unsigned long long>(x))
 
 namespace qbuem {
 namespace json {
@@ -274,7 +274,7 @@ namespace simd {
 // prefix_xor: compute prefix-XOR of a 64-bit mask.
 // Used by Stage 1 two-(AVX-512/NEON) to track in-string state.
 // If mask has 1s at quote positions, prefix_xor(mask) has 1s inside strings.
-BEAST_INLINE uint64_t prefix_xor(uint64_t x) noexcept {
+QBUEM_INLINE uint64_t prefix_xor(uint64_t x) noexcept {
   x ^= x << 1;
   x ^= x << 2;
   x ^= x << 4;
@@ -325,11 +325,11 @@ struct TapeNode {
         offset(o) {}
 
   // Field accessors — inline, zero overhead in optimised builds
-  BEAST_INLINE TapeNodeType type() const noexcept {
+  QBUEM_INLINE TapeNodeType type() const noexcept {
     return static_cast<TapeNodeType>((meta >> 24) & 0xFFu);
   }
-  BEAST_INLINE uint8_t flags() const noexcept { return (meta >> 16) & 0xFFu; }
-  BEAST_INLINE uint16_t length() const noexcept {
+  QBUEM_INLINE uint8_t flags() const noexcept { return (meta >> 16) & 0xFFu; }
+  QBUEM_INLINE uint16_t length() const noexcept {
     return static_cast<uint16_t>(meta & 0xFFFFu);
   }
 };
@@ -375,14 +375,14 @@ struct TapeArena {
     cap = base + n;
   }
 
-  BEAST_INLINE void reset() noexcept { head = base; }
+  QBUEM_INLINE void reset() noexcept { head = base; }
 
-  BEAST_INLINE size_t size() const noexcept {
+  QBUEM_INLINE size_t size() const noexcept {
     return static_cast<size_t>(head - base);
   }
 
-  BEAST_INLINE TapeNode &operator[](size_t i) noexcept { return base[i]; }
-  BEAST_INLINE const TapeNode &operator[](size_t i) const noexcept {
+  QBUEM_INLINE TapeNode &operator[](size_t i) noexcept { return base[i]; }
+  QBUEM_INLINE const TapeNode &operator[](size_t i) const noexcept {
     return base[i];
   }
 };
@@ -703,7 +703,7 @@ using std::int32_t; using std::int64_t;
 
    template <class T>
       requires(std::same_as<std::remove_cvref_t<T>, uint32_t>)
-   BEAST_INLINE auto* to_chars_u64_len_8(auto* buf, T val) noexcept
+   QBUEM_INLINE auto* to_chars_u64_len_8(auto* buf, T val) noexcept
    {
       /* 8 digits: aabbccdd */
       const uint32_t aabb = uint32_t((uint64_t(val) * 109951163) >> 40); /* (val / 10000) */
@@ -721,7 +721,7 @@ using std::int32_t; using std::int64_t;
 
    template <class T>
       requires(std::same_as<std::remove_cvref_t<T>, uint32_t>)
-   BEAST_INLINE auto* to_chars_u64_len_4(auto* buf, T val) noexcept
+   QBUEM_INLINE auto* to_chars_u64_len_4(auto* buf, T val) noexcept
    {
       /* 4 digits: aabb */
       const uint32_t aa = (val * 5243) >> 19; /* (val / 100) */
@@ -856,7 +856,7 @@ using std::int32_t; using std::int64_t;
 
    /** Multiplies two 64-bit unsigned integers (a * b),
        returns the 128-bit result as 'hi' and 'lo'. */
-   BEAST_INLINE void u128_mul(uint64_t a, uint64_t b, uint64_t* hi, uint64_t* lo) noexcept
+   QBUEM_INLINE void u128_mul(uint64_t a, uint64_t b, uint64_t* hi, uint64_t* lo) noexcept
    {
 #ifdef __SIZEOF_INT128__
 #if defined(__GNUC__) || defined(__GNUG__)
@@ -890,7 +890,7 @@ using std::int32_t; using std::int64_t;
 
    /** Multiplies two 64-bit unsigned integers and add a value (a * b + c),
        returns the 128-bit result as 'hi' and 'lo'. */
-   BEAST_INLINE void u128_mul_add(uint64_t a, uint64_t b, uint64_t c, uint64_t* hi, uint64_t* lo) noexcept
+   QBUEM_INLINE void u128_mul_add(uint64_t a, uint64_t b, uint64_t c, uint64_t* hi, uint64_t* lo) noexcept
    {
 #ifdef __SIZEOF_INT128__
 #if defined(__GNUC__) || defined(__GNUG__)
@@ -914,7 +914,7 @@ using std::int32_t; using std::int64_t;
    }
 
    /** Multiplies 128-bit integer and returns highest 64-bit rounded value. */
-   BEAST_INLINE uint64_t round_to_odd(uint64_t hi, uint64_t lo, uint64_t cp) noexcept
+   QBUEM_INLINE uint64_t round_to_odd(uint64_t hi, uint64_t lo, uint64_t cp) noexcept
    {
       uint64_t x_hi, x_lo, y_hi, y_lo;
       u128_mul(cp, lo, &x_hi, &x_lo);
@@ -1977,11 +1977,11 @@ public:
 
 private:
   TapeNodeType effective_type_() const noexcept {
-    if (BEAST_UNLIKELY(!doc_))
+    if (QBUEM_UNLIKELY(!doc_))
       return TapeNodeType::Null;
-    if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(idx_)))
+    if (QBUEM_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(idx_)))
       return TapeNodeType::Null;
-    if (BEAST_UNLIKELY(!doc_->mutations_.empty())) {
+    if (QBUEM_UNLIKELY(!doc_->mutations_.empty())) {
       auto it = doc_->mutations_.find(idx_);
       if (it != doc_->mutations_.end())
         return it->second.type;
@@ -2176,13 +2176,13 @@ public:
 private:
   uint32_t skip_value_(uint32_t idx) const noexcept {
     const uint32_t tsz = static_cast<uint32_t>(doc_->tape.size());
-    if (BEAST_UNLIKELY(idx >= tsz))
+    if (QBUEM_UNLIKELY(idx >= tsz))
       return idx;
     const auto t = doc_->tape[idx].type();
     if (t == TapeNodeType::ObjectStart || t == TapeNodeType::ArrayStart) {
       int depth = 1;
       ++idx;
-      while (depth > 0 && BEAST_LIKELY(idx < tsz)) {
+      while (depth > 0 && QBUEM_LIKELY(idx < tsz)) {
         const auto nt = doc_->tape[idx].type();
         if (nt == TapeNodeType::ObjectStart || nt == TapeNodeType::ArrayStart)
           ++depth;
@@ -2229,7 +2229,7 @@ public:
       if (t == TapeNodeType::ObjectEnd)
         break;
       // Skip deleted keys transparently
-      if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
+      if (QBUEM_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
         i = skip_value_(i + 1);
         continue;
       }
@@ -2240,7 +2240,7 @@ public:
         return Value(doc_, i + 1);
       i = skip_value_(i + 1);
     }
-    if (BEAST_UNLIKELY(!doc_->additions_.empty())) {
+    if (QBUEM_UNLIKELY(!doc_->additions_.empty())) {
       auto ait = doc_->additions_.find(idx_);
       if (ait != doc_->additions_.end()) {
         for (const auto &p : ait->second) {
@@ -2277,7 +2277,7 @@ public:
       if (t == TapeNodeType::ArrayEnd)
         break;
       // Skip deleted elements transparently
-      if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
+      if (QBUEM_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
         i = skip_value_(i);
         continue;
       }
@@ -2288,7 +2288,7 @@ public:
     }
 
     // Check array_insertions_
-    if (BEAST_UNLIKELY(!doc_->array_insertions_.empty())) {
+    if (QBUEM_UNLIKELY(!doc_->array_insertions_.empty())) {
       auto iit = doc_->array_insertions_.find(idx_);
       if (iit != doc_->array_insertions_.end()) {
         for (const auto &ins : iit->second) {
@@ -2312,7 +2312,7 @@ public:
       const auto t = doc_->tape[i].type();
       if (t == TapeNodeType::ObjectEnd)
         break;
-      if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
+      if (QBUEM_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
         i = skip_value_(i + 1);
         continue;
       }
@@ -2324,7 +2324,7 @@ public:
       i = skip_value_(i + 1);
     }
     // Key not found in tape, check additions_
-    if (BEAST_UNLIKELY(!doc_->additions_.empty())) {
+    if (QBUEM_UNLIKELY(!doc_->additions_.empty())) {
       auto ait = doc_->additions_.find(idx_);
       if (ait != doc_->additions_.end()) {
         for (const auto &p : ait->second) {
@@ -2349,7 +2349,7 @@ public:
       uint32_t i = idx_ + 1;
       size_t count = 0;
       while (i < ntape && doc_->tape[i].type() != TapeNodeType::ArrayEnd) {
-        if (BEAST_UNLIKELY(!doc_->deleted_.empty() &&
+        if (QBUEM_UNLIKELY(!doc_->deleted_.empty() &&
                            doc_->deleted_.count(i))) {
           i = skip_value_(i);
         } else {
@@ -2374,7 +2374,7 @@ public:
       uint32_t i = idx_ + 1;
       size_t count = 0;
       while (i < ntape && doc_->tape[i].type() != TapeNodeType::ObjectEnd) {
-        if (BEAST_UNLIKELY(!doc_->deleted_.empty() &&
+        if (QBUEM_UNLIKELY(!doc_->deleted_.empty() &&
                            doc_->deleted_.count(i))) {
           i = skip_value_(i + 1); // skip deleted key+value
         } else {
@@ -2410,8 +2410,8 @@ public:
           "qbuem::Value::as: value is missing, invalid, or deleted");
 
     // Check mutation overlay first — O(1) unordered_map lookup, only paid
-    // when mutations_ is non-empty (guarded by BEAST_UNLIKELY branch).
-    if (BEAST_UNLIKELY(!doc_->mutations_.empty())) {
+    // when mutations_ is non-empty (guarded by QBUEM_UNLIKELY branch).
+    if (QBUEM_UNLIKELY(!doc_->mutations_.empty())) {
       auto mit = doc_->mutations_.find(idx_);
       if (mit != doc_->mutations_.end()) {
         const MutationEntry &m = mit->second;
@@ -2562,11 +2562,11 @@ public:
     if (!doc_ || doc_->tape.size() == 0)
       return "null";
     // Delegate to structural dump when deletions/additions are present
-    if (BEAST_UNLIKELY(!doc_->deleted_.empty() || !doc_->additions_.empty() ||
+    if (QBUEM_UNLIKELY(!doc_->deleted_.empty() || !doc_->additions_.empty() ||
                        !doc_->array_insertions_.empty()))
       return dump_changes_();
     // Subtree (non-root): use separate path to avoid polluting the hot loop
-    if (BEAST_UNLIKELY(idx_ != 0))
+    if (QBUEM_UNLIKELY(idx_ != 0))
       return dump_subtree_();
     const char *src = doc_->source.data();
     [[maybe_unused]] const size_t src_sz = doc_->source.size();
@@ -2600,7 +2600,7 @@ public:
       // branchless sep write — table lookup + conditional advance.
       // sep=0 writes '\0' harmlessly; switch case always overwrites it.
       // Saves 2 instructions + eliminates 1 branch vs conditional write.
-#if BEAST_ARCH_APPLE_SILICON
+#if QBUEM_ARCH_APPLE_SILICON
       {
         static constexpr char kSepChars[3] = {'\0', ',', ':'};
         *w = kSepChars[sep];
@@ -2613,7 +2613,7 @@ public:
 
       // Mutation overlay — only paid when mutations_ non-empty (rare path).
       // Separator already written above; write mutated scalar and skip switch.
-      if (BEAST_UNLIKELY(!doc_->mutations_.empty())) {
+      if (QBUEM_UNLIKELY(!doc_->mutations_.empty())) {
         auto mit = doc_->mutations_.find(static_cast<uint32_t>(i));
         if (mit != doc_->mutations_.end()) {
           const MutationEntry &m = mit->second;
@@ -2664,7 +2664,7 @@ public:
         const uint16_t slen = static_cast<uint16_t>(meta & 0xFFFFu);
         const char *sp = src + nd.offset;
         *w++ = '"';
-#if BEAST_HAS_NEON
+#if QBUEM_HAS_NEON
         // NEON overlapping-pair copy for 17–31-byte strings.
         // For slen in [17,31]: two 16B VLD1Q+VST1Q stores cover all bytes.
         //   Store 1: w[0..15]  (first 16B of string)
@@ -2680,9 +2680,9 @@ public:
         // branch/string). Code size: ~13 instructions vs ~16 → smaller hot-path
         // I-cache footprint. Generic NEON (non-M1): structure
         // unchanged.
-#if BEAST_ARCH_APPLE_SILICON
-        if (BEAST_LIKELY(slen <= 16)) {
-          if (BEAST_LIKELY(sp + 16 <= src + src_sz)) {
+#if QBUEM_ARCH_APPLE_SILICON
+        if (QBUEM_LIKELY(slen <= 16)) {
+          if (QBUEM_LIKELY(sp + 16 <= src + src_sz)) {
             vst1q_u8(reinterpret_cast<uint8_t *>(w),
                      vld1q_u8(reinterpret_cast<const uint8_t *>(sp)));
             w += slen;
@@ -2690,7 +2690,7 @@ public:
             std::memcpy(w, sp, slen);
             w += slen;
           }
-        } else if (BEAST_LIKELY(slen <= 31)) {
+        } else if (QBUEM_LIKELY(slen <= 31)) {
           const uint8_t *up = reinterpret_cast<const uint8_t *>(sp);
           uint8_t *uw = reinterpret_cast<uint8_t *>(w);
           vst1q_u8(uw, vld1q_u8(up));
@@ -2701,7 +2701,7 @@ public:
           w += slen;
         }
 #else  // generic NEON (non-Apple-Silicon): structure
-        if (BEAST_LIKELY(slen <= 31)) {
+        if (QBUEM_LIKELY(slen <= 31)) {
           if (slen >= 17) {
             const uint8_t *up = reinterpret_cast<const uint8_t *>(sp);
             uint8_t *uw = reinterpret_cast<uint8_t *>(w);
@@ -2743,7 +2743,7 @@ public:
           std::memcpy(w, sp, slen);
           w += slen;
         }
-#endif // BEAST_ARCH_APPLE_SILICON
+#endif // QBUEM_ARCH_APPLE_SILICON
 #else
         // Unrolled 16-8-4-1 copy: avoids glibc dispatch overhead
         // for short strings (twitter.json avg 16.9 chars, 84% ≤ 24 chars).
@@ -2751,7 +2751,7 @@ public:
         // The SSE2 stores altered the PGO profile (LTO cross-contamination),
         // causing citm parse to regress +14% (598→684μs) for only −5% serialize
         // gain. Scalar 16-8-4-1 preserves parse performance.
-        if (BEAST_LIKELY(slen <= 31)) {
+        if (QBUEM_LIKELY(slen <= 31)) {
           uint16_t rem = slen;
           if (rem >= 16) {
             uint64_t a, b;
@@ -2785,7 +2785,7 @@ public:
           std::memcpy(w, sp, slen);
           w += slen;
         }
-#endif // BEAST_HAS_NEON
+#endif // QBUEM_HAS_NEON
         *w++ = '"';
         break;
       }
@@ -2844,13 +2844,13 @@ public:
       out.assign("null", 4);
       return;
     }
-    if (BEAST_UNLIKELY(!doc_->deleted_.empty() || !doc_->additions_.empty() ||
+    if (QBUEM_UNLIKELY(!doc_->deleted_.empty() || !doc_->additions_.empty() ||
                        !doc_->array_insertions_.empty())) {
       out = dump_changes_();
       return;
     }
     // Subtree (non-root): last_dump_size_ is root-only; don't use cache here
-    if (BEAST_UNLIKELY(idx_ != 0)) {
+    if (QBUEM_UNLIKELY(idx_ != 0)) {
       out = dump_subtree_();
       return;
     }
@@ -2876,7 +2876,7 @@ public:
       const auto type = static_cast<TapeNodeType>((meta >> 24) & 0xFF);
       const uint8_t sep = (meta >> 16) & 0xFFu;
 
-#if BEAST_ARCH_APPLE_SILICON
+#if QBUEM_ARCH_APPLE_SILICON
       {
         static constexpr char kSepChars[3] = {'\0', ',', ':'};
         *w = kSepChars[sep];
@@ -2887,7 +2887,7 @@ public:
         *w++ = (sep == 0x02u) ? ':' : ',';
 #endif
 
-      if (BEAST_UNLIKELY(!doc_->mutations_.empty())) {
+      if (QBUEM_UNLIKELY(!doc_->mutations_.empty())) {
         auto mit = doc_->mutations_.find(static_cast<uint32_t>(i));
         if (mit != doc_->mutations_.end()) {
           const MutationEntry &m = mit->second;
@@ -2938,11 +2938,11 @@ public:
         const uint16_t slen = static_cast<uint16_t>(meta & 0xFFFFu);
         const char *sp = src + nd.offset;
         *w++ = '"';
-#if BEAST_HAS_NEON
+#if QBUEM_HAS_NEON
         // see dump() above for rationale.
-#if BEAST_ARCH_APPLE_SILICON
-        if (BEAST_LIKELY(slen <= 16)) {
-          if (BEAST_LIKELY(sp + 16 <= src + src_sz)) {
+#if QBUEM_ARCH_APPLE_SILICON
+        if (QBUEM_LIKELY(slen <= 16)) {
+          if (QBUEM_LIKELY(sp + 16 <= src + src_sz)) {
             vst1q_u8(reinterpret_cast<uint8_t *>(w),
                      vld1q_u8(reinterpret_cast<const uint8_t *>(sp)));
             w += slen;
@@ -2950,7 +2950,7 @@ public:
             std::memcpy(w, sp, slen);
             w += slen;
           }
-        } else if (BEAST_LIKELY(slen <= 31)) {
+        } else if (QBUEM_LIKELY(slen <= 31)) {
           const uint8_t *up = reinterpret_cast<const uint8_t *>(sp);
           uint8_t *uw = reinterpret_cast<uint8_t *>(w);
           vst1q_u8(uw, vld1q_u8(up));
@@ -2961,7 +2961,7 @@ public:
           w += slen;
         }
 #else  // generic NEON (non-Apple-Silicon): structure
-        if (BEAST_LIKELY(slen <= 31)) {
+        if (QBUEM_LIKELY(slen <= 31)) {
           if (slen >= 17) {
             const uint8_t *up = reinterpret_cast<const uint8_t *>(sp);
             uint8_t *uw = reinterpret_cast<uint8_t *>(w);
@@ -3003,9 +3003,9 @@ public:
           std::memcpy(w, sp, slen);
           w += slen;
         }
-#endif // BEAST_ARCH_APPLE_SILICON
+#endif // QBUEM_ARCH_APPLE_SILICON
 #else
-        if (BEAST_LIKELY(slen <= 31)) {
+        if (QBUEM_LIKELY(slen <= 31)) {
           uint16_t rem = slen;
           if (rem >= 16) {
             uint64_t a, b;
@@ -3136,7 +3136,7 @@ public:
       const auto t = doc_->tape[i].type();
       if (t == TapeNodeType::ArrayEnd)
         return false;
-      if (BEAST_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
+      if (QBUEM_UNLIKELY(!doc_->deleted_.empty() && doc_->deleted_.count(i))) {
         i = skip_value_(i);
         continue;
       }
@@ -3248,7 +3248,7 @@ public:
   // method. Static so iterator classes (defined before their parent Value
   // closes) can call it.
   static uint32_t skip_val_s_(DocumentState *doc, uint32_t i) noexcept {
-    if (BEAST_UNLIKELY(!doc || i >= static_cast<uint32_t>(doc->tape.size())))
+    if (QBUEM_UNLIKELY(!doc || i >= static_cast<uint32_t>(doc->tape.size())))
       return i;
     Value tmp(doc, i);
     return tmp.skip_value_(i);
@@ -3270,7 +3270,7 @@ public:
       const size_t tape_sz = doc_->tape.size();
       while (key_idx_ != UINT32_MAX) {
         // Bounds guard: malformed tape may lack an ObjectEnd sentinel.
-        if (BEAST_UNLIKELY(key_idx_ >= tape_sz)) {
+        if (QBUEM_UNLIKELY(key_idx_ >= tape_sz)) {
           key_idx_ = UINT32_MAX;
           break;
         }
@@ -3378,7 +3378,7 @@ public:
       const size_t tape_sz = doc_->tape.size();
       while (elem_idx_ != UINT32_MAX) {
         // Bounds guard: malformed tape may lack an ArrayEnd sentinel.
-        if (BEAST_UNLIKELY(elem_idx_ >= tape_sz)) {
+        if (QBUEM_UNLIKELY(elem_idx_ >= tape_sz)) {
           elem_idx_ = UINT32_MAX;
           return;
         }
@@ -3992,7 +3992,7 @@ private:
       if (sep)
         *w++ = (sep == 0x02u) ? ':' : ',';
 
-      if (BEAST_UNLIKELY(!doc_->mutations_.empty())) {
+      if (QBUEM_UNLIKELY(!doc_->mutations_.empty())) {
         auto mit = doc_->mutations_.find(i);
         if (mit != doc_->mutations_.end()) {
           const MutationEntry &m = mit->second;
@@ -4265,7 +4265,7 @@ private:
         write_sep(stk[top]);
 
       // Mutation overlay
-      if (BEAST_UNLIKELY(!doc_->mutations_.empty())) {
+      if (QBUEM_UNLIKELY(!doc_->mutations_.empty())) {
         auto mit = doc_->mutations_.find(i);
         if (mit != doc_->mutations_.end()) {
           write_mutation_(out, mit->second);
@@ -4288,7 +4288,7 @@ private:
         stk[top] = {false, false, false, i, 0};
         break;
       case TapeNodeType::ObjectEnd:
-        if (BEAST_UNLIKELY(top < 0)) {
+        if (QBUEM_UNLIKELY(top < 0)) {
           out += '}';
           break;
         }
@@ -4299,7 +4299,7 @@ private:
           done_elem(stk[top]);
         break;
       case TapeNodeType::ArrayEnd:
-        if (BEAST_UNLIKELY(top < 0)) {
+        if (QBUEM_UNLIKELY(top < 0)) {
           out += ']';
           break;
         }
@@ -4468,14 +4468,14 @@ private:
 // Verified correct via phase19_test.cpp before integration.
 
 // Load 8 bytes without UB
-static BEAST_INLINE uint64_t load64(const char *p) noexcept {
+static QBUEM_INLINE uint64_t load64(const char *p) noexcept {
   uint64_t v;
   std::memcpy(&v, p, 8);
   return v;
 }
 
 // SWAR action mask: bit 7 of each byte set iff byte is non-WS (>= 0x21)
-static BEAST_INLINE uint64_t swar_action_mask(uint64_t v) noexcept {
+static QBUEM_INLINE uint64_t swar_action_mask(uint64_t v) noexcept {
   constexpr uint64_t K = 0x0101010101010101ULL;
   constexpr uint64_t H = 0x8080808080808080ULL;
   constexpr uint64_t BROAD = K * 0x21;
@@ -4484,13 +4484,13 @@ static BEAST_INLINE uint64_t swar_action_mask(uint64_t v) noexcept {
   return ~skip & H;
 }
 
-#if BEAST_HAS_NEON
+#if QBUEM_HAS_NEON
 
 // NEON movemask: 16-bit bitmask from 16-byte 0xFF/0x00 vector.
 // Bit i set iff byte i was 0xFF.
 // Uses vshrq_n_u8 + vmulq_u8 + vpaddlq reduction — zero memory loads.
 // kW is a compile-time constant; Clang encodes it as a NEON immediate.
-static BEAST_INLINE uint16_t neon_movemask(uint8x16_t mask) noexcept {
+static QBUEM_INLINE uint16_t neon_movemask(uint8x16_t mask) noexcept {
   // Step 1: convert 0xFF→1, 0x00→0 per byte
   uint8x16_t bits = vshrq_n_u8(mask, 7);
   // Step 2: weight each byte by its bit position 2^(i%8)
@@ -4509,7 +4509,7 @@ static BEAST_INLINE uint16_t neon_movemask(uint8x16_t mask) noexcept {
   return (uint16_t)(vgetq_lane_u64(s64, 0) | (vgetq_lane_u64(s64, 1) << 8));
 }
 
-#endif // BEAST_HAS_NEON
+#endif // QBUEM_HAS_NEON
 
 // Stage 1 AVX-512 Structural Scanner
 //
@@ -4523,8 +4523,8 @@ static BEAST_INLINE uint16_t neon_movemask(uint8x16_t mask) noexcept {
 //   • Compute string length as O(1): close_offset - open_offset - 1
 //
 // Uses same escape / in-string algorithm as fill_bitmap() for correctness.
-#if BEAST_HAS_AVX512
-BEAST_INLINE void stage1_scan_avx512(const char *src, size_t len,
+#if QBUEM_HAS_AVX512
+QBUEM_INLINE void stage1_scan_avx512(const char *src, size_t len,
                                      Stage1Index &idx) {
   // Upper bound: at most every byte is structural (e.g. "[[[[[")
   idx.reserve(len + 1);
@@ -4713,9 +4713,9 @@ BEAST_INLINE void stage1_scan_avx512(const char *src, size_t len,
 
   idx.count = count;
 }
-#elif BEAST_HAS_NEON
+#elif QBUEM_HAS_NEON
 // Stage 1 NEON Structural Scanner
-BEAST_INLINE void stage1_scan_neon(const char *src, size_t len,
+QBUEM_INLINE void stage1_scan_neon(const char *src, size_t len,
                                    Stage1Index &idx) {
   idx.reserve(len + 1);
   idx.reset();
@@ -4912,7 +4912,7 @@ BEAST_INLINE void stage1_scan_neon(const char *src, size_t len,
 
   idx.count = count;
 }
-#endif // BEAST_HAS_AVX512
+#endif // QBUEM_HAS_AVX512
 
 // 256-Entry constexpr Action LUT
 //
@@ -5019,17 +5019,17 @@ class Parser {
   // distribution (typically 2-8 consecutive WS bytes between tokens), the
   // vld1q_u8 overhead exceeds the gain vs SWAR-8. NEON accelerates bulk
   // whitespace (>16 consecutive bytes), which is rare here.
-  BEAST_INLINE char skip_to_action() noexcept {
+  QBUEM_INLINE char skip_to_action() noexcept {
     // Fast path: already on action byte.
     // Guard p_ < end_ before dereferencing: callers may reach here with
     // p_ == end_ (e.g. unterminated array/object like "[").
-    if (BEAST_UNLIKELY(p_ >= end_))
+    if (QBUEM_UNLIKELY(p_ >= end_))
       return 0;
     unsigned char c = static_cast<unsigned char>(*p_);
-    if (BEAST_LIKELY(c > 0x20))
+    if (QBUEM_LIKELY(c > 0x20))
       return static_cast<char>(c);
 
-#if BEAST_HAS_AVX512
+#if QBUEM_HAS_AVX512
     // ── AVX-512 64B batch whitespace skip ──────────────────────────
     // _mm512_cmpgt_epi8_mask vs 0x20 is 1 op (vs AVX2's 8 ops for 32B).
     // 64B/iter vs SWAR-32's 32B/iter → ~2× throughput for whitespace-heavy
@@ -5039,48 +5039,48 @@ class Parser {
     // them here before paying any 512-bit register setup cost (    // lesson).
     {
       uint64_t am = swar_action_mask(load64(p_));
-      if (BEAST_LIKELY(am != 0)) {
-        p_ += BEAST_CTZ(am) >> 3;
+      if (QBUEM_LIKELY(am != 0)) {
+        p_ += QBUEM_CTZ(am) >> 3;
         return *p_;
       }
       p_ += 8;
     }
     // Still in whitespace → bulk path: AVX-512 64B/iter for long WS runs.
-    if (BEAST_LIKELY(p_ + 64 <= end_)) {
+    if (QBUEM_LIKELY(p_ + 64 <= end_)) {
       const __m512i ws_thresh = _mm512_set1_epi8(0x20);
       do {
         __m512i v = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(p_));
         uint64_t non_ws =
             static_cast<uint64_t>(_mm512_cmpgt_epi8_mask(v, ws_thresh));
-        if (BEAST_LIKELY(non_ws)) {
+        if (QBUEM_LIKELY(non_ws)) {
           p_ += __builtin_ctzll(non_ws);
           return *p_;
         }
         p_ += 64;
-      } while (BEAST_LIKELY(p_ + 64 <= end_));
+      } while (QBUEM_LIKELY(p_ + 64 <= end_));
     }
     // <64B tail: SWAR-8 scalar walk
-    while (BEAST_LIKELY(p_ + 8 <= end_)) {
+    while (QBUEM_LIKELY(p_ + 8 <= end_)) {
       uint64_t am = swar_action_mask(load64(p_));
-      if (BEAST_LIKELY(am != 0)) {
-        p_ += BEAST_CTZ(am) >> 3;
+      if (QBUEM_LIKELY(am != 0)) {
+        p_ += QBUEM_CTZ(am) >> 3;
         return *p_;
       }
       p_ += 8;
     }
-#elif BEAST_HAS_NEON
+#elif QBUEM_HAS_NEON
     // ── Global AArch64 NEON Loop ──────────────────────────────────
     // SWAR pre-gates are strictly avoided on AArch64 because vector setup
     // (vld1q) and max-reduce (vmaxvq) have significantly lower latency and
     // higher throughput than scalar GPR dependencies on both Apple Silicon
     // and Generic ARM cores.
-    while (BEAST_LIKELY(p_ + 16 <= end_)) {
+    while (QBUEM_LIKELY(p_ + 16 <= end_)) {
       uint8x16_t v = vld1q_u8(reinterpret_cast<const uint8_t *>(p_));
       uint8x16_t mask = vcgtq_u8(v, vdupq_n_u8(0x20));
       // vmaxvq returns the max 32-bit element. If any byte was > 0x20,
       // the mask will have 0xFF in that byte, so the max 32-bit element
       // will be != 0.
-      if (BEAST_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(mask)) != 0)) {
+      if (QBUEM_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(mask)) != 0)) {
         // Find exact position via auto-vectorized loop
         while (static_cast<unsigned char>(*p_) <= 0x20)
           ++p_;
@@ -5090,33 +5090,33 @@ class Parser {
     }
 #else
     // SWAR-32 fallback (no SIMD available)
-    while (BEAST_LIKELY(p_ + 32 <= end_)) {
+    while (QBUEM_LIKELY(p_ + 32 <= end_)) {
       uint64_t a0 = swar_action_mask(load64(p_));
       uint64_t a1 = swar_action_mask(load64(p_ + 8));
       uint64_t a2 = swar_action_mask(load64(p_ + 16));
       uint64_t a3 = swar_action_mask(load64(p_ + 24));
-      if (BEAST_LIKELY(a0 | a1 | a2 | a3)) {
+      if (QBUEM_LIKELY(a0 | a1 | a2 | a3)) {
         if (a0) {
-          p_ += BEAST_CTZ(a0) >> 3;
+          p_ += QBUEM_CTZ(a0) >> 3;
           return *p_;
         }
         if (a1) {
-          p_ += 8 + (BEAST_CTZ(a1) >> 3);
+          p_ += 8 + (QBUEM_CTZ(a1) >> 3);
           return *p_;
         }
         if (a2) {
-          p_ += 16 + (BEAST_CTZ(a2) >> 3);
+          p_ += 16 + (QBUEM_CTZ(a2) >> 3);
           return *p_;
         }
-        p_ += 24 + (BEAST_CTZ(a3) >> 3);
+        p_ += 24 + (QBUEM_CTZ(a3) >> 3);
         return *p_;
       }
       p_ += 32;
     }
-    while (BEAST_LIKELY(p_ + 8 <= end_)) {
+    while (QBUEM_LIKELY(p_ + 8 <= end_)) {
       uint64_t am = swar_action_mask(load64(p_));
-      if (BEAST_LIKELY(am != 0)) {
-        p_ += BEAST_CTZ(am) >> 3;
+      if (QBUEM_LIKELY(am != 0)) {
+        p_ += QBUEM_CTZ(am) >> 3;
         return *p_;
       }
       p_ += 8;
@@ -5144,7 +5144,7 @@ class Parser {
   //   aarch64 (NEON 16B)  ← PRIMARY   — M1 / ARMv8+
   //   x86_64  (SSE2 16B)  ← SECONDARY — Nehalem+, all modern x86
   //   generic (SWAR-16)   ← FALLBACK
-  BEAST_INLINE const char *scan_string_end(const char *p) noexcept {
+  QBUEM_INLINE const char *scan_string_end(const char *p) noexcept {
     constexpr uint64_t K = 0x0101010101010101ULL;
     constexpr uint64_t H = 0x8080808080808080ULL;
     const uint64_t qm = K * static_cast<uint8_t>('"');
@@ -5153,31 +5153,31 @@ class Parser {
     // ── Stage 1: 8B SWAR gate ──────────────────────────────────────
     // Short strings (≤8 chars) exit here with zero SIMD overhead.
     // Backslash-early strings also exit early (benefit escape-heavy JSON).
-#if !BEAST_HAS_NEON
-    if (BEAST_LIKELY(p + 8 <= end_)) {
+#if !QBUEM_HAS_NEON
+    if (QBUEM_LIKELY(p + 8 <= end_)) {
       uint64_t v0;
       std::memcpy(&v0, p, 8);
       uint64_t hq0 = v0 ^ qm;
       hq0 = (hq0 - K) & ~hq0 & H;
       uint64_t hb0 = v0 ^ bsm;
       hb0 = (hb0 - K) & ~hb0 & H;
-      if (BEAST_UNLIKELY(hq0 | hb0))
-        return p + (BEAST_CTZ(hq0 | hb0) >> 3);
+      if (QBUEM_UNLIKELY(hq0 | hb0))
+        return p + (QBUEM_CTZ(hq0 | hb0) >> 3);
       p += 8; // string confirmed > 8 chars: advance to SIMD
     }
 #endif
 
     // ── Stage 2: SIMD loop (string > 8 chars confirmed) ───────────
 
-#if BEAST_HAS_NEON
+#if QBUEM_HAS_NEON
     // aarch64 PRIMARY: NEON 16B. Pinpoint via scalar fallback loop.
     {
       const uint8x16_t vq = vdupq_n_u8('"');
       const uint8x16_t vbs = vdupq_n_u8('\\');
-      while (BEAST_LIKELY(p + 16 <= end_)) {
+      while (QBUEM_LIKELY(p + 16 <= end_)) {
         uint8x16_t v = vld1q_u8(reinterpret_cast<const uint8_t *>(p));
         uint8x16_t m = vorrq_u8(vceqq_u8(v, vq), vceqq_u8(v, vbs));
-        if (BEAST_UNLIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m)) != 0)) {
+        if (QBUEM_UNLIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m)) != 0)) {
           // Pinpoint: AArch64 strongly prefers scalar loop over
           // cross-register extraction latency.
           while (*p != '"' && *p != '\\')
@@ -5187,21 +5187,21 @@ class Parser {
         p += 16;
       }
     }
-#elif BEAST_HAS_AVX2
+#elif QBUEM_HAS_AVX2
     // x86_64 AVX2/AVX-512: SIMD string scanner.
     // AVX2 32B. : AVX-512 64B outer loop (when available).
     // aarch64 agents: inactive on M1 builds. x86_64: build with -march=native.
-#if BEAST_HAS_AVX512
+#if QBUEM_HAS_AVX512
     // AVX-512 64B per iteration — halves loop count vs AVX2.
     // _mm512_cmpeq_epi8_mask → uint64_t mask directly (no vpor needed).
     {
       const __m512i vq512 = _mm512_set1_epi8('"');
       const __m512i vbs512 = _mm512_set1_epi8('\\');
-      while (BEAST_LIKELY(p + 64 <= end_)) {
+      while (QBUEM_LIKELY(p + 64 <= end_)) {
         __m512i v = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(p));
         uint64_t mask = _mm512_cmpeq_epi8_mask(v, vq512) |
                         _mm512_cmpeq_epi8_mask(v, vbs512);
-        if (BEAST_UNLIKELY(mask)) {
+        if (QBUEM_UNLIKELY(mask)) {
           p += __builtin_ctzll(mask);
           return p;
         }
@@ -5213,12 +5213,12 @@ class Parser {
     {
       const __m256i vq = _mm256_set1_epi8('"');
       const __m256i vbs = _mm256_set1_epi8('\\');
-      while (BEAST_LIKELY(p + 32 <= end_)) {
+      while (QBUEM_LIKELY(p + 32 <= end_)) {
         __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(p));
         uint32_t mask =
             static_cast<uint32_t>(_mm256_movemask_epi8(_mm256_or_si256(
                 _mm256_cmpeq_epi8(v, vq), _mm256_cmpeq_epi8(v, vbs))));
-        if (BEAST_UNLIKELY(mask))
+        if (QBUEM_UNLIKELY(mask))
           return p + __builtin_ctz(mask);
         p += 32;
       }
@@ -5227,25 +5227,25 @@ class Parser {
     {
       const __m128i vq = _mm_set1_epi8('"');
       const __m128i vbs = _mm_set1_epi8('\\');
-      while (BEAST_LIKELY(p + 16 <= end_)) {
+      while (QBUEM_LIKELY(p + 16 <= end_)) {
         __m128i v = _mm_loadu_si128(reinterpret_cast<const __m128i *>(p));
         int mask = _mm_movemask_epi8(
             _mm_or_si128(_mm_cmpeq_epi8(v, vq), _mm_cmpeq_epi8(v, vbs)));
-        if (BEAST_UNLIKELY(mask))
+        if (QBUEM_UNLIKELY(mask))
           return p + __builtin_ctz(mask);
         p += 16;
       }
     }
-#elif defined(BEAST_ARCH_X86_64)
+#elif defined(QBUEM_ARCH_X86_64)
     // x86_64 SECONDARY (SSE2 only, no AVX2): 16B per iteration.
     {
       const __m128i vq = _mm_set1_epi8('"');
       const __m128i vbs = _mm_set1_epi8('\\');
-      while (BEAST_LIKELY(p + 16 <= end_)) {
+      while (QBUEM_LIKELY(p + 16 <= end_)) {
         __m128i v = _mm_loadu_si128(reinterpret_cast<const __m128i *>(p));
         int mask = _mm_movemask_epi8(
             _mm_or_si128(_mm_cmpeq_epi8(v, vq), _mm_cmpeq_epi8(v, vbs)));
-        if (BEAST_UNLIKELY(mask))
+        if (QBUEM_UNLIKELY(mask))
           return p + __builtin_ctz(mask);
         p += 16;
       }
@@ -5265,10 +5265,10 @@ class Parser {
       uint64_t hb1 = v1 ^ bsm;
       hb1 = (hb1 - K) & ~hb1 & H;
       uint64_t m0 = hq0 | hb0, m1 = hq1 | hb1;
-      if (BEAST_UNLIKELY(m0 | m1)) {
+      if (QBUEM_UNLIKELY(m0 | m1)) {
         if (m0)
-          return p + (BEAST_CTZ(m0) >> 3);
-        return p + 8 + (BEAST_CTZ(m1) >> 3);
+          return p + (QBUEM_CTZ(m0) >> 3);
+        return p + 8 + (QBUEM_CTZ(m1) >> 3);
       }
       p += 16;
     }
@@ -5283,8 +5283,8 @@ class Parser {
       uint64_t hb = v ^ bsm;
       hb = (hb - K) & ~hb & H;
       uint64_t m = hq | hb;
-      if (BEAST_UNLIKELY(m))
-        return p + (BEAST_CTZ(m) >> 3);
+      if (QBUEM_UNLIKELY(m))
+        return p + (QBUEM_CTZ(m) >> 3);
       p += 8;
     }
     while (p < end_ && *p != '"' && *p != '\\')
@@ -5292,7 +5292,7 @@ class Parser {
     return p;
   }
 
-  BEAST_INLINE const char *skip_string(const char *p) noexcept {
+  QBUEM_INLINE const char *skip_string(const char *p) noexcept {
     while (p < end_) {
       p = scan_string_end(p);
       if (p >= end_)
@@ -5311,19 +5311,19 @@ class Parser {
   // Saves ~11 scalar instructions per call by using AVX2 directly at p =
   // s+32 (no 8-byte prologue). For strings 32-63 chars: 1 AVX2 op total vs
   // SWAR-8+AVX2 (17 instructions).
-  BEAST_INLINE const char *skip_string_from32(const char *s) noexcept {
+  QBUEM_INLINE const char *skip_string_from32(const char *s) noexcept {
     const char *p = s + 32;
-#if BEAST_HAS_AVX2
+#if QBUEM_HAS_AVX2
     const __m256i vq = _mm256_set1_epi8('"');
     const __m256i vbs = _mm256_set1_epi8('\\');
-    while (BEAST_LIKELY(p + 32 <= end_)) {
+    while (QBUEM_LIKELY(p + 32 <= end_)) {
       __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(p));
       uint32_t mask =
           static_cast<uint32_t>(_mm256_movemask_epi8(_mm256_or_si256(
               _mm256_cmpeq_epi8(v, vq), _mm256_cmpeq_epi8(v, vbs))));
-      if (BEAST_LIKELY(mask != 0)) {
+      if (QBUEM_LIKELY(mask != 0)) {
         p += __builtin_ctz(mask);
-        if (BEAST_LIKELY(*p == '"'))
+        if (QBUEM_LIKELY(*p == '"'))
           return p;
         p += 2; // skip escape sequence (backslash + next byte)
         continue;
@@ -5366,19 +5366,19 @@ class Parser {
   // starts 64B further (s+64). Called when bytes [s, s+64) are confirmed
   // clean by an AVX-512 inline scan. For strings 64-127 chars: 1 AVX-512 op
   // total vs full scan_string_end().
-#if BEAST_HAS_AVX512
-  BEAST_INLINE const char *skip_string_from64(const char *s) noexcept {
+#if QBUEM_HAS_AVX512
+  QBUEM_INLINE const char *skip_string_from64(const char *s) noexcept {
     const char *p = s + 64;
     {
       const __m512i vq512 = _mm512_set1_epi8('"');
       const __m512i vbs512 = _mm512_set1_epi8('\\');
-      while (BEAST_LIKELY(p + 64 <= end_)) {
+      while (QBUEM_LIKELY(p + 64 <= end_)) {
         __m512i v = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(p));
         uint64_t mask = _mm512_cmpeq_epi8_mask(v, vq512) |
                         _mm512_cmpeq_epi8_mask(v, vbs512);
-        if (BEAST_LIKELY(mask != 0)) {
+        if (QBUEM_LIKELY(mask != 0)) {
           p += __builtin_ctzll(mask);
-          if (BEAST_LIKELY(*p == '"'))
+          if (QBUEM_LIKELY(*p == '"'))
             return p;
           p += 2; // skip escape sequence
           continue;
@@ -5390,14 +5390,14 @@ class Parser {
     {
       const __m256i vq = _mm256_set1_epi8('"');
       const __m256i vbs = _mm256_set1_epi8('\\');
-      while (BEAST_LIKELY(p + 32 <= end_)) {
+      while (QBUEM_LIKELY(p + 32 <= end_)) {
         __m256i v = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(p));
         uint32_t mask =
             static_cast<uint32_t>(_mm256_movemask_epi8(_mm256_or_si256(
                 _mm256_cmpeq_epi8(v, vq), _mm256_cmpeq_epi8(v, vbs))));
-        if (BEAST_LIKELY(mask != 0)) {
+        if (QBUEM_LIKELY(mask != 0)) {
           p += __builtin_ctz(mask);
-          if (BEAST_LIKELY(*p == '"'))
+          if (QBUEM_LIKELY(*p == '"'))
             return p;
           p += 2;
           continue;
@@ -5434,7 +5434,7 @@ class Parser {
     }
     return p;
   }
-#endif // BEAST_HAS_AVX512
+#endif // QBUEM_HAS_AVX512
 
   // Fused key scanner: scan string end, then consume ':' immediately.
   // For object keys: after closing '"', the next structural char is always
@@ -5446,7 +5446,7 @@ class Parser {
   // upgrade: SWAR-24 fast path (same as main switch case '"':)
   // covers ≤24-byte keys with no backslash, accounting for 90%+ of
   // twitter.json keys.
-  BEAST_INLINE char scan_key_colon_next(const char *s,
+  QBUEM_INLINE char scan_key_colon_next(const char *s,
                                         const char **key_end_out) noexcept {
     // s is the char after the opening '"' of the key.
     const char *e;
@@ -5457,7 +5457,7 @@ class Parser {
     const uint8_t kd = (depth_ < KeyLenCache::MAX_DEPTH)
                            ? static_cast<uint8_t>(depth_)
                            : uint8_t(255);
-    if (BEAST_LIKELY(kd < KeyLenCache::MAX_DEPTH)) {
+    if (QBUEM_LIKELY(kd < KeyLenCache::MAX_DEPTH)) {
       const uint8_t kidx = kc_.key_idx[kd];
       if (kidx < KeyLenCache::MAX_KEYS) {
         const uint16_t cl = kc_.lens[kd][kidx];
@@ -5473,7 +5473,7 @@ class Parser {
           // ⚠ Known edge case: a string value starting with ':' (e.g. ":foo")
           // could cause a false-positive here.  None of the four standard
           // benchmark files (twitter/canada/citm/gsoc) contain such values.
-          if (BEAST_LIKELY(s + cl + 1 < end_) && s[cl] == '"' &&
+          if (QBUEM_LIKELY(s + cl + 1 < end_) && s[cl] == '"' &&
               s[cl + 1] == ':') {
             e = s + cl;
             kc_.key_idx[kd] = kidx + 1;
@@ -5483,27 +5483,27 @@ class Parser {
         }
       }
     }
-#if BEAST_HAS_AVX2
-#if BEAST_HAS_AVX512
+#if QBUEM_HAS_AVX2
+#if QBUEM_HAS_AVX512
     // ── AVX-512 64B one-shot key scan
     // ───────────────────────────── Handles keys ≤63 chars in one 512-bit
     // operation.
-    if (BEAST_LIKELY(s + 64 <= end_)) {
+    if (QBUEM_LIKELY(s + 64 <= end_)) {
       const __m512i _vq512 = _mm512_set1_epi8('"');
       const __m512i _vbs512 = _mm512_set1_epi8('\\');
       __m512i _v512 = _mm512_loadu_si512(reinterpret_cast<const __m512i *>(s));
       uint64_t _mask512 = _mm512_cmpeq_epi8_mask(_v512, _vq512) |
                           _mm512_cmpeq_epi8_mask(_v512, _vbs512);
-      if (BEAST_LIKELY(_mask512 != 0)) {
+      if (QBUEM_LIKELY(_mask512 != 0)) {
         e = s + __builtin_ctzll(_mask512);
-        if (BEAST_LIKELY(*e == '"')) {
+        if (QBUEM_LIKELY(*e == '"')) {
           goto skn_found;
         }
         goto skn_slow; // backslash → full scanner
       }
       // mask==0: bytes [s, s+64) clean → skip_string_from64
       e = skip_string_from64(s);
-      if (BEAST_UNLIKELY(e >= end_ || *e != '"'))
+      if (QBUEM_UNLIKELY(e >= end_ || *e != '"'))
         return 0;
       goto skn_found;
     }
@@ -5513,16 +5513,16 @@ class Parser {
     // ───────────────────────────────────────── Handles keys ≤31 chars in
     // one 256-bit operation. mask==0 or backslash → goto skn_slow directly
     // (no SWAR-24 redundancy).
-    if (BEAST_LIKELY(s + 32 <= end_)) {
+    if (QBUEM_LIKELY(s + 32 <= end_)) {
       const __m256i _vq = _mm256_set1_epi8('"');
       const __m256i _vbs = _mm256_set1_epi8('\\');
       __m256i _v = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(s));
       uint32_t _mask =
           static_cast<uint32_t>(_mm256_movemask_epi8(_mm256_or_si256(
               _mm256_cmpeq_epi8(_v, _vq), _mm256_cmpeq_epi8(_v, _vbs))));
-      if (BEAST_LIKELY(_mask != 0)) {
+      if (QBUEM_LIKELY(_mask != 0)) {
         e = s + __builtin_ctz(_mask);
-        if (BEAST_LIKELY(*e == '"')) {
+        if (QBUEM_LIKELY(*e == '"')) {
           goto skn_found;
         }
         goto skn_slow; // backslash → full scanner
@@ -5531,7 +5531,7 @@ class Parser {
       // skip_string_from32 starts AVX2 at s+32 directly, skipping
       // scan_string_end's SWAR-8 gate (~11 instructions saved per call).
       e = skip_string_from32(s);
-      if (BEAST_UNLIKELY(e >= end_ || *e != '"'))
+      if (QBUEM_UNLIKELY(e >= end_ || *e != '"'))
         return 0;
       goto skn_found;
     }
@@ -5541,8 +5541,8 @@ class Parser {
     // on real files). Removing it shrinks the function → better L1 I-cache
     // utilization.
     goto skn_slow;
-#elif BEAST_HAS_NEON
-#if defined(BEAST_ARCH_APPLE_SILICON)
+#elif QBUEM_HAS_NEON
+#if defined(QBUEM_ARCH_APPLE_SILICON)
     // ── / 65-M1: Apple Silicon 3×16B NEON key scanner ────────────
     // M1/M2/M3 characteristics that enable this extension:
     //   - 128B L1/L2 cache lines: 3×16B loads (48B) still within one cache line
@@ -5560,79 +5560,79 @@ class Parser {
     // For keys >48B (all 3 clean): skip_string(s+48) avoids rescanning 48B.
     // For keys 32-48B (v1+v2 clean, gate fails): fall to 2×16B path below.
     // For keys ≤32B (common case): identical hot path to the 2×16B baseline.
-    if (BEAST_LIKELY(s + 48 <= end_)) {
+    if (QBUEM_LIKELY(s + 48 <= end_)) {
       const uint8x16_t vq = vdupq_n_u8('"');
       const uint8x16_t vbs = vdupq_n_u8('\\');
 
       uint8x16_t v1 = vld1q_u8(reinterpret_cast<const uint8_t *>(s));
       uint8x16_t m1 = vorrq_u8(vceqq_u8(v1, vq), vceqq_u8(v1, vbs));
-      if (BEAST_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m1)) != 0)) {
+      if (QBUEM_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m1)) != 0)) {
         e = s;
         while (*e != '"' && *e != '\\')
           ++e;
-        if (BEAST_LIKELY(*e == '"'))
+        if (QBUEM_LIKELY(*e == '"'))
           goto skn_found;
         goto skn_slow;
       }
 
       uint8x16_t v2 = vld1q_u8(reinterpret_cast<const uint8_t *>(s + 16));
       uint8x16_t m2 = vorrq_u8(vceqq_u8(v2, vq), vceqq_u8(v2, vbs));
-      if (BEAST_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m2)) != 0)) {
+      if (QBUEM_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m2)) != 0)) {
         e = s + 16;
         while (*e != '"' && *e != '\\')
           ++e;
-        if (BEAST_LIKELY(*e == '"'))
+        if (QBUEM_LIKELY(*e == '"'))
           goto skn_found;
         goto skn_slow;
       }
 
       uint8x16_t v3 = vld1q_u8(reinterpret_cast<const uint8_t *>(s + 32));
       uint8x16_t m3 = vorrq_u8(vceqq_u8(v3, vq), vceqq_u8(v3, vbs));
-      if (BEAST_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m3)) != 0)) {
+      if (QBUEM_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m3)) != 0)) {
         e = s + 32;
         while (*e != '"' && *e != '\\')
           ++e;
-        if (BEAST_LIKELY(*e == '"'))
+        if (QBUEM_LIKELY(*e == '"'))
           goto skn_found;
         goto skn_slow;
       }
 
       // [s, s+48) confirmed clean — skip_string(s+48) bypasses rescanning
       e = skip_string(s + 48);
-      if (BEAST_UNLIKELY(e >= end_ || *e != '"'))
+      if (QBUEM_UNLIKELY(e >= end_ || *e != '"'))
         return 0; // malformed
       goto skn_found;
     }
     // 32 ≤ remaining < 48: 2×16B with skip_string(s+32) bypass
-    if (BEAST_LIKELY(s + 32 <= end_)) {
+    if (QBUEM_LIKELY(s + 32 <= end_)) {
       const uint8x16_t vq = vdupq_n_u8('"');
       const uint8x16_t vbs = vdupq_n_u8('\\');
 
       uint8x16_t v1 = vld1q_u8(reinterpret_cast<const uint8_t *>(s));
       uint8x16_t m1 = vorrq_u8(vceqq_u8(v1, vq), vceqq_u8(v1, vbs));
-      if (BEAST_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m1)) != 0)) {
+      if (QBUEM_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m1)) != 0)) {
         e = s;
         while (*e != '"' && *e != '\\')
           ++e;
-        if (BEAST_LIKELY(*e == '"'))
+        if (QBUEM_LIKELY(*e == '"'))
           goto skn_found;
         goto skn_slow;
       }
 
       uint8x16_t v2 = vld1q_u8(reinterpret_cast<const uint8_t *>(s + 16));
       uint8x16_t m2 = vorrq_u8(vceqq_u8(v2, vq), vceqq_u8(v2, vbs));
-      if (BEAST_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m2)) != 0)) {
+      if (QBUEM_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m2)) != 0)) {
         e = s + 16;
         while (*e != '"' && *e != '\\')
           ++e;
-        if (BEAST_LIKELY(*e == '"'))
+        if (QBUEM_LIKELY(*e == '"'))
           goto skn_found;
         goto skn_slow;
       }
 
       // [s, s+32) clean → continue from s+32 (avoids rescanning via skn_slow)
       e = skip_string(s + 32);
-      if (BEAST_UNLIKELY(e >= end_ || *e != '"'))
+      if (QBUEM_UNLIKELY(e >= end_ || *e != '"'))
         return 0; // malformed
       goto skn_found;
     }
@@ -5656,40 +5656,40 @@ class Parser {
     //
     // when both 16B checks are clean (key >32B), call
     // skip_string(s+32) instead of goto skn_slow to avoid rescanning [s,s+32).
-    if (BEAST_LIKELY(s + 32 <= end_)) {
+    if (QBUEM_LIKELY(s + 32 <= end_)) {
       const uint8x16_t vq = vdupq_n_u8('"');
       const uint8x16_t vbs = vdupq_n_u8('\\');
 
       uint8x16_t v1 = vld1q_u8(reinterpret_cast<const uint8_t *>(s));
       uint8x16_t m1 = vorrq_u8(vceqq_u8(v1, vq), vceqq_u8(v1, vbs));
-      if (BEAST_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m1)) != 0)) {
+      if (QBUEM_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m1)) != 0)) {
         e = s;
         while (*e != '"' && *e != '\\')
           ++e;
-        if (BEAST_LIKELY(*e == '"'))
+        if (QBUEM_LIKELY(*e == '"'))
           goto skn_found;
         goto skn_slow;
       }
 
       uint8x16_t v2 = vld1q_u8(reinterpret_cast<const uint8_t *>(s + 16));
       uint8x16_t m2 = vorrq_u8(vceqq_u8(v2, vq), vceqq_u8(v2, vbs));
-      if (BEAST_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m2)) != 0)) {
+      if (QBUEM_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m2)) != 0)) {
         e = s + 16;
         while (*e != '"' && *e != '\\')
           ++e;
-        if (BEAST_LIKELY(*e == '"'))
+        if (QBUEM_LIKELY(*e == '"'))
           goto skn_found;
         goto skn_slow;
       }
 
       // [s, s+32) confirmed clean — skip_string(s+32) avoids rescanning
       e = skip_string(s + 32);
-      if (BEAST_UNLIKELY(e >= end_ || *e != '"'))
+      if (QBUEM_UNLIKELY(e >= end_ || *e != '"'))
         return 0; // malformed
       goto skn_found;
     }
     goto skn_slow;
-#endif // BEAST_ARCH_APPLE_SILICON vs generic AArch64
+#endif // QBUEM_ARCH_APPLE_SILICON vs generic AArch64
 #else
     // ── SWAR-24 (non-SIMD fallback: no AVX2, no NEON) ───────────────────────
     // finding: On Apple Silicon, this scalar SWAR path is faster
@@ -5702,16 +5702,16 @@ class Parser {
       constexpr uint64_t H = 0x8080808080808080ULL;
       const uint64_t qm = K * static_cast<uint8_t>('"');
       const uint64_t bsm = K * static_cast<uint8_t>('\\');
-      if (BEAST_LIKELY(s + 24 <= end_)) {
+      if (QBUEM_LIKELY(s + 24 <= end_)) {
         uint64_t v0;
         std::memcpy(&v0, s, 8);
         uint64_t hq0 = v0 ^ qm;
         hq0 = (hq0 - K) & ~hq0 & H;
         uint64_t hb0 = v0 ^ bsm;
         hb0 = (hb0 - K) & ~hb0 & H;
-        if (BEAST_LIKELY(!hb0)) {
+        if (QBUEM_LIKELY(!hb0)) {
           if (hq0) { // ≤8-char key: quote in first chunk, no backslash
-            e = s + (BEAST_CTZ(hq0) >> 3);
+            e = s + (QBUEM_CTZ(hq0) >> 3);
             goto skn_found;
           }
           // Key is 9-24 chars: load v1 and v2
@@ -5726,11 +5726,11 @@ class Parser {
           hq2 = (hq2 - K) & ~hq2 & H;
           uint64_t hb2 = v2 ^ bsm;
           hb2 = (hb2 - K) & ~hb2 & H;
-          if (BEAST_LIKELY(!(hb1 | hb2))) {
+          if (QBUEM_LIKELY(!(hb1 | hb2))) {
             if (hq1)
-              e = s + 8 + (BEAST_CTZ(hq1) >> 3);
+              e = s + 8 + (QBUEM_CTZ(hq1) >> 3);
             else if (hq2)
-              e = s + 16 + (BEAST_CTZ(hq2) >> 3);
+              e = s + 16 + (QBUEM_CTZ(hq2) >> 3);
             else
               goto skn_slow;
             goto skn_found;
@@ -5739,14 +5739,14 @@ class Parser {
         // Backslash found → fall through to full scan
       }
     } // end SWAR-24 scope (K/H/qm/bsm)
-#endif // BEAST_HAS_AVX2
+#endif // QBUEM_HAS_AVX2
   skn_slow:
     e = skip_string(s);
-    if (BEAST_UNLIKELY(e >= end_ || *e != '"'))
+    if (QBUEM_UNLIKELY(e >= end_ || *e != '"'))
       return 0; // malformed
   skn_found:
     // record key length for future cache hits (first-pass learning).
-    if (BEAST_LIKELY(kd < KeyLenCache::MAX_DEPTH)) {
+    if (QBUEM_LIKELY(kd < KeyLenCache::MAX_DEPTH)) {
       const uint8_t kidx = kc_.key_idx[kd];
       if (kidx < KeyLenCache::MAX_KEYS) {
         if (kc_.lens[kd][kidx] == 0)
@@ -5763,12 +5763,12 @@ class Parser {
 
     // Now: consume ':' and skip whitespace to the value start.
     // Common case: p_ is already on ':' (no space between key and colon)
-    if (BEAST_LIKELY(p_ < end_ && *p_ == ':')) {
+    if (QBUEM_LIKELY(p_ < end_ && *p_ == ':')) {
       ++p_;
       // peek at value start
-      if (BEAST_LIKELY(p_ < end_)) {
+      if (QBUEM_LIKELY(p_ < end_)) {
         unsigned char nc = static_cast<unsigned char>(*p_);
-        if (BEAST_LIKELY(nc > 0x20))
+        if (QBUEM_LIKELY(nc > 0x20))
           return static_cast<char>(nc);
         return skip_to_action();
       }
@@ -5791,13 +5791,13 @@ class Parser {
   //   sep = 0  → no separator  (root, first array element, first object
   //   key) sep = 1  → comma         (non-first array element or object key)
   //   sep = 2  → colon         (object value, always)
-  BEAST_INLINE void push(TapeNodeType t, uint16_t l, uint32_t o) noexcept {
+  QBUEM_INLINE void push(TapeNodeType t, uint16_t l, uint32_t o) noexcept {
     // prefetch tape write slot 16 TapeNodes (192B) ahead — store
     // hint. Hides tape-arena write latency; significant gain on large files
     // (canada).
     __builtin_prefetch(tape_head_ + 16, 1, 1);
     uint8_t sep = 0;
-    if (BEAST_LIKELY(depth_ > 0)) {
+    if (QBUEM_LIKELY(depth_ > 0)) {
       // (x86_64): LUT-based sep+state computation.
       // Replaces 14-instruction bit arithmetic with 2 table loads.
       // Valid states: 0(arr,no-elem), 3(obj,key,no-elem), 4(arr,has-elem),
@@ -5824,13 +5824,13 @@ class Parser {
   }
 
   // push_end(): for ObjectEnd / ArrayEnd — always sep=0, no state update.
-  BEAST_INLINE void push_end(TapeNodeType t, uint32_t o) noexcept {
+  QBUEM_INLINE void push_end(TapeNodeType t, uint32_t o) noexcept {
     TapeNode *n = tape_head_++;
     n->meta = static_cast<uint32_t>(t) << 24; // sep=0, len=0
     n->offset = o;
   }
 
-  BEAST_INLINE uint32_t tape_size() const noexcept {
+  QBUEM_INLINE uint32_t tape_size() const noexcept {
     return static_cast<uint32_t>(tape_head_ - doc_->tape.base);
   }
 
@@ -5845,23 +5845,23 @@ public:
   // Key changes vs :
   //   1. char c = skip_to_action()  → switch(c) avoids re-read of *p_
   //   2. tape_head_ is local → no doc_->tape.size() pointer chain
-  BEAST_INLINE const char *get_p() const noexcept { return p_; }
+  QBUEM_INLINE const char *get_p() const noexcept { return p_; }
   [[gnu::hot, gnu::flatten]] bool parse(bool allow_trailing = false) {
     // skip_to_action() returns the first action char AND advances p_.
     // We keep 'c' as the dispatch value — no *p_ re-read needed.
     char c = skip_to_action();
-    if (BEAST_UNLIKELY(c == 0)) {
+    if (QBUEM_UNLIKELY(c == 0)) {
       doc_->tape.head = tape_head_; // sync
       return false;
     }
 
     while (p_ < end_) {
-      // / Apple Silicon: prefetch BEAST_PREFETCH_DISTANCE bytes
+      // / Apple Silicon: prefetch QBUEM_PREFETCH_DISTANCE bytes
       // ahead with L2 locality hint. Distance is arch-tuned at compile time:
       //   Apple Silicon (M1/M2/M3): 512B (4 × 128B cache lines)
       //   Generic ARM64: 256B (4 × 64B; winner)
       //   x86_64: 192B
-      BEAST_PREFETCH(p_ + BEAST_PREFETCH_DISTANCE);
+      QBUEM_PREFETCH(p_ + QBUEM_PREFETCH_DISTANCE);
       // LUT dispatch — 11 ActionId cases vs 17 raw char cases.
       // kActionLut[c] maps every byte to an ActionId in one L1 cache
       // access.
@@ -5869,7 +5869,7 @@ public:
 
       case kActObjOpen: {
         // Nested objects/arrays are not valid object keys (RFC 8259 §4).
-        if (BEAST_UNLIKELY(cur_state_ & 0b001u))
+        if (QBUEM_UNLIKELY(cur_state_ & 0b001u))
           goto fail;
         push(TapeNodeType::ObjectStart, 0, static_cast<uint32_t>(p_ - data_));
         // save parent state, init new object context.
@@ -5878,12 +5878,12 @@ public:
         cur_state_ = 0b011u; // in_obj=1, is_key=1, has_elem=0
         ++depth_;
         // reset key index for newly entered object depth.
-        if (BEAST_LIKELY(depth_ < KeyLenCache::MAX_DEPTH))
+        if (QBUEM_LIKELY(depth_ < KeyLenCache::MAX_DEPTH))
           kc_.key_idx[depth_] = 0;
         ++p_;
-        if (BEAST_LIKELY(p_ < end_)) {
+        if (QBUEM_LIKELY(p_ < end_)) {
           unsigned char fc = static_cast<unsigned char>(*p_);
-          if (BEAST_LIKELY(fc > 0x20)) {
+          if (QBUEM_LIKELY(fc > 0x20)) {
             c = static_cast<char>(fc);
             continue;
           }
@@ -5891,7 +5891,7 @@ public:
         break;
       }
       case kActArrOpen: {
-        if (BEAST_UNLIKELY(cur_state_ & 0b001u))
+        if (QBUEM_UNLIKELY(cur_state_ & 0b001u))
           goto fail;
         push(TapeNodeType::ArrayStart, 0, static_cast<uint32_t>(p_ - data_));
         // save parent state, init new array context.
@@ -5899,9 +5899,9 @@ public:
         cur_state_ = 0b000u; // in_obj=0, is_key=0, has_elem=0
         ++depth_;
         ++p_;
-        if (BEAST_LIKELY(p_ < end_)) {
+        if (QBUEM_LIKELY(p_ < end_)) {
           unsigned char fc = static_cast<unsigned char>(*p_);
-          if (BEAST_LIKELY(fc > 0x20)) {
+          if (QBUEM_LIKELY(fc > 0x20)) {
             c = static_cast<char>(fc);
             continue;
           }
@@ -5909,7 +5909,7 @@ public:
         break;
       }
       case kActClose: {
-        if (BEAST_UNLIKELY(depth_ == 0))
+        if (QBUEM_UNLIKELY(depth_ == 0))
           goto fail;
         --depth_;
         // restore parent depth's state (no mask arithmetic).
@@ -5925,22 +5925,22 @@ public:
         constexpr uint64_t H = 0x8080808080808080ULL;
         const uint64_t qm = K * static_cast<uint8_t>('"');
         const uint64_t bsm = K * static_cast<uint8_t>('\\');
-#if BEAST_HAS_AVX2
-#if BEAST_HAS_AVX512
+#if QBUEM_HAS_AVX2
+#if QBUEM_HAS_AVX512
         // ── AVX-512 64B one-shot string scan
         // ────────────────────── One 512-bit load handles ≤63-char strings
         // in a single zmm op. Expected gain: citm (long keys) −5~10%,
         // twitter moderate.
-        if (BEAST_LIKELY(s + 64 <= end_)) {
+        if (QBUEM_LIKELY(s + 64 <= end_)) {
           const __m512i _vq512 = _mm512_set1_epi8('"');
           const __m512i _vbs512 = _mm512_set1_epi8('\\');
           __m512i _v512 =
               _mm512_loadu_si512(reinterpret_cast<const __m512i *>(s));
           uint64_t _mask512 = _mm512_cmpeq_epi8_mask(_v512, _vq512) |
                               _mm512_cmpeq_epi8_mask(_v512, _vbs512);
-          if (BEAST_LIKELY(_mask512 != 0)) {
+          if (QBUEM_LIKELY(_mask512 != 0)) {
             e = s + __builtin_ctzll(_mask512);
-            if (BEAST_LIKELY(*e == '"')) {
+            if (QBUEM_LIKELY(*e == '"')) {
               push(TapeNodeType::StringRaw, static_cast<uint16_t>(e - s),
                    static_cast<uint32_t>(s - data_));
               p_ = e + 1;
@@ -5950,7 +5950,7 @@ public:
           }
           // mask==0: bytes [s, s+64) clean → skip_string_from64
           e = skip_string_from64(s);
-          if (BEAST_UNLIKELY(e >= end_ || *e != '"'))
+          if (QBUEM_UNLIKELY(e >= end_ || *e != '"'))
             goto fail;
           push(TapeNodeType::StringRaw, static_cast<uint16_t>(e - s),
                static_cast<uint32_t>(s - data_));
@@ -5964,16 +5964,16 @@ public:
         // 31 chars in 1 SIMD op. twitter.json: 84% of strings ≤24 chars —
         // major hot-path speedup. mask==0 or backslash → goto str_slow
         // directly (no SWAR-24 redundancy).
-        if (BEAST_LIKELY(s + 32 <= end_)) {
+        if (QBUEM_LIKELY(s + 32 <= end_)) {
           const __m256i _vq = _mm256_set1_epi8('"');
           const __m256i _vbs = _mm256_set1_epi8('\\');
           __m256i _v = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(s));
           uint32_t _mask =
               static_cast<uint32_t>(_mm256_movemask_epi8(_mm256_or_si256(
                   _mm256_cmpeq_epi8(_v, _vq), _mm256_cmpeq_epi8(_v, _vbs))));
-          if (BEAST_LIKELY(_mask != 0)) {
+          if (QBUEM_LIKELY(_mask != 0)) {
             e = s + __builtin_ctz(_mask);
-            if (BEAST_LIKELY(*e == '"')) {
+            if (QBUEM_LIKELY(*e == '"')) {
               push(TapeNodeType::StringRaw, static_cast<uint16_t>(e - s),
                    static_cast<uint32_t>(s - data_));
               p_ = e + 1;
@@ -5986,7 +5986,7 @@ public:
           // scan_string_end's SWAR-8 gate (~11 instructions saved per
           // call).
           e = skip_string_from32(s);
-          if (BEAST_UNLIKELY(e >= end_ || *e != '"'))
+          if (QBUEM_UNLIKELY(e >= end_ || *e != '"'))
             goto fail;
           push(TapeNodeType::StringRaw, static_cast<uint16_t>(e - s),
                static_cast<uint32_t>(s - data_));
@@ -5994,23 +5994,23 @@ public:
           goto str_done;
         }
         // near end of buffer: fall through to SWAR-24
-#elif BEAST_HAS_NEON
+#elif QBUEM_HAS_NEON
         // ── NEON 32B inline value-string scan ─────────────────
         // Mirrors the NEON path in scan_key_colon_next(): two 16B loads
         // cover strings up to 31 chars (the majority of twitter.json
         // value strings: tweet dates, screen names, short URLs).
         // For strings > 31 chars the 32B check is clean → skip_string_from32
         // to avoid rescanning the first 32B (important for long tweet text).
-        if (BEAST_LIKELY(s + 32 <= end_)) {
+        if (QBUEM_LIKELY(s + 32 <= end_)) {
           const uint8x16_t vq = vdupq_n_u8('"');
           const uint8x16_t vbs = vdupq_n_u8('\\');
           uint8x16_t v1 = vld1q_u8(reinterpret_cast<const uint8_t *>(s));
           uint8x16_t m1 = vorrq_u8(vceqq_u8(v1, vq), vceqq_u8(v1, vbs));
-          if (BEAST_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m1)) != 0)) {
+          if (QBUEM_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m1)) != 0)) {
             e = s;
             while (*e != '"' && *e != '\\')
               ++e;
-            if (BEAST_LIKELY(*e == '"')) {
+            if (QBUEM_LIKELY(*e == '"')) {
               push(TapeNodeType::StringRaw, static_cast<uint16_t>(e - s),
                    static_cast<uint32_t>(s - data_));
               p_ = e + 1;
@@ -6020,11 +6020,11 @@ public:
           }
           uint8x16_t v2 = vld1q_u8(reinterpret_cast<const uint8_t *>(s + 16));
           uint8x16_t m2 = vorrq_u8(vceqq_u8(v2, vq), vceqq_u8(v2, vbs));
-          if (BEAST_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m2)) != 0)) {
+          if (QBUEM_LIKELY(vmaxvq_u32(vreinterpretq_u32_u8(m2)) != 0)) {
             e = s + 16;
             while (*e != '"' && *e != '\\')
               ++e;
-            if (BEAST_LIKELY(*e == '"')) {
+            if (QBUEM_LIKELY(*e == '"')) {
               push(TapeNodeType::StringRaw, static_cast<uint16_t>(e - s),
                    static_cast<uint32_t>(s - data_));
               p_ = e + 1;
@@ -6035,7 +6035,7 @@ public:
           // [s, s+32) clean: long string — skip_string_from32 starts
           // SWAR-8 at s+32, avoiding rescan of the clean first 32B.
           e = skip_string_from32(s);
-          if (BEAST_UNLIKELY(e >= end_ || *e != '"'))
+          if (QBUEM_UNLIKELY(e >= end_ || *e != '"'))
             goto fail;
           push(TapeNodeType::StringRaw, static_cast<uint16_t>(e - s),
                static_cast<uint32_t>(s - data_));
@@ -6047,16 +6047,16 @@ public:
         // SWAR cascaded: load v0 first, early exit for ≤8-char strings
         // (: covers 36% of twitter.json strings without loading
         // v1/v2). twitter.json coverage: ≤8 (36%), ≤16 (64%), ≤24 (84%)
-        if (BEAST_LIKELY(s + 24 <= end_)) {
+        if (QBUEM_LIKELY(s + 24 <= end_)) {
           uint64_t v0;
           std::memcpy(&v0, s, 8);
           uint64_t hq0 = v0 ^ qm;
           hq0 = (hq0 - K) & ~hq0 & H;
           uint64_t hb0 = v0 ^ bsm;
           hb0 = (hb0 - K) & ~hb0 & H;
-          if (BEAST_LIKELY(!hb0)) {
+          if (QBUEM_LIKELY(!hb0)) {
             if (hq0) { // ≤8-char string, no backslash
-              e = s + (BEAST_CTZ(hq0) >> 3);
+              e = s + (QBUEM_CTZ(hq0) >> 3);
               push(TapeNodeType::StringRaw, static_cast<uint16_t>(e - s),
                    static_cast<uint32_t>(s - data_));
               p_ = e + 1;
@@ -6074,11 +6074,11 @@ public:
             hq2 = (hq2 - K) & ~hq2 & H;
             uint64_t hb2 = v2 ^ bsm;
             hb2 = (hb2 - K) & ~hb2 & H;
-            if (BEAST_LIKELY(!(hb1 | hb2))) {
+            if (QBUEM_LIKELY(!(hb1 | hb2))) {
               if (hq1) {
-                e = s + 8 + (BEAST_CTZ(hq1) >> 3);
+                e = s + 8 + (QBUEM_CTZ(hq1) >> 3);
               } else if (hq2) {
-                e = s + 16 + (BEAST_CTZ(hq2) >> 3);
+                e = s + 16 + (QBUEM_CTZ(hq2) >> 3);
               } else {
                 goto str_slow;
               }
@@ -6095,8 +6095,8 @@ public:
           hq = (hq - K) & ~hq & H;
           uint64_t hb = v ^ bsm;
           hb = (hb - K) & ~hb & H;
-          if (BEAST_LIKELY(hq && !hb)) {
-            e = s + (BEAST_CTZ(hq) >> 3);
+          if (QBUEM_LIKELY(hq && !hb)) {
+            e = s + (QBUEM_CTZ(hq) >> 3);
             push(TapeNodeType::StringRaw, static_cast<uint16_t>(e - s),
                  static_cast<uint32_t>(s - data_));
             p_ = e + 1;
@@ -6106,7 +6106,7 @@ public:
       str_slow:
         // Strings >24 bytes or containing backslash — full SWAR-16 scanner
         e = skip_string(s);
-        if (BEAST_UNLIKELY(e >= end_ || *e != '"'))
+        if (QBUEM_UNLIKELY(e >= end_ || *e != '"'))
           goto fail;
         push(TapeNodeType::StringRaw, static_cast<uint16_t>(e - s),
              static_cast<uint32_t>(s - data_));
@@ -6115,19 +6115,19 @@ public:
       str_done:
         // ── + B1: String Double Pump with fused key scanner ──
         // Strings are almost always followed by ':', ',', '}', or ']'.
-        if (BEAST_LIKELY(p_ < end_)) {
+        if (QBUEM_LIKELY(p_ < end_)) {
           unsigned char nc = static_cast<unsigned char>(*p_);
           if (nc <= 0x20) {
             c = skip_to_action();
-            if (BEAST_UNLIKELY(p_ >= end_))
+            if (QBUEM_UNLIKELY(p_ >= end_))
               goto done;
             nc = static_cast<unsigned char>(c);
           }
-          if (BEAST_LIKELY(nc == ':')) {
+          if (QBUEM_LIKELY(nc == ':')) {
             // After a key: consume ':' and find value start.
             ++p_;
             c = skip_to_action();
-            if (BEAST_UNLIKELY(p_ >= end_))
+            if (QBUEM_UNLIKELY(p_ >= end_))
               goto done;
             continue; // bypass loop bottom, straight to value
           }
@@ -6140,21 +6140,21 @@ public:
             // eliminating one switch dispatch and one extra
             // skip_to_action().
             // in_obj = bit1 of cur_state_ (register-resident)
-            if (BEAST_LIKELY(depth_ > 0 && (cur_state_ & 0b010u))) {
+            if (QBUEM_LIKELY(depth_ > 0 && (cur_state_ & 0b010u))) {
               // In object: expect next key string
-              if (BEAST_LIKELY(p_ < end_)) {
+              if (QBUEM_LIKELY(p_ < end_)) {
                 unsigned char fc = static_cast<unsigned char>(*p_);
                 if (fc <= 0x20) {
                   fc = static_cast<unsigned char>(skip_to_action());
-                  if (BEAST_UNLIKELY(p_ >= end_))
+                  if (QBUEM_UNLIKELY(p_ >= end_))
                     goto done;
                 }
-                if (BEAST_LIKELY(fc == '"')) {
+                if (QBUEM_LIKELY(fc == '"')) {
                   // Fused key scan: SWAR-24 + push + ':' consume + WS skip
                   char vc = scan_key_colon_next(p_ + 1, nullptr);
-                  if (BEAST_UNLIKELY(vc == 0))
+                  if (QBUEM_UNLIKELY(vc == 0))
                     goto fail;
-                  if (BEAST_UNLIKELY(p_ >= end_))
+                  if (QBUEM_UNLIKELY(p_ >= end_))
                     goto done;
                   c = vc;
                   continue; // directly to value — no switch for key!
@@ -6166,14 +6166,14 @@ public:
               goto done;
             }
             // Not in object (in array): find next element
-            if (BEAST_UNLIKELY(depth_ == 0)) goto done;
+            if (QBUEM_UNLIKELY(depth_ == 0)) goto done;
             c = skip_to_action();
-            if (BEAST_UNLIKELY(p_ >= end_))
+            if (QBUEM_UNLIKELY(p_ >= end_))
               goto done;
             continue; // bypass loop bottom, straight to next token!
           }
-          if (BEAST_UNLIKELY(nc == ']' || nc == '}')) {
-            if (BEAST_UNLIKELY(depth_ == 0))
+          if (QBUEM_UNLIKELY(nc == ']' || nc == '}')) {
+            if (QBUEM_UNLIKELY(depth_ == 0))
               goto fail;
             --depth_;
             // restore parent state (no mask arithmetic needed)
@@ -6183,7 +6183,7 @@ public:
                      static_cast<uint32_t>(p_ - data_));
             ++p_;
             c = skip_to_action();
-            if (BEAST_UNLIKELY(p_ >= end_))
+            if (QBUEM_UNLIKELY(p_ >= end_))
               goto done;
             continue;
           }
@@ -6192,18 +6192,18 @@ public:
       }
       case kActTrue:
         // Non-string values are illegal as object keys (RFC 8259 §4).
-        if (BEAST_UNLIKELY(cur_state_ & 0b001u))
+        if (QBUEM_UNLIKELY(cur_state_ & 0b001u))
           goto fail;
-        if (BEAST_LIKELY(p_ + 4 <= end_ && !std::memcmp(p_, "true", 4))) {
+        if (QBUEM_LIKELY(p_ + 4 <= end_ && !std::memcmp(p_, "true", 4))) {
           push(TapeNodeType::BooleanTrue, 4, static_cast<uint32_t>(p_ - data_));
           p_ += 4;
         } else
           goto fail;
         goto bool_null_done;
       case kActFalse:
-        if (BEAST_UNLIKELY(cur_state_ & 0b001u))
+        if (QBUEM_UNLIKELY(cur_state_ & 0b001u))
           goto fail;
-        if (BEAST_LIKELY(p_ + 5 <= end_ && !std::memcmp(p_, "false", 5))) {
+        if (QBUEM_LIKELY(p_ + 5 <= end_ && !std::memcmp(p_, "false", 5))) {
           push(TapeNodeType::BooleanFalse, 5,
                static_cast<uint32_t>(p_ - data_));
           p_ += 5;
@@ -6211,9 +6211,9 @@ public:
           goto fail;
         goto bool_null_done;
       case kActNull:
-        if (BEAST_UNLIKELY(cur_state_ & 0b001u))
+        if (QBUEM_UNLIKELY(cur_state_ & 0b001u))
           goto fail;
-        if (BEAST_LIKELY(p_ + 4 <= end_ && !std::memcmp(p_, "null", 4))) {
+        if (QBUEM_LIKELY(p_ + 4 <= end_ && !std::memcmp(p_, "null", 4))) {
           push(TapeNodeType::Null, 4, static_cast<uint32_t>(p_ - data_));
           p_ += 4;
         } else
@@ -6223,30 +6223,30 @@ public:
         // true/false/null are values; always followed by ',', ']', or '}'.
         // Mirrors the number fusion: avoid re-entering switch top,
         // and in object context fuse the next key scan after ','.
-        if (BEAST_LIKELY(p_ < end_)) {
+        if (QBUEM_LIKELY(p_ < end_)) {
           unsigned char nc = static_cast<unsigned char>(*p_);
           if (nc <= 0x20) {
             c = skip_to_action();
-            if (BEAST_UNLIKELY(p_ >= end_))
+            if (QBUEM_UNLIKELY(p_ >= end_))
               goto done;
             nc = static_cast<unsigned char>(c);
           }
-          if (BEAST_LIKELY(nc == ',')) {
+          if (QBUEM_LIKELY(nc == ',')) {
             ++p_;
             // in_obj = bit1 of cur_state_
-            if (BEAST_LIKELY(depth_ > 0 && (cur_state_ & 0b010u))) {
-              if (BEAST_LIKELY(p_ < end_)) {
+            if (QBUEM_LIKELY(depth_ > 0 && (cur_state_ & 0b010u))) {
+              if (QBUEM_LIKELY(p_ < end_)) {
                 unsigned char fc = static_cast<unsigned char>(*p_);
                 if (fc <= 0x20) {
                   fc = static_cast<unsigned char>(skip_to_action());
-                  if (BEAST_UNLIKELY(p_ >= end_))
+                  if (QBUEM_UNLIKELY(p_ >= end_))
                     goto done;
                 }
-                if (BEAST_LIKELY(fc == '"')) {
+                if (QBUEM_LIKELY(fc == '"')) {
                   char vc = scan_key_colon_next(p_ + 1, nullptr);
-                  if (BEAST_UNLIKELY(vc == 0))
+                  if (QBUEM_UNLIKELY(vc == 0))
                     goto fail;
-                  if (BEAST_UNLIKELY(p_ >= end_))
+                  if (QBUEM_UNLIKELY(p_ >= end_))
                     goto done;
                   c = vc;
                   continue;
@@ -6257,12 +6257,12 @@ public:
               goto done;
             }
             c = skip_to_action();
-            if (BEAST_UNLIKELY(p_ >= end_))
+            if (QBUEM_UNLIKELY(p_ >= end_))
               goto done;
             continue;
           }
-          if (BEAST_LIKELY(nc == ']' || nc == '}')) {
-            if (BEAST_UNLIKELY(depth_ == 0))
+          if (QBUEM_LIKELY(nc == ']' || nc == '}')) {
+            if (QBUEM_UNLIKELY(depth_ == 0))
               goto fail;
             --depth_;
             // restore parent state
@@ -6272,7 +6272,7 @@ public:
                      static_cast<uint32_t>(p_ - data_));
             ++p_;
             c = skip_to_action();
-            if (BEAST_UNLIKELY(p_ >= end_))
+            if (QBUEM_UNLIKELY(p_ >= end_))
               goto done;
             continue;
           }
@@ -6285,7 +6285,7 @@ public:
       // Numbers: SWAR-8 digit scanner
       case kActNumber: {
         // Numbers are not valid object keys (RFC 8259 §4).
-        if (BEAST_UNLIKELY(cur_state_ & 0b001u))
+        if (QBUEM_UNLIKELY(cur_state_ & 0b001u))
           goto fail;
         const char *s = p_;
         if (*p_ == '-')
@@ -6298,7 +6298,7 @@ public:
         //   SWAR-8 iterations → saves ~2 SWAR overhead per ID.
         // Pure NEON: no scalar pre-gate inside the loop; vmaxvq_u32 result
         // drives a single branch identical to scan_string_end's pattern.
-#if BEAST_HAS_NEON
+#if QBUEM_HAS_NEON
         {
           const uint8x16_t vzero = vdupq_n_u8('0');
           const uint8x16_t vnine = vdupq_n_u8(9);
@@ -6307,7 +6307,7 @@ public:
             uint8x16_t sub =
                 vsubq_u8(vv, vzero); // [0..9]=digit; else wraps ≥10
             uint8x16_t nd = vcgtq_u8(sub, vnine); // 0xFF where non-digit
-            if (BEAST_UNLIKELY(vmaxvq_u32(vreinterpretq_u32_u8(nd)) != 0)) {
+            if (QBUEM_UNLIKELY(vmaxvq_u32(vreinterpretq_u32_u8(nd)) != 0)) {
               while (static_cast<unsigned>(*p_ - '0') < 10u)
                 ++p_;
               goto num_done;
@@ -6324,7 +6324,7 @@ public:
                                           0x7676767676767676ULL)) &
                               0x8080808080808080ULL;
           if (nondigit) {
-            p_ += BEAST_CTZ(nondigit) >> 3;
+            p_ += QBUEM_CTZ(nondigit) >> 3;
             goto num_done;
           }
           p_ += 8;
@@ -6334,7 +6334,7 @@ public:
           ++p_;
       num_done:;
         bool flt = false;
-        if (BEAST_UNLIKELY(p_ < end_ &&
+        if (QBUEM_UNLIKELY(p_ < end_ &&
                            (*p_ == '.' || *p_ == 'e' || *p_ == 'E'))) {
           flt = true;
           ++p_;
@@ -6357,8 +6357,8 @@ public:
           // even with fresh profdata. Root cause: additional basic blocks
           // in parse() change PGO+LTO code layout → twitter L1 I-cache
           // pressure. Any new code in parse() is forbidden.
-#if BEAST_HAS_NEON
-#define BEAST_SKIP_DIGITS()                                                    \
+#if QBUEM_HAS_NEON
+#define QBUEM_SKIP_DIGITS()                                                    \
   do {                                                                         \
     {                                                                          \
       const uint8x16_t _vzero = vdupq_n_u8('0');                               \
@@ -6367,7 +6367,7 @@ public:
         uint8x16_t _vv = vld1q_u8(reinterpret_cast<const uint8_t *>(p_));      \
         uint8x16_t _sub = vsubq_u8(_vv, _vzero);                               \
         uint8x16_t _nd = vcgtq_u8(_sub, _vnine);                               \
-        if (BEAST_UNLIKELY(vmaxvq_u32(vreinterpretq_u32_u8(_nd)) != 0)) {      \
+        if (QBUEM_UNLIKELY(vmaxvq_u32(vreinterpretq_u32_u8(_nd)) != 0)) {      \
           while (static_cast<unsigned>(*p_ - '0') < 10u)                       \
             ++p_;                                                              \
           break;                                                               \
@@ -6379,7 +6379,7 @@ public:
       ++p_;                                                                    \
   } while (0)
 #else
-#define BEAST_SKIP_DIGITS()                                                    \
+#define QBUEM_SKIP_DIGITS()                                                    \
   do {                                                                         \
     while (p_ + 8 <= end_) {                                                   \
       uint64_t _v;                                                             \
@@ -6389,7 +6389,7 @@ public:
           (_s | ((_s & 0x7F7F7F7F7F7F7F7FULL) + 0x7676767676767676ULL)) &      \
           0x8080808080808080ULL;                                               \
       if (_nd) {                                                               \
-        p_ += BEAST_CTZ(_nd) >> 3;                                             \
+        p_ += QBUEM_CTZ(_nd) >> 3;                                             \
         break;                                                                 \
       }                                                                        \
       p_ += 8;                                                                 \
@@ -6398,14 +6398,14 @@ public:
       ++p_;                                                                    \
   } while (0)
 #endif
-          BEAST_SKIP_DIGITS(); // fractional digits
+          QBUEM_SKIP_DIGITS(); // fractional digits
           if (p_ < end_ && (*p_ == 'e' || *p_ == 'E')) {
             ++p_;
             if (p_ < end_ && (*p_ == '+' || *p_ == '-'))
               ++p_;
-            BEAST_SKIP_DIGITS(); // exponent digits
+            QBUEM_SKIP_DIGITS(); // exponent digits
           }
-#undef BEAST_SKIP_DIGITS
+#undef QBUEM_SKIP_DIGITS
         }
         push(flt ? TapeNodeType::NumberRaw : TapeNodeType::Integer,
              static_cast<uint16_t>(p_ - s), static_cast<uint32_t>(s - data_));
@@ -6415,30 +6415,30 @@ public:
         // ']' or '}'. Instead of falling back to the top of the switch
         // loop, we peek at the next char. If it's ',' in an object, fuse
         // the next key scan.
-        if (BEAST_LIKELY(p_ < end_)) {
+        if (QBUEM_LIKELY(p_ < end_)) {
           unsigned char nc = static_cast<unsigned char>(*p_);
           if (nc <= 0x20) {
             c = skip_to_action();
-            if (BEAST_UNLIKELY(p_ >= end_))
+            if (QBUEM_UNLIKELY(p_ >= end_))
               goto done;
             nc = static_cast<unsigned char>(c);
           }
-          if (BEAST_LIKELY(nc == ',')) {
+          if (QBUEM_LIKELY(nc == ',')) {
             ++p_;
             // + 60-A: fused key scan; in_obj = bit1 of cur_state_
-            if (BEAST_LIKELY(depth_ > 0 && (cur_state_ & 0b010u))) {
-              if (BEAST_LIKELY(p_ < end_)) {
+            if (QBUEM_LIKELY(depth_ > 0 && (cur_state_ & 0b010u))) {
+              if (QBUEM_LIKELY(p_ < end_)) {
                 unsigned char fc = static_cast<unsigned char>(*p_);
                 if (fc <= 0x20) {
                   fc = static_cast<unsigned char>(skip_to_action());
-                  if (BEAST_UNLIKELY(p_ >= end_))
+                  if (QBUEM_UNLIKELY(p_ >= end_))
                     goto done;
                 }
-                if (BEAST_LIKELY(fc == '"')) {
+                if (QBUEM_LIKELY(fc == '"')) {
                   char vc = scan_key_colon_next(p_ + 1, nullptr);
-                  if (BEAST_UNLIKELY(vc == 0))
+                  if (QBUEM_UNLIKELY(vc == 0))
                     goto fail;
-                  if (BEAST_UNLIKELY(p_ >= end_))
+                  if (QBUEM_UNLIKELY(p_ >= end_))
                     goto done;
                   c = vc;
                   continue; // directly to value
@@ -6448,15 +6448,15 @@ public:
               }
               goto done;
             }
-            if (BEAST_UNLIKELY(depth_ == 0)) goto done;
+            if (QBUEM_UNLIKELY(depth_ == 0)) goto done;
             c = skip_to_action();
-            if (BEAST_UNLIKELY(p_ >= end_))
+            if (QBUEM_UNLIKELY(p_ >= end_))
               goto done;
             continue; // bypass loop bottom separator logic, go straight to
                       // next token
           }
-          if (BEAST_LIKELY(nc == ']' || nc == '}')) {
-            if (BEAST_UNLIKELY(depth_ == 0))
+          if (QBUEM_LIKELY(nc == ']' || nc == '}')) {
+            if (QBUEM_UNLIKELY(depth_ == 0))
               goto fail;
             --depth_;
             // restore parent state
@@ -6466,7 +6466,7 @@ public:
                      static_cast<uint32_t>(p_ - data_));
             ++p_;
             c = skip_to_action();
-            if (BEAST_UNLIKELY(p_ >= end_))
+            if (QBUEM_UNLIKELY(p_ >= end_))
               goto done;
             continue; // End handled inline!
           }
@@ -6484,20 +6484,20 @@ public:
       // skip_to_action. For JSON like "key":value or value,"next", the char
       // after sep is > 0x20.
       c = skip_to_action();
-      if (BEAST_UNLIKELY(p_ >= end_))
+      if (QBUEM_UNLIKELY(p_ >= end_))
         break;
-      if (BEAST_LIKELY(c == ':' || c == ',')) {
+      if (QBUEM_LIKELY(c == ':' || c == ',')) {
         ++p_; // consume separator
-        if (BEAST_UNLIKELY(p_ >= end_))
+        if (QBUEM_UNLIKELY(p_ >= end_))
           break;
         // Peek: if next char is already an action byte, skip
         // skip_to_action()
         unsigned char nc = static_cast<unsigned char>(*p_);
-        if (BEAST_LIKELY(nc > 0x20)) {
+        if (QBUEM_LIKELY(nc > 0x20)) {
           c = static_cast<char>(nc); // direct dispatch, zero function call
         } else {
           c = skip_to_action(); // whitespace present, do SWAR skip
-          if (BEAST_UNLIKELY(p_ >= end_))
+          if (QBUEM_UNLIKELY(p_ >= end_))
             break;
         }
       }
@@ -6520,7 +6520,7 @@ public:
     return false;
   }
 
-#if BEAST_HAS_AVX512 || BEAST_HAS_NEON
+#if QBUEM_HAS_AVX512 || QBUEM_HAS_NEON
   // ── Stage 2 — index-based parse loop ───────────────────────
   //
   // Key differences from parse():
@@ -6538,7 +6538,7 @@ public:
     const uint32_t *pos = s1.positions;
     const uint32_t n = s1.count;
 
-    if (BEAST_UNLIKELY(n == 0)) {
+    if (QBUEM_UNLIKELY(n == 0)) {
       doc_->tape.head = tape_head_;
       return false; // empty / all-whitespace JSON is invalid
     }
@@ -6561,7 +6561,7 @@ public:
         cur_state_ = 0b011u; // in_obj=1, is_key=1, has_elem=0
         ++depth_;
         // reset key index for newly entered object depth.
-        if (BEAST_LIKELY(depth_ < KeyLenCache::MAX_DEPTH))
+        if (QBUEM_LIKELY(depth_ < KeyLenCache::MAX_DEPTH))
           kc_.key_idx[depth_] = 0;
         last_off = off + 1;
         break;
@@ -6578,7 +6578,7 @@ public:
       }
 
       case kActClose: {
-        if (BEAST_UNLIKELY(depth_ == 0))
+        if (QBUEM_UNLIKELY(depth_ == 0))
           goto s2_fail;
         --depth_;
         // restore parent state (no mask arithmetic needed).
@@ -6591,7 +6591,7 @@ public:
 
       case kActString: {
         // Stage 1 guarantees: pos[i] is the closing '"' of this string.
-        if (BEAST_UNLIKELY(i >= n))
+        if (QBUEM_UNLIKELY(i >= n))
           goto s2_fail;
         const uint32_t close_off = pos[i++]; // consume closing '"'
         push(TapeNodeType::StringRaw,
@@ -6620,7 +6620,7 @@ public:
                                           0x7676767676767676ULL)) &
                               0x8080808080808080ULL;
           if (nondigit) {
-            pn += BEAST_CTZ(nondigit) >> 3;
+            pn += QBUEM_CTZ(nondigit) >> 3;
             goto s2_num_done;
           }
           pn += 8;
@@ -6629,7 +6629,7 @@ public:
           ++pn;
       s2_num_done:;
         bool flt = false;
-        if (BEAST_UNLIKELY(pn < end_ &&
+        if (QBUEM_UNLIKELY(pn < end_ &&
                            (*pn == '.' || *pn == 'e' || *pn == 'E'))) {
           flt = true;
           ++pn;
@@ -6644,7 +6644,7 @@ public:
                 (_s | ((_s & 0x7F7F7F7F7F7F7F7FULL) + 0x7676767676767676ULL)) &
                 0x8080808080808080ULL;
             if (_nd) {
-              pn += BEAST_CTZ(_nd) >> 3;
+              pn += QBUEM_CTZ(_nd) >> 3;
               break;
             }
             pn += 8;
@@ -6663,7 +6663,7 @@ public:
                                     0x7676767676767676ULL)) &
                              0x8080808080808080ULL;
               if (_nd) {
-                pn += BEAST_CTZ(_nd) >> 3;
+                pn += QBUEM_CTZ(_nd) >> 3;
                 break;
               }
               pn += 8;
@@ -6679,7 +6679,7 @@ public:
       }
 
       case kActTrue:
-        if (BEAST_UNLIKELY(off + 4 > static_cast<uint32_t>(end_ - data_) ||
+        if (QBUEM_UNLIKELY(off + 4 > static_cast<uint32_t>(end_ - data_) ||
                            std::memcmp(data_ + off, "true", 4)))
           goto s2_fail;
         push(TapeNodeType::BooleanTrue, 4, off);
@@ -6687,7 +6687,7 @@ public:
         break;
 
       case kActFalse:
-        if (BEAST_UNLIKELY(off + 5 > static_cast<uint32_t>(end_ - data_) ||
+        if (QBUEM_UNLIKELY(off + 5 > static_cast<uint32_t>(end_ - data_) ||
                            std::memcmp(data_ + off, "false", 5)))
           goto s2_fail;
         push(TapeNodeType::BooleanFalse, 5, off);
@@ -6695,7 +6695,7 @@ public:
         break;
 
       case kActNull:
-        if (BEAST_UNLIKELY(off + 4 > static_cast<uint32_t>(end_ - data_) ||
+        if (QBUEM_UNLIKELY(off + 4 > static_cast<uint32_t>(end_ - data_) ||
                            std::memcmp(data_ + off, "null", 4)))
           goto s2_fail;
         push(TapeNodeType::Null, 4, off);
@@ -6725,7 +6725,7 @@ public:
     doc_->tape.head = tape_head_;
     return false;
   }
-#endif // BEAST_HAS_AVX512
+#endif // QBUEM_HAS_AVX512
 };
 
 // Public API
@@ -6758,14 +6758,14 @@ inline Value parse_reuse(DocumentView &handle, std::string_view json) {
   // Worst-case tape nodes == json.size() (e.g. "[[[...]]]" produces one
   // node per character). Use json.size() + 64 as a guaranteed upper bound.
   const size_t needed = json.size() + 64;
-  if (BEAST_UNLIKELY(!doc->tape.base ||
+  if (QBUEM_UNLIKELY(!doc->tape.base ||
                      static_cast<size_t>(doc->tape.cap - doc->tape.base) <
                          needed)) {
     doc->tape.reserve(needed);
   } else {
     doc->tape.reset(); // hot path: head = base (1 instruction)
   }
-#if BEAST_HAS_AVX512
+#if QBUEM_HAS_AVX512
   // Stage 1+2 is beneficial when the positions array fits in
   // L2/L3 cache and the JSON is string-heavy (e.g. twitter.json,
   // citm.json). Large number-heavy files (canada.json, gsoc-2018.json) have
@@ -6773,7 +6773,7 @@ inline Value parse_reuse(DocumentView &handle, std::string_view json) {
   // savings. Threshold: 2 MB — includes twitter(617KB) and citm(1.65MB);
   // excludes canada(2.15MB) and gsoc(3.3MB).
   static constexpr size_t kStage12MaxSize = 2 * 1024 * 1024; // 2 MB
-  if (BEAST_LIKELY(json.size() <= kStage12MaxSize)) {
+  if (QBUEM_LIKELY(json.size() <= kStage12MaxSize)) {
     stage1_scan_avx512(json.data(), json.size(), doc->idx);
     if (!Parser(doc).parse_staged(doc->idx)) {
       throw std::runtime_error("Invalid JSON");
@@ -7478,12 +7478,12 @@ namespace detail {
 
 // ── SWAR helpers (used by string serialization and Nexus key scanning) ────────
 // Returns non-zero if any byte in `v` equals `byte`.
-BEAST_INLINE uint64_t swar_has_byte(uint64_t v, uint8_t byte) noexcept {
+QBUEM_INLINE uint64_t swar_has_byte(uint64_t v, uint8_t byte) noexcept {
   uint64_t x = v ^ (static_cast<uint64_t>(byte) * 0x0101010101010101ULL);
   return (x - 0x0101010101010101ULL) & ~x & 0x8080808080808080ULL;
 }
 // Returns non-zero if any byte in `v` is less than `threshold` (0x01..0x7F range safe).
-BEAST_INLINE uint64_t swar_has_less(uint64_t v, uint8_t threshold) noexcept {
+QBUEM_INLINE uint64_t swar_has_less(uint64_t v, uint8_t threshold) noexcept {
   return (v - static_cast<uint64_t>(threshold) * 0x0101010101010101ULL) & ~v &
          0x8080808080808080ULL;
 }
@@ -7552,7 +7552,7 @@ consteval uint64_t fast_key_hash_ce(const char *s) noexcept {
   return h;
 }
 
-BEAST_INLINE uint64_t fast_key_hash(std::string_view s) noexcept {
+QBUEM_INLINE uint64_t fast_key_hash(std::string_view s) noexcept {
   const size_t n = s.size();
   if (n == 0) return 0;
   if (n <= 8) {
@@ -7646,10 +7646,10 @@ template <typename T> void append_json(std::string &out, const T &in);
 
 // ── FastWriter forward declarations (full definition later) ──────────────────
 struct FastWriter;
-BEAST_INLINE void json_put(std::string &s, char c)               noexcept;
-BEAST_INLINE void json_write(std::string &s, const char *p, size_t n) noexcept;
-BEAST_INLINE void json_put(FastWriter &w, char c)                noexcept;
-BEAST_INLINE void json_write(FastWriter &w, const char *p, size_t n) noexcept;
+QBUEM_INLINE void json_put(std::string &s, char c)               noexcept;
+QBUEM_INLINE void json_write(std::string &s, const char *p, size_t n) noexcept;
+QBUEM_INLINE void json_put(FastWriter &w, char c)                noexcept;
+QBUEM_INLINE void json_write(FastWriter &w, const char *p, size_t n) noexcept;
 
 // ── Tuple/pair helpers
 
@@ -7891,18 +7891,18 @@ struct FastWriter {
   // Flush stack to string on destruction (single s.append call).
   ~FastWriter() noexcept { if (pos_) s.append(stack_, pos_); }
 
-  BEAST_INLINE void put(char c) noexcept {
+  QBUEM_INLINE void put(char c) noexcept {
     if (__builtin_expect(pos_ < kBuf, 1)) { stack_[pos_++] = c; return; }
     flush_then_put(c);
   }
-  BEAST_INLINE void write(const char *src, size_t n) noexcept {
+  QBUEM_INLINE void write(const char *src, size_t n) noexcept {
     if (__builtin_expect(pos_ + n <= kBuf, 1)) {
       std::memcpy(stack_ + pos_, src, n); pos_ += n; return;
     }
     flush_then_write(src, n);
   }
   // Overwrite the last written byte (replaces trailing comma with '}'/'}'.
-  BEAST_INLINE void set_last(char c) noexcept {
+  QBUEM_INLINE void set_last(char c) noexcept {
     if (__builtin_expect(pos_ > 0, 1)) { stack_[pos_ - 1] = c; return; }
     if (!s.empty()) s.back() = c;   // after flush, last byte is in s
   }
@@ -7920,13 +7920,13 @@ struct FastWriter {
 };
 
 // Writer-agnostic adapter helpers
-BEAST_INLINE void json_put(std::string &s, char c)              noexcept { s += c; }
-BEAST_INLINE void json_write(std::string &s, const char *p, size_t n) noexcept { s.append(p, n); }
-BEAST_INLINE void json_set_last(std::string &s, char c)         noexcept { s.back() = c; }
+QBUEM_INLINE void json_put(std::string &s, char c)              noexcept { s += c; }
+QBUEM_INLINE void json_write(std::string &s, const char *p, size_t n) noexcept { s.append(p, n); }
+QBUEM_INLINE void json_set_last(std::string &s, char c)         noexcept { s.back() = c; }
 
-BEAST_INLINE void json_put(FastWriter &w, char c)               noexcept { w.put(c); }
-BEAST_INLINE void json_write(FastWriter &w, const char *p, size_t n) noexcept { w.write(p, n); }
-BEAST_INLINE void json_set_last(FastWriter &w, char c)          noexcept { w.set_last(c); }
+QBUEM_INLINE void json_put(FastWriter &w, char c)               noexcept { w.put(c); }
+QBUEM_INLINE void json_write(FastWriter &w, const char *p, size_t n) noexcept { w.write(p, n); }
+QBUEM_INLINE void json_set_last(FastWriter &w, char c)          noexcept { w.set_last(c); }
 
 // Concept: anything with json_put/json_write/json_set_last adapters
 template <typename W>
@@ -7972,7 +7972,7 @@ template <typename W, typename T> void append_json(W &out, const T &in) {
     while (s < e) {
       const char *safe = s;
       // SIMD fast scan: 16 bytes/iter (SSE2 on x86-64, NEON on ARM64)
-#if defined(BEAST_ARCH_X86_64)
+#if defined(QBUEM_ARCH_X86_64)
       while (safe + 16 <= e) {
         __m128i v  = _mm_loadu_si128(reinterpret_cast<const __m128i *>(safe));
         int mask   = _mm_movemask_epi8(_mm_or_si128(
@@ -7982,7 +7982,7 @@ template <typename W, typename T> void append_json(W &out, const T &in) {
         if (!mask) { safe += 16; continue; }
         safe += __builtin_ctz(mask); break;
       }
-#elif defined(BEAST_HAS_NEON)
+#elif defined(QBUEM_HAS_NEON)
       while (safe + 16 <= e) {
         uint8x16_t v    = vld1q_u8(reinterpret_cast<const uint8_t *>(safe));
         uint8x16_t need = vorrq_u8(
@@ -8118,59 +8118,59 @@ inline void to_json_field(Value &obj, const char *key, const T &val) {
 } // namespace detail
 
 // ============================================================================
-// BEAST_FOR_EACH — variadic macro
+// QBUEM_FOR_EACH — variadic macro
 // ============================================================================
 
-#define BEAST_DETAIL_EXPAND(x) x
-#define BEAST_DETAIL_CONCAT(a, b) a##b
-#define BEAST_DETAIL_CONCAT2(a, b) BEAST_DETAIL_CONCAT(a, b)
+#define QBUEM_DETAIL_EXPAND(x) x
+#define QBUEM_DETAIL_CONCAT(a, b) a##b
+#define QBUEM_DETAIL_CONCAT2(a, b) QBUEM_DETAIL_CONCAT(a, b)
 
-#define BEAST_DETAIL_COUNT(...)                                                \
-  BEAST_DETAIL_EXPAND(BEAST_DETAIL_COUNT_I(                                    \
+#define QBUEM_DETAIL_COUNT(...)                                                \
+  QBUEM_DETAIL_EXPAND(QBUEM_DETAIL_COUNT_I(                                    \
       __VA_ARGS__, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, \
       17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
-#define BEAST_DETAIL_COUNT_I(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11,     \
+#define QBUEM_DETAIL_COUNT_I(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11,     \
                              _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, \
                              _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, \
                              _32, N, ...)                                      \
   N
 
-#define BEAST_DETAIL_FE_1(fn, a) fn(a)
-#define BEAST_DETAIL_FE_2(fn, a, ...) fn(a) BEAST_DETAIL_FE_1(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_3(fn, a, ...) fn(a) BEAST_DETAIL_FE_2(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_4(fn, a, ...) fn(a) BEAST_DETAIL_FE_3(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_5(fn, a, ...) fn(a) BEAST_DETAIL_FE_4(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_6(fn, a, ...) fn(a) BEAST_DETAIL_FE_5(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_7(fn, a, ...) fn(a) BEAST_DETAIL_FE_6(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_8(fn, a, ...) fn(a) BEAST_DETAIL_FE_7(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_9(fn, a, ...) fn(a) BEAST_DETAIL_FE_8(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_10(fn, a, ...) fn(a) BEAST_DETAIL_FE_9(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_11(fn, a, ...) fn(a) BEAST_DETAIL_FE_10(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_12(fn, a, ...) fn(a) BEAST_DETAIL_FE_11(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_13(fn, a, ...) fn(a) BEAST_DETAIL_FE_12(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_14(fn, a, ...) fn(a) BEAST_DETAIL_FE_13(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_15(fn, a, ...) fn(a) BEAST_DETAIL_FE_14(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_16(fn, a, ...) fn(a) BEAST_DETAIL_FE_15(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_17(fn, a, ...) fn(a) BEAST_DETAIL_FE_16(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_18(fn, a, ...) fn(a) BEAST_DETAIL_FE_17(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_19(fn, a, ...) fn(a) BEAST_DETAIL_FE_18(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_20(fn, a, ...) fn(a) BEAST_DETAIL_FE_19(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_21(fn, a, ...) fn(a) BEAST_DETAIL_FE_20(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_22(fn, a, ...) fn(a) BEAST_DETAIL_FE_21(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_23(fn, a, ...) fn(a) BEAST_DETAIL_FE_22(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_24(fn, a, ...) fn(a) BEAST_DETAIL_FE_23(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_25(fn, a, ...) fn(a) BEAST_DETAIL_FE_24(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_26(fn, a, ...) fn(a) BEAST_DETAIL_FE_25(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_27(fn, a, ...) fn(a) BEAST_DETAIL_FE_26(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_28(fn, a, ...) fn(a) BEAST_DETAIL_FE_27(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_29(fn, a, ...) fn(a) BEAST_DETAIL_FE_28(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_30(fn, a, ...) fn(a) BEAST_DETAIL_FE_29(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_31(fn, a, ...) fn(a) BEAST_DETAIL_FE_30(fn, __VA_ARGS__)
-#define BEAST_DETAIL_FE_32(fn, a, ...) fn(a) BEAST_DETAIL_FE_31(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_1(fn, a) fn(a)
+#define QBUEM_DETAIL_FE_2(fn, a, ...) fn(a) QBUEM_DETAIL_FE_1(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_3(fn, a, ...) fn(a) QBUEM_DETAIL_FE_2(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_4(fn, a, ...) fn(a) QBUEM_DETAIL_FE_3(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_5(fn, a, ...) fn(a) QBUEM_DETAIL_FE_4(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_6(fn, a, ...) fn(a) QBUEM_DETAIL_FE_5(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_7(fn, a, ...) fn(a) QBUEM_DETAIL_FE_6(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_8(fn, a, ...) fn(a) QBUEM_DETAIL_FE_7(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_9(fn, a, ...) fn(a) QBUEM_DETAIL_FE_8(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_10(fn, a, ...) fn(a) QBUEM_DETAIL_FE_9(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_11(fn, a, ...) fn(a) QBUEM_DETAIL_FE_10(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_12(fn, a, ...) fn(a) QBUEM_DETAIL_FE_11(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_13(fn, a, ...) fn(a) QBUEM_DETAIL_FE_12(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_14(fn, a, ...) fn(a) QBUEM_DETAIL_FE_13(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_15(fn, a, ...) fn(a) QBUEM_DETAIL_FE_14(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_16(fn, a, ...) fn(a) QBUEM_DETAIL_FE_15(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_17(fn, a, ...) fn(a) QBUEM_DETAIL_FE_16(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_18(fn, a, ...) fn(a) QBUEM_DETAIL_FE_17(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_19(fn, a, ...) fn(a) QBUEM_DETAIL_FE_18(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_20(fn, a, ...) fn(a) QBUEM_DETAIL_FE_19(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_21(fn, a, ...) fn(a) QBUEM_DETAIL_FE_20(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_22(fn, a, ...) fn(a) QBUEM_DETAIL_FE_21(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_23(fn, a, ...) fn(a) QBUEM_DETAIL_FE_22(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_24(fn, a, ...) fn(a) QBUEM_DETAIL_FE_23(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_25(fn, a, ...) fn(a) QBUEM_DETAIL_FE_24(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_26(fn, a, ...) fn(a) QBUEM_DETAIL_FE_25(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_27(fn, a, ...) fn(a) QBUEM_DETAIL_FE_26(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_28(fn, a, ...) fn(a) QBUEM_DETAIL_FE_27(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_29(fn, a, ...) fn(a) QBUEM_DETAIL_FE_28(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_30(fn, a, ...) fn(a) QBUEM_DETAIL_FE_29(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_31(fn, a, ...) fn(a) QBUEM_DETAIL_FE_30(fn, __VA_ARGS__)
+#define QBUEM_DETAIL_FE_32(fn, a, ...) fn(a) QBUEM_DETAIL_FE_31(fn, __VA_ARGS__)
 
-#define BEAST_FOR_EACH(fn, ...)                                                \
-  BEAST_DETAIL_EXPAND(BEAST_DETAIL_CONCAT2(                                    \
-      BEAST_DETAIL_FE_, BEAST_DETAIL_COUNT(__VA_ARGS__))(fn, __VA_ARGS__))
+#define QBUEM_FOR_EACH(fn, ...)                                                \
+  QBUEM_DETAIL_EXPAND(QBUEM_DETAIL_CONCAT2(                                    \
+      QBUEM_DETAIL_FE_, QBUEM_DETAIL_COUNT(__VA_ARGS__))(fn, __VA_ARGS__))
 
 // ============================================================================
 // QBUEM_JSON_FIELDS — one-line struct serialization/deserialization
@@ -8213,7 +8213,7 @@ inline void to_json_field(Value &obj, const char *key, const T &val) {
   inline void nexus_pulse_h(uint64_t _h, const char *&p,                      \
                             const char *end, Type &obj) {                      \
     switch (_h) {                                                              \
-      BEAST_FOR_EACH(QBUEM_JSON_DETAIL_PULSE, __VA_ARGS__)                     \
+      QBUEM_FOR_EACH(QBUEM_JSON_DETAIL_PULSE, __VA_ARGS__)                     \
     default:                                                                   \
       ::qbuem::json::detail::skip_direct(p, end);                              \
       break;                                                                   \
@@ -8225,16 +8225,16 @@ inline void to_json_field(Value &obj, const char *key, const T &val) {
     nexus_pulse_h(::qbuem::json::detail::fast_key_hash(key), p, end, obj);    \
   }                                                                            \
   inline void from_qbuem_json(const ::qbuem::json::Value &v, Type &obj) {      \
-    BEAST_FOR_EACH(QBUEM_JSON_DETAIL_READ, __VA_ARGS__)                        \
+    QBUEM_FOR_EACH(QBUEM_JSON_DETAIL_READ, __VA_ARGS__)                        \
   }                                                                            \
   inline void to_qbuem_json(::qbuem::json::Value &v, const Type &obj) {        \
-    BEAST_FOR_EACH(QBUEM_JSON_DETAIL_WRITE, __VA_ARGS__)                       \
+    QBUEM_FOR_EACH(QBUEM_JSON_DETAIL_WRITE, __VA_ARGS__)                       \
   }                                                                            \
   /* FastWriter serialization — zero std::string overhead */                   \
   inline void qbuem_json_append_fw(::qbuem::json::detail::FastWriter &_bj_fw, \
                                    const Type &obj) {                          \
     _bj_fw.put('{');                                                           \
-    BEAST_FOR_EACH(QBUEM_JSON_DETAIL_APPEND_FW, __VA_ARGS__)                   \
+    QBUEM_FOR_EACH(QBUEM_JSON_DETAIL_APPEND_FW, __VA_ARGS__)                   \
     _bj_fw.set_last('}');                                                      \
   }                                                                            \
   inline void qbuem_json_append_fw(std::string &_bj_s, const Type &obj) {     \
@@ -8302,7 +8302,7 @@ inline Value parse_strict(Document &doc, ::std::string_view json) {
 
 namespace json::detail {
 
-BEAST_INLINE void ws(const char *&p, const char *end) noexcept {
+QBUEM_INLINE void ws(const char *&p, const char *end) noexcept {
   // Fast-path for compact JSON (no whitespace between tokens — by far the common case)
   if (p >= end || (unsigned char)*p > 32) [[likely]] return;
   do { ++p; } while (p < end && (unsigned char)*p <= 32);
@@ -8312,15 +8312,15 @@ struct NexusScanner {
   const char *p;
   const char *end;
 
-  BEAST_INLINE void ws() noexcept { detail::ws(p, end); }
+  QBUEM_INLINE void ws() noexcept { detail::ws(p, end); }
 
   // ── read_key: backward-compat, returns string_view ─────────────────────────
-  BEAST_INLINE std::string_view read_key() noexcept {
+  QBUEM_INLINE std::string_view read_key() noexcept {
     ws();
     if (p >= end || *p != '"') [[unlikely]] return {};
     const char *start = ++p;
     // SIMD fast scan (16 bytes/iter)
-#if defined(BEAST_ARCH_X86_64)
+#if defined(QBUEM_ARCH_X86_64)
     while (p + 16 <= end) {
       __m128i v = _mm_loadu_si128(reinterpret_cast<const __m128i *>(p));
       int mask = _mm_movemask_epi8(_mm_or_si128(
@@ -8329,7 +8329,7 @@ struct NexusScanner {
       if (!mask) { p += 16; continue; }
       p += __builtin_ctz(mask); break;
     }
-#elif BEAST_HAS_NEON
+#elif QBUEM_HAS_NEON
     while (p + 16 <= end) {
       uint8x16_t v    = vld1q_u8(reinterpret_cast<const uint8_t *>(p));
       uint8x16_t need = vorrq_u8(vceqq_u8(v, vdupq_n_u8('"')),
@@ -8363,7 +8363,7 @@ struct NexusScanner {
   // For keys ≤8 bytes with no escape sequences (the overwhelming common case for
   // struct fields), the hash falls out of the SWAR termination word — zero extra
   // work vs the existing scan.
-  BEAST_INLINE uint64_t read_key_h() noexcept {
+  QBUEM_INLINE uint64_t read_key_h() noexcept {
     if (p < end && (unsigned char)*p <= 32) [[unlikely]] ws();
     if (p >= end || *p != '"') [[unlikely]] return 0;
     const char *start = ++p;
@@ -8390,7 +8390,7 @@ struct NexusScanner {
     }
 
     // ── General path: key >8 bytes or contains escape sequences ────────────
-#if defined(BEAST_ARCH_X86_64)
+#if defined(QBUEM_ARCH_X86_64)
     while (p + 16 <= end) {
       __m128i v = _mm_loadu_si128(reinterpret_cast<const __m128i *>(p));
       int mask = _mm_movemask_epi8(_mm_or_si128(
@@ -8399,7 +8399,7 @@ struct NexusScanner {
       if (!mask) { p += 16; continue; }
       p += __builtin_ctz(mask); break;
     }
-#elif BEAST_HAS_NEON
+#elif QBUEM_HAS_NEON
     while (p + 16 <= end) {
       uint8x16_t v    = vld1q_u8(reinterpret_cast<const uint8_t *>(p));
       uint8x16_t need = vorrq_u8(vceqq_u8(v, vdupq_n_u8('"')),
@@ -8484,7 +8484,7 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
       const char *start = ++p;
       // Fast scan: find first '"' or '\'
       const char *safe = p;
-#if defined(BEAST_ARCH_X86_64)
+#if defined(QBUEM_ARCH_X86_64)
       {
         const __m128i vq  = _mm_set1_epi8('"');
         const __m128i vbs = _mm_set1_epi8('\\');
@@ -8497,7 +8497,7 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
           break;
         }
       }
-#elif defined(BEAST_HAS_NEON)
+#elif defined(QBUEM_HAS_NEON)
       {
         const uint8x16_t vq  = vdupq_n_u8('"');
         const uint8x16_t vbs = vdupq_n_u8('\\');

@@ -147,26 +147,26 @@ inline void to_qbuem_json(qbuem::json::Value& v, const LargeEvent& o) {
 inline void append_qbuem_json(std::string& out, const LargeEvent& o) {
   out += '{';
   size_t prev_len = out.size();
-#define BEAST_TEST_APPEND(key, val) \
+#define QBUEM_TEST_APPEND(key, val) \
   out += "\"" key "\":"; ::qbuem::json::detail::append_json(out, val); out += ',';
-  BEAST_TEST_APPEND("seq",         o.seq)
-  BEAST_TEST_APPEND("ts",          o.ts)
-  BEAST_TEST_APPEND("price",       o.price)
-  BEAST_TEST_APPEND("qty",         o.qty)
-  BEAST_TEST_APPEND("bid",         o.bid)
-  BEAST_TEST_APPEND("ask",         o.ask)
-  BEAST_TEST_APPEND("bid_qty",     o.bid_qty)
-  BEAST_TEST_APPEND("ask_qty",     o.ask_qty)
-  BEAST_TEST_APPEND("side",        o.side)
-  BEAST_TEST_APPEND("type",        o.type)
-  BEAST_TEST_APPEND("is_snapshot", o.is_snapshot)
-  BEAST_TEST_APPEND("is_last",     o.is_last)
-  BEAST_TEST_APPEND("symbol",      o.symbol)
-  BEAST_TEST_APPEND("venue",       o.venue)
-  BEAST_TEST_APPEND("feed",        o.feed)
-  BEAST_TEST_APPEND("session",     o.session)
-  BEAST_TEST_APPEND("trader_id",   o.trader_id)
-#undef BEAST_TEST_APPEND
+  QBUEM_TEST_APPEND("seq",         o.seq)
+  QBUEM_TEST_APPEND("ts",          o.ts)
+  QBUEM_TEST_APPEND("price",       o.price)
+  QBUEM_TEST_APPEND("qty",         o.qty)
+  QBUEM_TEST_APPEND("bid",         o.bid)
+  QBUEM_TEST_APPEND("ask",         o.ask)
+  QBUEM_TEST_APPEND("bid_qty",     o.bid_qty)
+  QBUEM_TEST_APPEND("ask_qty",     o.ask_qty)
+  QBUEM_TEST_APPEND("side",        o.side)
+  QBUEM_TEST_APPEND("type",        o.type)
+  QBUEM_TEST_APPEND("is_snapshot", o.is_snapshot)
+  QBUEM_TEST_APPEND("is_last",     o.is_last)
+  QBUEM_TEST_APPEND("symbol",      o.symbol)
+  QBUEM_TEST_APPEND("venue",       o.venue)
+  QBUEM_TEST_APPEND("feed",        o.feed)
+  QBUEM_TEST_APPEND("session",     o.session)
+  QBUEM_TEST_APPEND("trader_id",   o.trader_id)
+#undef QBUEM_TEST_APPEND
   if (out.size() > prev_len) out.pop_back(); // remove trailing comma
   out += '}';
 }
@@ -483,7 +483,7 @@ TEST(NumericEdge, UInt32Max) {
 }
 
 // ─── String: serialization-level checks (qbuem::write escaping)
-// ─────────────── Note: beast stores strings verbatim in parse tape.
+// ─────────────── Note: qbuem-json stores strings verbatim in parse tape.
 // qbuem::write(s) escapes s→JSON. qbuem::read<string>(json) re-parses the JSON
 // string but stores the raw un-decoded bytes from the JSON source.
 // Thus roundtrip of strings with special chars returns the JSON-escaped form,

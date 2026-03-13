@@ -49,13 +49,13 @@ include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-std=c++23" HAS_CXX23)
 check_cxx_compiler_flag("-std=c++2b" HAS_CXX2B)
 if(HAS_CXX23 OR HAS_CXX2B)
-    set(BEAST_BUILD_GLAZE ON)
+    set(QBUEM_BUILD_GLAZE ON)
 else()
-    set(BEAST_BUILD_GLAZE OFF)
+    set(QBUEM_BUILD_GLAZE OFF)
     message(STATUS "Compiler does not support C++23. Skipping Glaze benchmarks.")
 endif()
 
-if(BEAST_BUILD_GLAZE)
+if(QBUEM_BUILD_GLAZE)
     # Fetch Glaze (C++23)
     FetchContent_Declare(
         glaze
@@ -89,11 +89,11 @@ endforeach()
 # Optimization and PGO
 # Note: -fuse-ld=lld is incompatible with GCC LTO (GIMPLE IR).
 # Use the default linker (bfd/gold) which understands GCC LTO bitcode.
-option(BEAST_DISABLE_LTO "Disable LTO for low-memory environments" OFF)
+option(QBUEM_DISABLE_LTO "Disable LTO for low-memory environments" OFF)
 
 if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
     add_compile_options(-O3)
-    if(NOT BEAST_DISABLE_LTO)
+    if(NOT QBUEM_DISABLE_LTO)
         add_compile_options(-flto)
         add_link_options(-flto)
     endif()
@@ -184,18 +184,18 @@ target_link_libraries(bench PRIVATE
 )
 target_include_directories(bench PRIVATE ${rapidjson_SOURCE_DIR}/include)
 
-if(BEAST_BUILD_GLAZE)
+if(QBUEM_BUILD_GLAZE)
     target_link_libraries(bench_all PRIVATE glaze::glaze)
-    target_compile_definitions(bench_all PRIVATE BEAST_HAS_GLAZE=1)
+    target_compile_definitions(bench_all PRIVATE QBUEM_HAS_GLAZE=1)
 
     target_link_libraries(bench_structs PRIVATE glaze::glaze)
-    target_compile_definitions(bench_structs PRIVATE BEAST_HAS_GLAZE=1)
+    target_compile_definitions(bench_structs PRIVATE QBUEM_HAS_GLAZE=1)
 
     target_link_libraries(bench_hft PRIVATE glaze::glaze)
-    target_compile_definitions(bench_hft PRIVATE BEAST_HAS_GLAZE=1)
+    target_compile_definitions(bench_hft PRIVATE QBUEM_HAS_GLAZE=1)
 
     target_link_libraries(bench PRIVATE glaze::glaze)
-    target_compile_definitions(bench PRIVATE BEAST_HAS_GLAZE=1)
+    target_compile_definitions(bench PRIVATE QBUEM_HAS_GLAZE=1)
 
     # Attempt to use cxx_std_23 if CMake knows it, else fallback to standard options
     if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.20" OR "cxx_std_23" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
@@ -261,7 +261,7 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
     if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         # (B) Apple Silicon — no SVE, safe to use -march=native + auto-vectorize.
         # This unlocks DOTPROD (UDOT/SDOT), SHA3/EOR3 (M2+), and correct
-        # BEAST_PREFETCH_DISTANCE (512B) via BEAST_ARCH_APPLE_SILICON macro.
+        # QBUEM_PREFETCH_DISTANCE (512B) via QBUEM_ARCH_APPLE_SILICON macro.
         foreach(_tgt bench_all bench_structs bench_hft bench)
             if(TARGET ${_tgt})
                 target_compile_options(${_tgt} PRIVATE -march=native)

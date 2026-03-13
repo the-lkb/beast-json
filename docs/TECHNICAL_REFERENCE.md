@@ -236,7 +236,7 @@ qbuem-json achieved v1.0 goals entirely through an AI-driven optimization pipeli
 #### Bug 1 — Null-Dereference in `skip_to_action()` *(heap-buffer-overflow)*
 * **Trigger**: Input `[` (unterminated array, 1 byte)
 * **Root cause**: `skip_to_action()` dereferenced `*p_` without checking `p_ < end_` first. Any input whose last meaningful byte is `[` or `{` causes the parser to re-enter `skip_to_action()` with `p_ == end_`.
-* **Fix**: Added `if (BEAST_UNLIKELY(p_ >= end_)) return 0;` as the very first statement in `skip_to_action()`.
+* **Fix**: Added `if (QBUEM_UNLIKELY(p_ >= end_)) return 0;` as the very first statement in `skip_to_action()`.
 
 #### Bug 2 — Empty-Tape Read via Bare Separator *(heap-buffer-overflow)*
 * **Trigger**: Input `,` (single comma, 1 byte)
@@ -246,12 +246,12 @@ qbuem-json achieved v1.0 goals entirely through an AI-driven optimization pipeli
 #### Bug 3 — Non-String Object Keys + Iterator Out-of-Bounds *(heap-buffer-overflow)*
 * **Trigger**: Inputs `{false}`, `{]\x01...`
 * **Root cause**: The parser's non-string value cases lacked an `is_key` state check. `skip_val_s_()` and iterators accessed `doc_->tape[i]` without a tape-size bounds check.
-* **Fix**: Added `if (BEAST_UNLIKELY(cur_state_ & 0b001u)) goto fail;` to all six non-string value cases. Added `tape_sz` bounds guard at the top of iterators and in `skip_val_s_()`.
+* **Fix**: Added `if (QBUEM_UNLIKELY(cur_state_ & 0b001u)) goto fail;` to all six non-string value cases. Added `tape_sz` bounds guard at the top of iterators and in `skip_val_s_()`.
 
 #### Bug 4 — Stale Overlay Maps + Stack Underflow in `dump_changes_()` *(UBSan / stack-buffer-underflow)*
 * **Trigger**: `[\x03\x00:}` fed to `fuzz_lazy` after a prior call that performed mutations.
 * **Root cause**: `parse_reuse()` did not clear `mutations_`, `deleted_`, or `additions_` between calls. `dump_changes_()` accessed the stack when `top == -1`.
-* **Fix**: Added `.clear()` for all three overlay maps at the start of `parse_reuse()`. Added `if (BEAST_UNLIKELY(top < 0))` early-exit guards.
+* **Fix**: Added `.clear()` for all three overlay maps at the start of `parse_reuse()`. Added `if (QBUEM_UNLIKELY(top < 0))` early-exit guards.
 
 #### Bug 5 — `skip_value_()` Out-of-Bounds + `memcpy` Past Source End *(heap-buffer-overflow)*
 * **Trigger**: Multi-invocation sequence with static `g_doc`; intermediate failed parses leave stale tape content.

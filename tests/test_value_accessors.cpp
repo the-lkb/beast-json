@@ -1773,7 +1773,7 @@ TEST(AutoSerial, StringEscape) {
   EXPECT_NE(json.find("\\n"),  std::string::npos);
   EXPECT_NE(json.find("\\\""), std::string::npos);
   EXPECT_NE(json.find("\\\\"), std::string::npos);
-  // Note: beast uses zero-copy architecture — as<string>() returns raw source
+  // Note: qbuem-json uses zero-copy architecture — as<string>() returns raw source
   // bytes without unescaping. Round-trip works for strings with no escapes:
   EXPECT_EQ(qbuem::read<std::string>(R"("hello world")"), "hello world");
 }

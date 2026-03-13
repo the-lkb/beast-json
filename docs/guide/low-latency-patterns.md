@@ -200,7 +200,7 @@ One `Document`, one tape allocation for the entire chunk — regardless of how m
 
 ## Branch Prediction & Cold Paths
 
-qbuem-json uses `BEAST_LIKELY` / `BEAST_UNLIKELY` internally to keep the parsing hot path free of unpredictable branches. Error handling, escape processing, and UTF-8 validation are placed in cold sections — so the instruction cache sees only the fast path across sequential cache-warm iterations.
+qbuem-json uses `QBUEM_LIKELY` / `QBUEM_UNLIKELY` internally to keep the parsing hot path free of unpredictable branches. Error handling, escape processing, and UTF-8 validation are placed in cold sections — so the instruction cache sees only the fast path across sequential cache-warm iterations.
 
 Your code benefits from this automatically; no annotation is required on the call site.
 

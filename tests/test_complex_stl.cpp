@@ -68,7 +68,7 @@ struct World {
 };
 QBUEM_JSON_FIELDS(World, version, regions, tags, year, total_cities)
 
-// ─── MegaStruct: split into sub-structs (BEAST_FOR_EACH max = 16 fields) ─────
+// ─── MegaStruct: split into sub-structs (QBUEM_FOR_EACH max = 16 fields) ─────
 
 struct MegaPrimitivePart {
   bool flag{};

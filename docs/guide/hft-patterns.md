@@ -37,7 +37,7 @@ This ensures that parsing **never** triggers a heap allocation, providing determ
 
 ## 🚄 Prefetching & Cold-Path Hints
 
-qbuem-json uses `BEAST_LIKELY` and `BEAST_UNLIKELY` macros to guide the compiler's branch predictor. 
+qbuem-json uses `QBUEM_LIKELY` and `QBUEM_UNLIKELY` macros to guide the compiler's branch predictor. 
 
 When navigating the DOM:
 - **Object Key Access**: If you know a key is present 99% of the time, the parser is optimized to skip mutation checks.

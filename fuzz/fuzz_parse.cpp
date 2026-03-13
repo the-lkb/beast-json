@@ -1,4 +1,4 @@
-// fuzz_parse.cpp – libFuzzer target for the beast high-level parse() API.
+// fuzz_parse.cpp – libFuzzer target for the qbuem-json high-level parse() API.
 //
 // Tests qbuem::parse(), Value accessors, iteration, and dump() with arbitrary
 // byte inputs. AddressSanitizer + UBSanitizer catch memory errors and UB.

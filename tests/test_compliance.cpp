@@ -292,7 +292,7 @@ TEST(RFC8259_Reject, BareComma) {
 
 TEST(RFC8259_ImplDefined, DuplicateKeys_Accepted) {
   // RFC 8259 §4: "The names within an object SHOULD be unique"
-  // (SHOULD, not MUST) — beast accepts duplicates (last-write-wins on tape)
+  // (SHOULD, not MUST) — qbuem-json accepts duplicates (last-write-wins on tape)
   EXPECT_TRUE(strict_ok(R"({"a":1,"a":2})"));
 }
 

@@ -55,7 +55,15 @@ body, .VPApp {
 }
 
 /* ─── Navbar ──────────────────────────────────────────────────────────────── */
+/* IMPORTANT: backdrop-filter must NOT be on .VPNav because it creates a
+   containing block for position:fixed children (CSS spec §9.3).
+   VitePress's .VPNavScreen uses position:fixed and is a child of .VPNav —
+   applying backdrop-filter here traps the screen inside the nav bar height,
+   making the hamburger menu invisible. Apply the blur to .VPNavBar instead. */
 .VPNav {
+    position: relative;
+}
+.VPNavBar {
     background: rgba(250, 248, 244, 0.97) !important;
     border-bottom: 1px solid rgba(26, 39, 68, 0.12) !important;
     backdrop-filter: blur(12px) !important;
@@ -421,6 +429,7 @@ img:hover {
     .VPHero .image-bg {
         display: none !important;
     }
+    /* Reset VitePress's absolute-positioned image container to flow layout */
     .VPHero .image-container {
         position: relative !important;
         inset: auto !important;
@@ -428,21 +437,28 @@ img:hover {
         margin: 0 !important;
         display: flex !important;
         justify-content: center !important;
+        align-items: center !important;
+        /* Override VitePress default 320×320 fixed size */
+        width: auto !important;
+        height: auto !important;
+    }
+    /* Reset negative margins VitePress applies to .image on mobile */
+    .VPHero .image {
+        position: relative !important;
+        inset: auto !important;
+        transform: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        height: auto !important;
     }
 }
 @media (max-width: 959px) and (orientation: portrait) {
     .VPHero .image {
         order: 0 !important;
-        position: relative !important;
-        inset: auto !important;
-        transform: none !important;
-        opacity: 1 !important;
         display: flex !important;
         justify-content: center !important;
-        width: 100% !important;
-        height: auto !important;
         margin: 0 auto 1.5rem !important;
-        z-index: 1 !important;
+        /* Remove z-index — not needed and can interfere with stacking */
     }
     .VPHero .image-src {
         width: 100px !important;
@@ -499,17 +515,53 @@ img:hover {
     .VPNavBarTitle .logo { width: 22px !important; height: 22px !important; }
 }
 
-/* ─── Galaxy Z Fold / Extremly Narrow Fix ─────────────────────────────────── */
+/* ─── Mobile Navigation Screen (Hamburger Menu) ─────────────────────────── */
+/* VitePress shows .VPNavScreen (inside .VPNav) when hamburger is clicked.
+   It uses position:fixed + top:var(--vp-nav-height) to cover the page.
+   Because backdrop-filter has been moved from .VPNav → .VPNavBar, fixed
+   positioning now anchors to the viewport as intended. */
+.VPNavScreen {
+    background-color: #faf8f4 !important;
+    z-index: 9999 !important;
+}
+
+/* Navigation links inside the mobile screen */
+.VPNavScreenMenuLink a,
+.VPNavScreenMenuGroup .button {
+    color: var(--qj-navy) !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    padding: 12px 0 !important;
+}
+.VPNavScreenMenuLink a:hover,
+.VPNavScreenMenuGroup .button:hover {
+    color: var(--qj-gold-dark) !important;
+}
+.VPNavScreenMenuGroupSection .title {
+    color: var(--qj-gold-dark) !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+.VPNavScreenMenuGroupLink a {
+    color: var(--qj-navy) !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 500 !important;
+}
+/* Divider lines between items */
+.VPNavScreenMenu .VPNavScreenMenuLink + .VPNavScreenMenuLink,
+.VPNavScreenMenu .VPNavScreenMenuGroup + .VPNavScreenMenuGroup,
+.VPNavScreenMenu .VPNavScreenMenuLink + .VPNavScreenMenuGroup {
+    border-top: 1px solid rgba(26, 39, 68, 0.10) !important;
+}
+
+/* ─── Galaxy Z Fold / Extremely Narrow Fix ───────────────────────────────── */
 @media (max-width: 380px) {
     .VPNavBarTitle .title { display: none !important; } /* Hide text title on ultra-narrow, keep logo */
     .VPNavBarTitle .logo { margin-right: 0 !important; width: 24px !important; height: 24px !important; }
-
-    /* Style the mobile menu screen — do NOT force display/visibility here;
-       VitePress controls open/close state via v-show and its own classes. */
-    .VPNavScreen {
-        background: #ffffff !important;
-        z-index: 100 !important;
-    }
 }
 
 /* ══════════════════════════════════════════════════════════════════

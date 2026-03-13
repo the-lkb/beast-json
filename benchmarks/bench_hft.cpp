@@ -21,7 +21,7 @@
 #include "utils.hpp"
 #include <qbuem_json/qbuem_json.hpp>
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
 #include <glaze/glaze.hpp>
 #endif
 
@@ -106,7 +106,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BookSnapshot, sym, bids, asks, ts_ns)
 // Glaze metadata
 // ─────────────────────────────────────────────────────────────────────────────
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
 template <> struct glz::meta<MarketTick> {
     using T = MarketTick;
     static constexpr auto value = object(
@@ -290,7 +290,7 @@ static void bench_msg(const char *label, const std::string &json,
         LatStats::from(v, kb).print("qbuem-json DOM");
     }
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
     // ── Glaze ──────────────────────────────────────────────────────────────
     {
         size_t rss0 = bench::get_current_rss_kb();
@@ -384,7 +384,7 @@ static void bench_throughput(const char *label, const std::string &json,
         }
     });
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
     run("Glaze", [&] {
         for (size_t i = 0; i < iters; ++i) {
             T tmp{};
@@ -457,7 +457,7 @@ static void bench_serialize_throughput(const char *label, const T &obj,
         }
     });
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
     run_s("Glaze", [&] {
         for (size_t i = 0; i < iters; ++i) {
             buf.clear();

@@ -16,7 +16,7 @@
 #include <qbuem_json/qbuem_json.hpp>
 #include <fstream>
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
 #include <glaze/glaze.hpp>
 #endif
 
@@ -64,7 +64,7 @@ struct SimpleStruct { int id; double value; std::string name; bool active; };
 QBUEM_JSON_FIELDS(SimpleStruct, id, value, name, active)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SimpleStruct, id, value, name, active)
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
 template <> struct glz::meta<SimpleStruct> {
     using T = SimpleStruct;
     static constexpr auto value = object("id",&T::id,"value",&T::value,"name",&T::name,"active",&T::active);
@@ -92,7 +92,7 @@ struct NestedStruct { uint64_t user_id; Address address; std::vector<int> scores
 QBUEM_JSON_FIELDS(NestedStruct, user_id, address, scores)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(NestedStruct, user_id, address, scores)
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
 template <> struct glz::meta<Address> {
     using T = Address;
     static constexpr auto value = object("street",&T::street,"city",&T::city,"zip",&T::zip);
@@ -135,7 +135,7 @@ struct ComplexStruct { std::string title; std::vector<NestedStruct> history; Met
 QBUEM_JSON_FIELDS(ComplexStruct, title, history, meta_info)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ComplexStruct, title, history, meta_info)
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
 template <> struct glz::meta<Metadata> {
     using T = Metadata;
     static constexpr auto value = object("description",&T::description,"tags",&T::tags);
@@ -184,7 +184,7 @@ struct Node { int val; std::vector<Node> children; };
 QBUEM_JSON_FIELDS(Node, val, children)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Node, val, children)
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
 template <> struct glz::meta<Node> {
     using T = Node;
     static constexpr auto value = object("val",&T::val,"children",&T::children);
@@ -213,7 +213,7 @@ struct HarshNode {
 QBUEM_JSON_FIELDS(HarshNode, id, data, score, vec, list, deque, set, map, umap, children, neighbors)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HarshNode, id, data, score, vec, list, deque, set, map, umap, children, neighbors)
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
 template <> struct glz::meta<HarshNode> {
     using T = HarshNode;
     static constexpr auto value = object("id",&T::id,"data",&T::data,"score",&T::score,
@@ -310,7 +310,7 @@ struct BookSnapshot {
 QBUEM_JSON_FIELDS(BookSnapshot, sym, bids, asks, ts_ns)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BookSnapshot, sym, bids, asks, ts_ns)
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
 template <> struct glz::meta<MarketTick> {
     using T = MarketTick;
     static constexpr auto value = object("sym",&T::sym,"bid",&T::bid,"ask",&T::ask,
@@ -418,7 +418,7 @@ static void run_file(const std::string& exe_path, const std::string& lib_filter,
 
         std::vector<std::string> libs = {"qbuem::lazy","simdjson","yyjson","RapidJSON","Glaze DOM","nlohmann"};
         for (const auto& lib : libs) {
-#ifndef BEAST_HAS_GLAZE
+#ifndef QBUEM_HAS_GLAZE
             if (lib == "Glaze DOM") continue;
 #endif
             std::string cmd = exe_path + " " + filename + " --iter " + std::to_string(N) +
@@ -521,7 +521,7 @@ static void run_file(const std::string& exe_path, const std::string& lib_filter,
         bench::Result{"RapidJSON", p_ns, s_ns, true, alloc_kb}.print();
     }
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
     if (lib_filter == "Glaze DOM") {
         size_t rss0 = bench::get_current_rss_kb();
         glz::json_t d_mem; (void)glz::read_json(d_mem, content);
@@ -613,7 +613,7 @@ static void run_benchmark(const std::string& name, const T& obj, size_t iteratio
         bench::Result{"qbuem-json (Nexus)", p_ns, s_ns, true, alloc_kb}.print();
     }
 
-#ifdef BEAST_HAS_GLAZE
+#ifdef QBUEM_HAS_GLAZE
     // ── Glaze ──
     {
         size_t rss0 = bench::get_current_rss_kb();

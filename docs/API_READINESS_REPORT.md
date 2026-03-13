@@ -40,7 +40,7 @@ The absolute "engine" that physically parses and serializes JSON. The outside wo
 
 ### Layer 2: The Utilities (`namespace qbuem::utils` or `qbuem::ext`)
 A utility/plugin layer that adds extended functionality on top of the core data.
-- **Includes**: C++ macro/template-based automatic O/R mappers (`to_json`, `from_json`, `BEAST_DEFINE_STRUCT`), JSON Pointer (RFC 6901), JSON Patch (RFC 6902), etc.
+- **Includes**: C++ macro/template-based automatic O/R mappers (`to_json`, `from_json`, `QBUEM_JSON_FIELDS`), JSON Pointer (RFC 6901), JSON Patch (RFC 6902), etc.
 - **Goals**: Maximize productivity by allowing inclusion/usage only when necessary, without compromising the lightweight nature of the core engine.
 
 ### Layer 3: The Public API (`namespace qbuem`)
