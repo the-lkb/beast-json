@@ -45,13 +45,6 @@ jobs:
     - name: Install compiler
       run: ${{ matrix.install_cmd }}
 
-    - name: Cache FetchContent dependencies
-      uses: actions/cache@v4
-      with:
-        path: build_bench/_deps
-        key: bench-deps-${{ runner.os }}-${{ runner.arch }}-${{ matrix.cc }}-${{ hashFiles('benchmarks/CMakeLists.txt') }}
-        restore-keys: bench-deps-${{ runner.os }}-${{ runner.arch }}-${{ matrix.cc }}-
-
     # Cache the benchmark JSON data files separately so network failures
     # on simdjson-data do not silently produce empty general-section results.
     - name: Cache benchmark data files
@@ -81,6 +74,9 @@ jobs:
             echo "Using cached ${file}"
           fi
         done
+
+    - name: Clean build directory
+      run: rm -rf build_bench
 
     - name: Configure CMake
       env:
