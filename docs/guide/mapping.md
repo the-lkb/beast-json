@@ -55,7 +55,7 @@ User u = qbuem::fuse<User>(json_str);
 
 ## 🏗️ Direct Struct Mapping with `QBUEM_JSON_FIELDS`
 
-For your own types, the `QBUEM_JSON_FIELDS` macro auto-generates optimized metadata used by both engines. Place it **outside** the struct definition.
+For your own types, the `QBUEM_JSON_FIELDS` macro auto-generates optimized metadata used by both engines. It **must** be placed **outside** the struct definition, at namespace scope.
 
 ```cpp
 struct Address {
@@ -63,7 +63,7 @@ struct Address {
     std::string city;
     std::string country;
 };
-QBUEM_JSON_FIELDS(Address, street, city, country)
+QBUEM_JSON_FIELDS(Address, street, city, country)   // ← namespace scope, after closing }
 
 struct User {
     uint64_t    id;
@@ -75,6 +75,26 @@ struct User {
 };
 QBUEM_JSON_FIELDS(User, id, username, address, tags, score, active)
 ```
+
+::: warning Inside vs outside the struct
+`QBUEM_JSON_FIELDS` expands to **free function** definitions (`from_qbuem_json`, `to_qbuem_json`, etc.). Placing it **inside** a struct body turns those into member functions, which breaks Argument-Dependent Lookup (ADL) — `qbuem::read<T>()` and `qbuem::write()` rely on ADL to find the free functions and **will not compile** if they are members.
+
+```cpp
+// ❌ WRONG — inside struct body → member functions → ADL breaks
+struct User {
+    int id;
+    std::string name;
+    QBUEM_JSON_FIELDS(User, id, name)   // compile error: no matching read/write
+};
+
+// ✅ CORRECT — outside struct, at namespace scope
+struct User {
+    int id;
+    std::string name;
+};
+QBUEM_JSON_FIELDS(User, id, name)       // free functions generated → ADL works
+```
+:::
 
 > [!IMPORTANT]
 > To use `qbuem::fuse<T>`, the struct **must** be registered with `QBUEM_JSON_FIELDS` and use C++20 standard layout types where possible for maximum speed.

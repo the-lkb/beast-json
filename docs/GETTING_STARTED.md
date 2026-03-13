@@ -402,8 +402,9 @@ int main() {
 - Missing JSON field → struct member keeps its C++ default value
 - JSON `null` on a non-optional field → skip silently
 - Extra JSON fields not in the struct → ignored
-- Supports up to 32 fields per struct
+- Supports up to **32 fields** per struct
 - Works recursively for nested structs
+- **Must be placed outside the struct** at namespace scope — placing it inside the struct body makes the generated functions members instead of free functions, breaking ADL and causing a compile error
 
 
 ### Serializing Third-Party Types (ADL)
