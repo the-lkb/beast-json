@@ -6,15 +6,16 @@ on:
       - main
     paths:
       - 'docs/**'
-      - '!docs/public/benchmark-results.json'
       - '.github/workflows/docs.yml'
       - 'include/qbuem_json/qbuem_json.hpp'
-  # Deploy after benchmarks finish so benchmark-results.json is up-to-date.
+  # Also deploy after benchmarks finish so benchmark-results.json is up-to-date.
   # workflow_run fires after the Benchmark workflow commits the updated JSON.
   workflow_run:
     workflows: ["Benchmark"]
     types: [completed]
     branches: [main]
+  # Allow manual re-deploy (e.g. after benchmark data is updated directly)
+  workflow_dispatch:
 
 permissions:
   contents: write
