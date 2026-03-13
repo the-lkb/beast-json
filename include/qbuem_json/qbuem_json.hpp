@@ -7032,6 +7032,14 @@ public:
   bool is_object() const noexcept { return has_ && val_.is_object(); }
   bool is_array() const noexcept { return has_ && val_.is_array(); }
 
+  // ── Container size — 0 when absent, never throws ─────────────────────────
+  //
+  // Avoids the operator->-then-size() antipattern that throws when absent:
+  //   sv->size()   ← throws bad_optional_access if absent
+  //   sv.size()    ← returns 0 safely when absent
+  size_t size() const noexcept { return has_ ? val_.size() : 0; }
+  bool empty() const noexcept { return size() == 0; }
+
   // ── Chaining — absent propagates forward, never throws ───────────────────
 
   SafeValue operator[](std::string_view key) const noexcept {
