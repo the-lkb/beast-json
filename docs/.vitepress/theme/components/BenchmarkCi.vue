@@ -59,7 +59,7 @@
       </div>
 
       <!-- Bar chart -->
-      <div class="chart">
+      <div v-if="sortedResults.length" class="chart">
         <div v-for="(r, i) in sortedResults" :key="r.library" class="bar-row">
           <div class="rank" :class="{ gold: i === 0 }">{{ i + 1 }}</div>
           <div class="lib" :class="{ qbuem: r.isQbuem }">{{ r.library }}</div>
@@ -74,6 +74,10 @@
             {{ r.value > 0 ? fmtVal(r.value) : '—' }}
           </div>
         </div>
+      </div>
+      <div v-else class="bench-state bench-no-section">
+        No results for this platform/section yet —
+        data populates automatically after the next CI benchmark run.
       </div>
 
       <p class="bench-note">
@@ -464,6 +468,13 @@ onMounted(async () => {
 .bench-state {
   font-style: italic;
   color: var(--vp-c-text-2);
+}
+.bench-no-section {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--vp-c-bg-soft);
+  border-radius: 6px;
+  font-size: 0.88em;
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────── */
