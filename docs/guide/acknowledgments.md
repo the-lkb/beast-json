@@ -79,7 +79,7 @@ theory pages.
 In addition to the numeric algorithms above, yyjson independently developed a
 **flat Tape DOM** architecture (similar to simdjson's) that demonstrated the
 performance ceiling achievable with a contiguous node array. This validated our
-own Lazy Tape design and provided a direct competitive reference point.
+own DOM Tape design and provided a direct competitive reference point.
 
 ### glaze — Stephen Berry et al.
 

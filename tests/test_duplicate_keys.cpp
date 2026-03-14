@@ -4,14 +4,14 @@
 
 using namespace qbuem;
 
-// lazy parser accepts duplicate keys (tape preserves all entries)
+// DOM parser accepts duplicate keys (tape preserves all entries)
 TEST(DuplicateKeys, AlwaysAccepted) {
   Document doc;
   EXPECT_NO_THROW(parse(doc, R"({"key": 1, "key": 2})"));
   EXPECT_NO_THROW(parse(doc, R"({"a": 1, "b": 2, "a": 3, "a": 99})"));
 }
 
-TEST(DuplicateKeys, LazyRoundTrip) {
+TEST(DuplicateKeys, DOMRoundTrip) {
   std::string json = R"({"a":1,"a":2,"b":3})";
   Document doc;
   auto v = parse(doc, json);

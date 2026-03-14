@@ -13,7 +13,7 @@
 #include <stdexcept>
 #include <string_view>
 
-using namespace qbuem::json::lazy;
+using namespace qbuem::json;
 
 static DocumentView g_doc_a;
 static DocumentView g_doc_b;

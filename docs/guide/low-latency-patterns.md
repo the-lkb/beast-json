@@ -194,7 +194,7 @@ One `Document`, one tape allocation for the entire chunk — regardless of how m
 | `std::pmr` stack pool | **Zero** (no heap) | ★★★★★ | Embedded, hard RT |
 | `doc.reserve(N)` at startup | One-time only | ★★★★☆ | All of the above |
 | `| default` fallback access | None | ★★★☆☆ | Defensive field reads |
-| Lazy `.as<T>()` extraction | Per field, on demand | ★★★☆☆ | Sparse access patterns |
+| DOM `.as<T>()` extraction | Per field, on demand | ★★★☆☆ | Sparse access patterns |
 
 ---
 

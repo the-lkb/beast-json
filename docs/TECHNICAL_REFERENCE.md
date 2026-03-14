@@ -7,7 +7,7 @@
 
 ## 1. Introduction
 
-qbuem-json is a high-performance, header-only C++20 JSON parser and serializer. It operates on a **tape-based lazy DOM** and utilizes SIMD instructions (AVX-512, NEON) or SWAR (SIMD Within A Register) for peak performance. It is designed to be a drop-in single header library without dependencies.
+qbuem-json is a high-performance, header-only C++20 JSON parser and serializer. It operates on a **tape-based Tape DOM** and utilizes SIMD instructions (AVX-512, NEON) or SWAR (SIMD Within A Register) for peak performance. It is designed to be a drop-in single header library without dependencies.
 
 
 ## 2. Performance Benchmarks
@@ -249,7 +249,7 @@ qbuem-json achieved v1.0 goals entirely through an AI-driven optimization pipeli
 * **Fix**: Added `if (QBUEM_UNLIKELY(cur_state_ & 0b001u)) goto fail;` to all six non-string value cases. Added `tape_sz` bounds guard at the top of iterators and in `skip_val_s_()`.
 
 #### Bug 4 — Stale Overlay Maps + Stack Underflow in `dump_changes_()` *(UBSan / stack-buffer-underflow)*
-* **Trigger**: `[\x03\x00:}` fed to `fuzz_lazy` after a prior call that performed mutations.
+* **Trigger**: `[\x03\x00:}` fed to `fuzz_DOM` after a prior call that performed mutations.
 * **Root cause**: `parse_reuse()` did not clear `mutations_`, `deleted_`, or `additions_` between calls. `dump_changes_()` accessed the stack when `top == -1`.
 * **Fix**: Added `.clear()` for all three overlay maps at the start of `parse_reuse()`. Added `if (QBUEM_UNLIKELY(top < 0))` early-exit guards.
 
@@ -262,6 +262,6 @@ qbuem-json achieved v1.0 goals entirely through an AI-driven optimization pipeli
 
 Three libFuzzer targets (Clang 18, static ASan+UBSan, `-fsanitize=address,undefined`):
 1. `fuzz/fuzz_parse.cpp`: `qbuem::parse()`, typing, iterators, JSON Pointer
-2. `fuzz/fuzz_lazy.cpp`: same + `insert` / `erase` / `push_back` mutations
+2. `fuzz/fuzz_DOM.cpp`: same + `insert` / `erase` / `push_back` mutations
 3. `fuzz/fuzz_rfc8259.cpp`: Consistency oracle
 

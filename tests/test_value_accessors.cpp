@@ -605,7 +605,7 @@ TEST(ValueAssign, AssignChained) {
 // SafeValue: get() optional chain — never throws
 // ══════════════════════════════════════════════════════════════════════════════
 
-using namespace qbuem::json::lazy; // access SafeValue type
+using namespace qbuem::json; // access SafeValue type
 
 TEST(SafeValue, GetPresentKey) {
   Document doc;
@@ -922,37 +922,37 @@ TEST(Monadic, PipelineChainMissing) {
 
 TEST(Concepts, JsonIntegerConcept) {
   // JsonInteger accepts int, long, short but not bool
-  static_assert(qbuem::json::lazy::JsonInteger<int>);
-  static_assert(qbuem::json::lazy::JsonInteger<long>);
-  static_assert(qbuem::json::lazy::JsonInteger<int64_t>);
-  static_assert(!qbuem::json::lazy::JsonInteger<bool>);
-  static_assert(!qbuem::json::lazy::JsonInteger<float>);
+  static_assert(qbuem::json::JsonInteger<int>);
+  static_assert(qbuem::json::JsonInteger<long>);
+  static_assert(qbuem::json::JsonInteger<int64_t>);
+  static_assert(!qbuem::json::JsonInteger<bool>);
+  static_assert(!qbuem::json::JsonInteger<float>);
   SUCCEED();
 }
 
 TEST(Concepts, JsonFloatConcept) {
-  static_assert(qbuem::json::lazy::JsonFloat<float>);
-  static_assert(qbuem::json::lazy::JsonFloat<double>);
-  static_assert(!qbuem::json::lazy::JsonFloat<int>);
-  static_assert(!qbuem::json::lazy::JsonFloat<bool>);
+  static_assert(qbuem::json::JsonFloat<float>);
+  static_assert(qbuem::json::JsonFloat<double>);
+  static_assert(!qbuem::json::JsonFloat<int>);
+  static_assert(!qbuem::json::JsonFloat<bool>);
   SUCCEED();
 }
 
 TEST(Concepts, JsonReadableConcept) {
-  static_assert(qbuem::json::lazy::JsonReadable<bool>);
-  static_assert(qbuem::json::lazy::JsonReadable<int>);
-  static_assert(qbuem::json::lazy::JsonReadable<double>);
-  static_assert(qbuem::json::lazy::JsonReadable<std::string>);
-  static_assert(qbuem::json::lazy::JsonReadable<std::string_view>);
+  static_assert(qbuem::json::JsonReadable<bool>);
+  static_assert(qbuem::json::JsonReadable<int>);
+  static_assert(qbuem::json::JsonReadable<double>);
+  static_assert(qbuem::json::JsonReadable<std::string>);
+  static_assert(qbuem::json::JsonReadable<std::string_view>);
   SUCCEED();
 }
 
 TEST(Concepts, JsonWritableConcept) {
-  static_assert(qbuem::json::lazy::JsonWritable<bool>);
-  static_assert(qbuem::json::lazy::JsonWritable<int>);
-  static_assert(qbuem::json::lazy::JsonWritable<double>);
-  static_assert(qbuem::json::lazy::JsonWritable<std::string_view>);
-  static_assert(qbuem::json::lazy::JsonWritable<std::nullptr_t>);
+  static_assert(qbuem::json::JsonWritable<bool>);
+  static_assert(qbuem::json::JsonWritable<int>);
+  static_assert(qbuem::json::JsonWritable<double>);
+  static_assert(qbuem::json::JsonWritable<std::string_view>);
+  static_assert(qbuem::json::JsonWritable<std::nullptr_t>);
   SUCCEED();
 }
 

@@ -3714,7 +3714,7 @@ public:
 
   // ── keys() / values() — object key/value ranges ───────────────────────────
   //
-  // Lazy transform views over items().
+  // DOM-based transform views over items().
   //
   // Usage:
   //   for (std::string_view k : root.keys())   { ... }
@@ -3726,7 +3726,7 @@ public:
 
   // ── as_array<T>() / try_as_array<T>() — typed element views ──────────────
   //
-  // Lazy transform view over elements() yielding each element as T.
+  // DOM-based transform view over elements() yielding each element as T.
   //   as_array<T>()      — throws std::runtime_error on type mismatch
   //   try_as_array<T>()  — yields std::optional<T>, never throws
   //
@@ -8253,10 +8253,6 @@ inline void to_json_field(Value &obj, const char *key, const T &val) {
     qbuem_json_append_fw(out, obj);                                            \
   }
 
-// Backward-compatibility alias: qbuem::json::lazy → qbuem::json
-// Tests and older code may reference types via qbuem::json::lazy::SafeValue,
-// qbuem::json::lazy::JsonInteger, etc.
-namespace lazy = ::qbuem::json;
 
 } // namespace json
 } // namespace qbuem

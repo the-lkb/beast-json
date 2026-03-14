@@ -16,7 +16,7 @@
 #
 #   # Run indefinitely (Ctrl-C to stop; crashes saved as crash-*)
 #   ./build-fuzz/fuzz/fuzz_parse    fuzz/corpus/ -max_len=65536
-#   ./build-fuzz/fuzz/fuzz_lazy     fuzz/corpus/ -max_len=65536
+#   ./build-fuzz/fuzz/fuzz_dom     fuzz/corpus/ -max_len=65536
 #   ./build-fuzz/fuzz/fuzz_rfc8259  fuzz/corpus/ -max_len=65536
 #
 #   # Reproduce a specific crash
@@ -50,5 +50,5 @@ endfunction()
 
 # ── Fuzz targets ──────────────────────────────────────────────────────────────
 add_fuzz_target(fuzz_parse)    # High-level qbuem::parse() + full accessor surface
-add_fuzz_target(fuzz_lazy)     # Lazy tape parser: qbuem::json::lazy::parse_reuse()
+add_fuzz_target(fuzz_dom)     # DOM tape parser: qbuem::json::dom::parse_reuse()
 add_fuzz_target(fuzz_rfc8259)  # parse_reuse consistency: tape-reuse vs fresh allocation

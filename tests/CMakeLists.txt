@@ -71,9 +71,9 @@ add_qbuem_gtest(test_duplicate_keys)
 add_qbuem_gtest(test_serializer)
 add_qbuem_gtest(test_errors)
 
-# ── New: lazy API type coverage and round-trip fidelity ────────────────────
-add_qbuem_gtest(test_lazy_types)
-add_qbuem_gtest(test_lazy_roundtrip)
+# ── New: dom API type coverage and round-trip fidelity ────────────────────
+add_qbuem_gtest(test_dom_types)
+add_qbuem_gtest(test_dom_roundtrip)
 add_qbuem_gtest(test_value_accessors)
 add_qbuem_gtest(test_mutations)
 add_qbuem_gtest(repro_bugs)

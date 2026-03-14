@@ -3,14 +3,14 @@
 //
 // Two measurement sections:
 //   general — DOM parse+serialize on real JSON files (twitter, canada, …)
-//   structs — Struct binding: C++ structs ↔ JSON (simple → complex → HFT msgs)
+//   structs — Direct Struct Mapping: C++ structs ↔ JSON (simple → complex → HFT msgs)
 //
 // Usage:
 //   ./bench --all --quick          # CI default: both sections, quick iters
 //   ./bench --section general --all # general section only
 //   ./bench --section structs       # structs section only
 //   ./bench twitter.json            # one file, general section
-//   ./bench twitter.json --iter 300 --lib "qbuem::lazy"  # subprocess dispatch
+//   ./bench twitter.json --iter 300 --lib "qbuem-json (DOM)"  # subprocess dispatch
 
 #include "utils.hpp"
 #include <qbuem_json/qbuem_json.hpp>
@@ -416,7 +416,7 @@ static void run_file(const std::string& exe_path, const std::string& lib_filter,
         std::cout << "Size: " << (content.size() / 1024.0) << " KB  Iterations: " << N << "\n";
         bench::print_table_header();
 
-        std::vector<std::string> libs = {"qbuem::lazy","simdjson","yyjson","RapidJSON","Glaze DOM","nlohmann"};
+        std::vector<std::string> libs = {"qbuem-json (DOM)","simdjson","yyjson","RapidJSON","Glaze DOM","nlohmann"};
         for (const auto& lib : libs) {
 #ifndef QBUEM_HAS_GLAZE
             if (lib == "Glaze DOM") continue;
@@ -434,7 +434,7 @@ static void run_file(const std::string& exe_path, const std::string& lib_filter,
     std::string content;
     try { content = bench::read_file(filename.c_str()); } catch (...) { return; }
 
-    if (lib_filter == "qbuem::lazy") {
+    if (lib_filter == "qbuem-json (DOM)") {
         size_t rss0 = bench::get_current_rss_kb();
         qbuem::Document ctx; qbuem::parse(ctx, content);
         size_t alloc_kb = bench::get_current_rss_kb() - rss0;
@@ -452,7 +452,7 @@ static void run_file(const std::string& exe_path, const std::string& lib_filter,
             s_ns = st.elapsed_ns() / N;
             ok = !doc.dump().empty();
         }
-        bench::Result{"qbuem::lazy", p_ns, s_ns, ok, alloc_kb}.print();
+        bench::Result{"qbuem-json (DOM)", p_ns, s_ns, ok, alloc_kb}.print();
     }
 
     if (lib_filter == "simdjson") {

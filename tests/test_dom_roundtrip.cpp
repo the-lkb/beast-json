@@ -11,7 +11,7 @@ static std::string roundtrip(std::string_view json) {
   return parse(doc, json).dump();
 }
 
-TEST(LazyRoundTrip, Scalars) {
+TEST(DOMRoundTrip, Scalars) {
   EXPECT_EQ(roundtrip("null"), "null");
   EXPECT_EQ(roundtrip("true"), "true");
   EXPECT_EQ(roundtrip("false"), "false");
@@ -22,25 +22,25 @@ TEST(LazyRoundTrip, Scalars) {
   EXPECT_EQ(roundtrip("-1.5e10"), "-1.5e10");
 }
 
-TEST(LazyRoundTrip, StringBasic) {
+TEST(DOMRoundTrip, StringBasic) {
   EXPECT_EQ(roundtrip(R"("hello")"), R"("hello")");
   EXPECT_EQ(roundtrip(R"("")"), R"("")");
 }
 
-TEST(LazyRoundTrip, StringEscapes) {
+TEST(DOMRoundTrip, StringEscapes) {
   EXPECT_EQ(roundtrip(R"("a\"b")"), R"("a\"b")");
   EXPECT_EQ(roundtrip(R"("a\\b")"), R"("a\\b")");
   EXPECT_EQ(roundtrip(R"("\n\t\r")"), R"("\n\t\r")");
 }
 
-TEST(LazyRoundTrip, UnicodeEscapes) {
+TEST(DOMRoundTrip, UnicodeEscapes) {
   // Unicode escapes stored raw; re-emitted unchanged
   EXPECT_EQ(roundtrip(R"("\u0041")"), R"("\u0041")");
   EXPECT_EQ(roundtrip(R"("\u20AC")"), R"("\u20AC")");
   EXPECT_EQ(roundtrip(R"("\uD834\uDD1E")"), R"("\uD834\uDD1E")");
 }
 
-TEST(LazyRoundTrip, Arrays) {
+TEST(DOMRoundTrip, Arrays) {
   EXPECT_EQ(roundtrip("[]"), "[]");
   EXPECT_EQ(roundtrip("[1]"), "[1]");
   EXPECT_EQ(roundtrip("[1,2,3]"), "[1,2,3]");
@@ -49,14 +49,14 @@ TEST(LazyRoundTrip, Arrays) {
   EXPECT_EQ(roundtrip("[[1,[2,3]]]"), "[[1,[2,3]]]");
 }
 
-TEST(LazyRoundTrip, Objects) {
+TEST(DOMRoundTrip, Objects) {
   EXPECT_EQ(roundtrip("{}"), "{}");
   EXPECT_EQ(roundtrip(R"({"a":1})"), R"({"a":1})");
   EXPECT_EQ(roundtrip(R"({"a":1,"b":2})"), R"({"a":1,"b":2})");
   EXPECT_EQ(roundtrip(R"({"a":1,"b":2,"c":3})"), R"({"a":1,"b":2,"c":3})");
 }
 
-TEST(LazyRoundTrip, Nested) {
+TEST(DOMRoundTrip, Nested) {
   EXPECT_EQ(roundtrip(R"({"a":[1,2],"b":{"c":3}})"),
             R"({"a":[1,2],"b":{"c":3}})");
   EXPECT_EQ(roundtrip(R"([{"x":1},{"y":2}])"), R"([{"x":1},{"y":2}])");
@@ -64,12 +64,12 @@ TEST(LazyRoundTrip, Nested) {
             R"({"outer":{"inner":[1,2,3]}})");
 }
 
-TEST(LazyRoundTrip, MixedTypes) {
+TEST(DOMRoundTrip, MixedTypes) {
   std::string json = R"([null,true,false,0,-1,3.14,"str",{},[]])";
   EXPECT_EQ(roundtrip(json), json);
 }
 
-TEST(LazyRoundTrip, DeepNesting) {
+TEST(DOMRoundTrip, DeepNesting) {
   // Build deeply nested object; safe: depth=50 << kMaxDepth=1024
   std::string json;
   const int depth = 50;
@@ -81,14 +81,14 @@ TEST(LazyRoundTrip, DeepNesting) {
   EXPECT_EQ(roundtrip(json), json);
 }
 
-TEST(LazyRoundTrip, AllPrimitiveTypes) {
+TEST(DOMRoundTrip, AllPrimitiveTypes) {
   // Object containing every primitive type
   std::string json =
       R"({"null":null,"t":true,"f":false,"i":42,"n":-7,"d":1.5,"s":"hello"})";
   EXPECT_EQ(roundtrip(json), json);
 }
 
-TEST(LazyRoundTrip, StressMultipleParsesOnSameDoc) {
+TEST(DOMRoundTrip, StressMultipleParsesOnSameDoc) {
   Document doc;
   const std::vector<std::string> cases = {
       "null",

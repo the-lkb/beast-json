@@ -1,11 +1,11 @@
-// fuzz_lazy.cpp – libFuzzer target for qbuem::json::lazy internals.
+// fuzz_dom.cpp – libFuzzer target for qbuem::json internals.
 //
-// Directly exercises the tape-based zero-copy lazy parser (parse_reuse),
+// Directly exercises the tape-based zero-copy dom parser (parse_reuse),
 // plus the full Value accessor / mutation / serializer surface.
 // A single static DocumentView is reused across invocations so that the
 // hot-path (tape.reset()) and cold-path (tape.reserve()) are both hit.
 //
-// Build / run: see fuzz_parse.cpp header comment; swap target name to fuzz_lazy.
+// Build / run: see fuzz_parse.cpp header comment; swap target name to fuzz_dom.
 
 #include <qbuem_json/qbuem_json.hpp>
 #include <cstddef>
@@ -13,7 +13,7 @@
 #include <stdexcept>
 #include <string_view>
 
-using namespace qbuem::json::lazy;
+using namespace qbuem::json;
 
 // One DocumentView per fuzzing process.
 static DocumentView g_doc;

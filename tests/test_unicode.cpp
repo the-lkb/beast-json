@@ -4,7 +4,7 @@
 
 using namespace qbuem;
 
-// The lazy parser stores strings as raw bytes from source. Unicode escape
+// The DOM parser stores strings as raw bytes from source. Unicode escape
 // sequences (\uXXXX) are NOT decoded; they are stored and re-emitted as-is.
 // dump() reproduces the exact source bytes (compact, no whitespace).
 

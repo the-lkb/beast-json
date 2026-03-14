@@ -18,18 +18,18 @@ These classes are DOM objects based on slow dynamic memory allocation. Remove al
 - `struct JsonMember`
 - `class Document` (DOM Document)
 - `class StringBuffer` / `class TapeSerializer` 
-  - (Note: The new Serializer logic used inside `qbuem::lazy::Value::dump()` must be preserved)
+  - (Note: The new Serializer logic used inside `qbuem::Value::dump()` must be preserved)
 
 ### 1-2. Target Parser Backends for Deletion (Syntax Analysis Logic)
 The target for `qbuem` uses highly optimized parsers like the `TapeArena`-based 2-Pass `parse_staged`. The older string tokenizers are targets for deletion.
 - Older structures inside `class Parser`:
   - All parser methods prior to Phase 50 that directly return or construct DOM objects (`Value`), such as `void parse()`, `parse_string()`, `parse_number()`, `parse_object()`, `parse_array()`.
-  - Legacy scalar/vector fallback functions like `parse_string_swar()`, `skip_whitespace_swar()`, `vgetq_lane` variants (Identify and remove 100% of the functions currently NOT used by the Tape-based Lazy Parser).
+  - Legacy scalar/vector fallback functions like `parse_string_swar()`, `skip_whitespace_swar()`, `vgetq_lane` variants (Identify and remove 100% of the functions currently NOT used by the Tape-based DOM Parser).
 
 ---
 
 ## 🏗️ PART 2: Architecture Layering (Core-Utils-API Separation)
-End-users should not need to know whether the parser uses lazy evaluation or builds a DOM internally. We must provide the most intuitive and standardized naming while keeping the internal code strictly separated into layers.
+End-users should not need to know whether the parser uses DOM-based evaluation or builds a DOM internally. We must provide the most intuitive and standardized naming while keeping the internal code strictly separated into layers.
 
 We adopt the following 3-Tier Architecture for expert-level library design.
 
@@ -44,11 +44,11 @@ A utility/plugin layer that adds extended functionality on top of the core data.
 - **Goals**: Maximize productivity by allowing inclusion/usage only when necessary, without compromising the lightweight nature of the core engine.
 
 ### Layer 3: The Public API (`namespace qbuem`)
-The single "Facade" entry point that the user ultimately encounters. The implementation-dependent namespace `lazy` is hidden internally, exposing standard nomenclature.
+The single "Facade" entry point that the user ultimately encounters. The implementation-dependent namespace `DOM` is hidden internally, exposing standard nomenclature.
 
-- **`qbuem::Value` (Evolution of the former `qbuem::lazy::Value`)**:
+- **`qbuem::Value` (Evolution of the former `qbuem::Value`)**:
   - Users only receive `qbuem::Value` through `qbuem::parse("...")`.
-  - Internally, it is a Lazy object holding a Tape reference, but externally it behaves perfectly like a conventional DOM object.
+  - Internally, it is a DOM object holding a Tape reference, but externally it behaves perfectly like a conventional DOM object.
   - **Required Accessors**: `as_int64()`, `as_double()`, `as_string_view()`, `as_bool()`, `operator[](std::string_view)`, `operator[](size_t)`.
 - **`qbuem::parse()`**: A wrapper function around the core's `parse_staged()`.
 
@@ -79,7 +79,7 @@ We must dominate competing libraries not just in pure performance, but also in "
    - **Pros**: In-situ parsing and incredibly fast, lightweight C-style exploration.
    - **Cons**: Archaic APIs like `document["hello"].GetString()`. If you don't type-check first, it immediately crashes (`Segfault/Throw`). Iterator usage is painfully long.
 4. **simdjson ("The Pioneer of Gigabyte/s, but Clunky Error Handling")**
-   - **Pros**: Achieves phenomenal speeds via Tape-based lazy parsing utilizing SIMD to the absolute limit.
+   - **Pros**: Achieves phenomenal speeds via Tape-based DOM parsing utilizing SIMD to the absolute limit.
    - **Cons**: Returns an error code hooked to every single accessor, making chaining difficult. Forces the use of padding blocks (`simdjson::padded_string`) or triggers numerous Exceptions, resulting in a very stiff developer experience.
 5. **yyjson ("The Absolute Master of C APIs, devoid of C++ Ideals")**
    - **Pros**: The world's fastest C JSON parser. Pure pointer structure with zero dynamic allocations.

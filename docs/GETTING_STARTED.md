@@ -561,7 +561,7 @@ ctest --test-dir build -V
 
 | Suite | Count | What it covers |
 |:---|---:|:---|
-| LazyTypes, LazyRoundTrip | 30 | Core parsing + serialization round-trips |
+| DOMTypes, DOMRoundTrip | 30 | Core parsing + serialization round-trips |
 | ValueAccessors, ValueMutation | 56 | `as<T>()`, `set()`, mutation operators |
 | SafeValue, Monadic | 29 | SafeValue chain, optional propagation |
 | Ranges, Iteration | 16 | `items()`, `elements()`, `std::ranges` |

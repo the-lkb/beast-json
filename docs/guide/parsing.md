@@ -1,6 +1,6 @@
 # Parsing & Access
 
-qbuem-json uses a **lazy DOM model** — it parses into a flat tape in a single pass, and you access values on demand. It's designed to be both fast and easy to use.
+qbuem-json uses a **Tape DOM model** — it parses into a flat tape in a single pass, and you access values on demand. It's designed to be both fast and easy to use.
 
 ## 🚀 Quick Start
 

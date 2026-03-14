@@ -157,7 +157,7 @@ endif()
 
 
 
-# Unified benchmark: qbuem::lazy + yyjson + nlohmann, all 4 standard files
+# Unified benchmark: qbuem-json (DOM) + yyjson + nlohmann, all 4 standard files
 # Usage: ./bench_all [file.json]  OR  ./bench_all --all
 add_executable(bench_all bench_all.cpp)
 target_link_libraries(bench_all PRIVATE
@@ -186,7 +186,7 @@ target_link_libraries(bench_hft PRIVATE
 target_include_directories(bench_hft PRIVATE ${rapidjson_SOURCE_DIR}/include)
 
 # ── Unified benchmark (CI primary target) ─────────────────────────────────
-# Merges general file benchmarks + struct binding + HFT message types.
+# Merges general file benchmarks + Direct Struct Mapping + HFT message types.
 # Run: ./bench --all --quick    (both sections, CI mode)
 #      ./bench --section general --all
 #      ./bench --section structs

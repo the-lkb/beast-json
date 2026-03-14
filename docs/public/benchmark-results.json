@@ -10,7 +10,7 @@
           "file": "twitter.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 260.03,
               "serialize_us": 144.87,
               "alloc_kb": 296
@@ -51,7 +51,7 @@
           "file": "canada.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 1584.03,
               "serialize_us": 844.41,
               "alloc_kb": 3404
@@ -92,7 +92,7 @@
           "file": "citm_catalog.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 616.85,
               "serialize_us": 356.54,
               "alloc_kb": 668
@@ -133,7 +133,7 @@
           "file": "gsoc-2018.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 542.74,
               "serialize_us": 388.59,
               "alloc_kb": 392
@@ -174,7 +174,7 @@
           "file": "harsh.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 7458.1,
               "serialize_us": 3166.43,
               "alloc_kb": 8668
@@ -538,7 +538,7 @@
           "file": "twitter.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 362.45,
               "serialize_us": 100.12,
               "alloc_kb": 304
@@ -579,7 +579,7 @@
           "file": "canada.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 2490.09,
               "serialize_us": 1160.83,
               "alloc_kb": 1840
@@ -620,7 +620,7 @@
           "file": "citm_catalog.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 732.04,
               "serialize_us": 257.64,
               "alloc_kb": 720
@@ -661,7 +661,7 @@
           "file": "gsoc-2018.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 924.69,
               "serialize_us": 280.79,
               "alloc_kb": 384
@@ -702,7 +702,7 @@
           "file": "harsh.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 5616.45,
               "serialize_us": 2614.7,
               "alloc_kb": 7088
@@ -1066,7 +1066,7 @@
           "file": "twitter.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 263.1,
               "serialize_us": 105.76,
               "alloc_kb": 424
@@ -1107,7 +1107,7 @@
           "file": "canada.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 1719.13,
               "serialize_us": 516.85,
               "alloc_kb": 1940
@@ -1148,7 +1148,7 @@
           "file": "citm_catalog.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 594.2,
               "serialize_us": 243.23,
               "alloc_kb": 864
@@ -1189,7 +1189,7 @@
           "file": "gsoc-2018.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 637.97,
               "serialize_us": 257.2,
               "alloc_kb": 520
@@ -1230,7 +1230,7 @@
           "file": "harsh.json",
           "results": [
             {
-              "library": "qbuem::lazy",
+              "library": "qbuem-json (DOM)",
               "parse_us": 5648.49,
               "serialize_us": 2153.63,
               "alloc_kb": 7224

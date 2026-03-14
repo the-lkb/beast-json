@@ -4,7 +4,7 @@
 
 using namespace qbuem;
 
-// NOTE: Neither rtsm::Parser nor lazy::Parser validates UTF-8 byte sequences.
+// NOTE: Neither rtsm::Parser nor DOM parser validates UTF-8 byte sequences.
 // scan_string_swar / scan_string_end only scan for '"' and '\'.
 // All byte sequences in strings are accepted (no RFC 3629 validation).
 

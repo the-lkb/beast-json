@@ -1,4 +1,4 @@
-# The Lazy Tape DOM
+# The DOM Tape DOM
 
 A 50 KB JSON document with 1,000 string values makes `nlohmann/json` call `malloc` over 1,000 times. Each node ends up at a random heap address. When you traverse the result, every key and every value is a pointer chase to a different cache line. The CPU's prefetcher stops trying.
 
@@ -279,7 +279,7 @@ Extraction is the one operation that touches data:
   </div>
 </div>
 
-<LazyLifecycle />
+<DOMLifecycle />
 
 ---
 

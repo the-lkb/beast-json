@@ -74,7 +74,7 @@ static void run_file(const std::string &exe_path, const std::string &lib_filter,
     return;
   }
 
-  // ── 1. qbuem::json::lazy (production path) ──────────────────────────────
+  // ── 1. qbuem-json (DOM) (production path) ──────────────────────────────
   if (lib_filter == "qbuem-json (DOM)") {
     // Memory: RSS before vs after cold parse — measures tape arena size
     size_t rss0 = bench::get_current_rss_kb();

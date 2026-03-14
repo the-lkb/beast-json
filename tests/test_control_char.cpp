@@ -4,11 +4,11 @@
 
 using namespace qbuem;
 
-// NOTE: Neither rtsm::Parser nor lazy::Parser validates control characters
+// NOTE: Neither rtsm::Parser nor DOM parser validates control characters
 // in strings. scan_string_swar / scan_string_end only stop at '"' and '\'.
 // Strings with literal control chars (< 0x20) are accepted by both parsers.
 
-static bool lazy_ok(std::string_view json) {
+static bool dom_ok(std::string_view json) {
   try {
     Document doc;
     parse(doc, json);
@@ -20,8 +20,8 @@ static bool lazy_ok(std::string_view json) {
 
 // Valid strings (no control chars) are accepted
 TEST(ControlChar, ValidStringsAccepted) {
-  EXPECT_TRUE(lazy_ok(R"({"a":"valid"})"));
-  EXPECT_TRUE(lazy_ok(R"({"a":"hello world"})"));
+  EXPECT_TRUE(dom_ok(R"({"a":"valid"})"));
+  EXPECT_TRUE(dom_ok(R"({"a":"hello world"})"));
 }
 
 // Control chars in strings: parsers do not validate RFC 8259 requirement
@@ -29,12 +29,12 @@ TEST(ControlChar, ValidStringsAccepted) {
 // Both parsers accept them silently (scan for '"' and '\' only).
 TEST(ControlChar, LiteralNewlineAccepted) {
   std::string json = "{\"key\":\"line1\nline2\"}";
-  EXPECT_TRUE(lazy_ok(json));
+  EXPECT_TRUE(dom_ok(json));
 }
 
 TEST(ControlChar, LiteralTabAccepted) {
   std::string json = "{\"key\":\"tab\tchar\"}";
-  EXPECT_TRUE(lazy_ok(json));
+  EXPECT_TRUE(dom_ok(json));
 }
 
 // Round-trip with JSON escape sequence (not literal control char) is exact.

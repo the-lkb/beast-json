@@ -18,7 +18,7 @@ TEST(TrailingCommas, ObjectTrailingCommaAccepted) {
   EXPECT_NO_THROW(parse(doc, "{\"a\": {\"b\": 1, }, }"));
 }
 
-TEST(TrailingCommas, LazyParserAcceptsTrailingComma) {
+TEST(TrailingCommas, DOMParserAcceptsTrailingComma) {
   std::string arr = "[1, 2, ]";
   Document doc;
   EXPECT_NO_THROW(parse(doc, arr));

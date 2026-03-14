@@ -50,7 +50,7 @@ Understanding the data flow is the foundation of effective debugging. Every pars
       </div>
     </div>
     <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
-    <div class="bd-box bd-box--brand"><code>qbuem::Value { doc*, idx }</code> <small>— 16-byte lazy handle</small></div>
+    <div class="bd-box bd-box--brand"><code>qbuem::Value { doc*, idx }</code> <small>— 16-byte DOM handle</small></div>
   </div>
 </div>
 
@@ -537,7 +537,7 @@ Use this when an error occurs and you're not sure where to start:
       </div>
     </div>
     <div class="bd-arrow"><div class="bd-arrow__icon">↓</div></div>
-    <div class="bd-box bd-box--brand"><code>qbuem::Value</code> <small>— lazy handle (16 bytes)</small></div>
+    <div class="bd-box bd-box--brand"><code>qbuem::Value</code> <small>— DOM handle (16 bytes)</small></div>
     <div class="bd-arrow"><div class="bd-arrow__icon">↓</div><div class="bd-arrow__label">.as&lt;T&gt;() on demand</div></div>
     <div class="bd-box bd-box--green">Typed C++ value <small>— zero allocation</small></div>
     <div class="bd-row" style="gap:1rem;margin-top:0.75rem;flex-wrap:wrap;">
