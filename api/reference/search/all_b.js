@@ -1,0 +1,26 @@
+var searchData=
+[
+  ['b_3a_20cmake_20fetchcontent_0',['Option B: CMake FetchContent',['../md_docs_2GETTING__STARTED.html#autotoc_md43',1,'']]],
+  ['bare_20separator_20heap_20buffer_20overflow_1',['Bug 2 — Empty-Tape Read via Bare Separator *(heap-buffer-overflow)*',['../index.html#autotoc_md34',1,'']]],
+  ['base_2',['base',['../structqbuem_1_1json_1_1TapeArena.html#a60a275b9547eb1ff5d18011524f44b5b',1,'qbuem::json::TapeArena']]],
+  ['begin_3',['begin',['../structqbuem_1_1json_1_1rfc8259_1_1detail___1_1Validator.html#a2cc43ed2ac4f205a120fc909e71d1778',1,'qbuem::json::rfc8259::detail_::Validator::begin'],['../structqbuem_1_1json_1_1Value_1_1OptionalArrayRange.html#ac9bcc4d496f3920b77d0489e53b9bc69',1,'qbuem::json::Value::OptionalArrayRange::begin()'],['../structqbuem_1_1json_1_1Value_1_1TypedArrayRange.html#ae79dae6c1bcf3f6b1a2a19659c680d7e',1,'qbuem::json::Value::TypedArrayRange::begin()'],['../structqbuem_1_1json_1_1Value_1_1KeysRange.html#a878c683470a03bcf51b0a678e907bd26',1,'qbuem::json::Value::KeysRange::begin()'],['../classqbuem_1_1json_1_1Value_1_1ObjectRange.html#a30878f4007ad1b4b736b7b58d637a457',1,'qbuem::json::Value::ObjectRange::begin()'],['../structqbuem_1_1json_1_1Value_1_1ValuesRange.html#abc197187d5ef774d18609855d5df21ce',1,'qbuem::json::Value::ValuesRange::begin()'],['../classqbuem_1_1json_1_1Value_1_1ArrayRange.html#a63a5d8a12a3f07d0c069526deb96a54f',1,'qbuem::json::Value::ArrayRange::begin()']]],
+  ['benchmarks_4',['2. Performance Benchmarks',['../index.html#autotoc_md5',1,'']]],
+  ['benchmarks_20harsh_20environment_5',['2.5 Extreme Heavy-Load Benchmarks (Harsh Environment)',['../index.html#autotoc_md10',1,'']]],
+  ['bindings_6',['bindings',['../index.html#autotoc_md24',1,'7. Language Bindings'],['../md_docs_2GETTING__STARTED.html#autotoc_md72',1,'Language Bindings']]],
+  ['booleanfalse_7',['BooleanFalse',['../namespaceqbuem_1_1json.html#a5b80e4ed2b71fc62aea1125a6bc3b4b9ab0ac08ea5329522c671d9110ada5ca67',1,'qbuem::json']]],
+  ['booleantrue_8',['BooleanTrue',['../namespaceqbuem_1_1json.html#a5b80e4ed2b71fc62aea1125a6bc3b4b9a2df4d9216bc8e4e7c7d22dbff7631d77',1,'qbuem::json']]],
+  ['bounds_20heap_20buffer_20overflow_9',['Bug 3 — Non-String Object Keys + Iterator Out-of-Bounds *(heap-buffer-overflow)*',['../index.html#autotoc_md35',1,'']]],
+  ['bounds_20tt_20memcpy_20tt_20past_20source_20end_20heap_20buffer_20overflow_10',['Bug 5 — &lt;tt&gt;skip_value_()&lt;/tt&gt; Out-of-Bounds + &lt;tt&gt;memcpy&lt;/tt&gt; Past Source End *(heap-buffer-overflow)*',['../index.html#autotoc_md37',1,'']]],
+  ['buffer_11',['dump(out) — reuse existing buffer',['../md_docs_2GETTING__STARTED.html#autotoc_md65',1,'']]],
+  ['buffer_20overflow_12',['buffer overflow',['../index.html#autotoc_md33',1,'Bug 1 — Null-Dereference in &lt;tt&gt;skip_to_action()&lt;/tt&gt; *(heap-buffer-overflow)*'],['../index.html#autotoc_md34',1,'Bug 2 — Empty-Tape Read via Bare Separator *(heap-buffer-overflow)*'],['../index.html#autotoc_md35',1,'Bug 3 — Non-String Object Keys + Iterator Out-of-Bounds *(heap-buffer-overflow)*'],['../index.html#autotoc_md37',1,'Bug 5 — &lt;tt&gt;skip_value_()&lt;/tt&gt; Out-of-Bounds + &lt;tt&gt;memcpy&lt;/tt&gt; Past Source End *(heap-buffer-overflow)*']]],
+  ['buffer_20reuse_20for_20hot_20loops_13',['Buffer Reuse for Hot Loops',['../md_docs_2GETTING__STARTED.html#autotoc_md69',1,'']]],
+  ['buffer_20underflow_14',['Bug 4 — Stale Overlay Maps + Stack Underflow in &lt;tt&gt;dump_changes_()&lt;/tt&gt; *(UBSan / stack-buffer-underflow)*',['../index.html#autotoc_md36',1,'']]],
+  ['bug_201_20—_20null_20dereference_20in_20tt_20skip_5fto_5faction_20tt_20heap_20buffer_20overflow_15',['Bug 1 — Null-Dereference in &lt;tt&gt;skip_to_action()&lt;/tt&gt; *(heap-buffer-overflow)*',['../index.html#autotoc_md33',1,'']]],
+  ['bug_202_20—_20empty_20tape_20read_20via_20bare_20separator_20heap_20buffer_20overflow_16',['Bug 2 — Empty-Tape Read via Bare Separator *(heap-buffer-overflow)*',['../index.html#autotoc_md34',1,'']]],
+  ['bug_203_20—_20non_20string_20object_20keys_20iterator_20out_20of_20bounds_20heap_20buffer_20overflow_17',['Bug 3 — Non-String Object Keys + Iterator Out-of-Bounds *(heap-buffer-overflow)*',['../index.html#autotoc_md35',1,'']]],
+  ['bug_204_20—_20stale_20overlay_20maps_20stack_20underflow_20in_20tt_20dump_5fchanges_5f_20tt_20ubsan_20stack_20buffer_20underflow_18',['Bug 4 — Stale Overlay Maps + Stack Underflow in &lt;tt&gt;dump_changes_()&lt;/tt&gt; *(UBSan / stack-buffer-underflow)*',['../index.html#autotoc_md36',1,'']]],
+  ['bug_205_20—_20tt_20skip_5fvalue_5f_20tt_20out_20of_20bounds_20tt_20memcpy_20tt_20past_20source_20end_20heap_20buffer_20overflow_19',['Bug 5 — &lt;tt&gt;skip_value_()&lt;/tt&gt; Out-of-Bounds + &lt;tt&gt;memcpy&lt;/tt&gt; Past Source End *(heap-buffer-overflow)*',['../index.html#autotoc_md37',1,'']]],
+  ['bug_20fix_20test_20suites_20',['6. Regression &amp; Bug-Fix Test Suites',['../md_docs_2TEST__CASES.html#autotoc_md93',1,'']]],
+  ['build_21',['Option C: Clone &amp; Build',['../md_docs_2GETTING__STARTED.html#autotoc_md44',1,'']]],
+  ['build_20options_20reference_22',['Build Options Reference',['../md_docs_2GETTING__STARTED.html#autotoc_md70',1,'']]]
+];

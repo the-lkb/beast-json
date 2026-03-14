@@ -1,0 +1,27 @@
+var searchData=
+[
+  ['macos_20apple_20clang_20neon_20pgo_0',['2.3 Apple Silicon (macOS, Apple Clang, NEON, PGO)',['../index.html#autotoc_md8',1,'']]],
+  ['macro_1',['5. Auto-Serialization Macro',['../index.html#autotoc_md21',1,'']]],
+  ['maps_20stack_20underflow_20in_20tt_20dump_5fchanges_5f_20tt_20ubsan_20stack_20buffer_20underflow_2',['Bug 4 — Stale Overlay Maps + Stack Underflow in &lt;tt&gt;dump_changes_()&lt;/tt&gt; *(UBSan / stack-buffer-underflow)*',['../index.html#autotoc_md36',1,'']]],
+  ['megabyte_20memory_20efficiency_3',['2.4 Sub-MegaByte Memory Efficiency',['../index.html#autotoc_md9',1,'']]],
+  ['memcpy_20tt_20past_20source_20end_20heap_20buffer_20overflow_4',['Bug 5 — &lt;tt&gt;skip_value_()&lt;/tt&gt; Out-of-Bounds + &lt;tt&gt;memcpy&lt;/tt&gt; Past Source End *(heap-buffer-overflow)*',['../index.html#autotoc_md37',1,'']]],
+  ['memory_20efficiency_5',['2.4 Sub-MegaByte Memory Efficiency',['../index.html#autotoc_md9',1,'']]],
+  ['memory_20integrity_6',['3. Security &amp; Multi-Sanitizer Verification (Memory Integrity)',['../md_docs_2TEST__CASES.html#autotoc_md88',1,'']]],
+  ['memory_20safety_20hardening_7',['10. Security &amp; Memory-Safety Hardening',['../index.html#autotoc_md31',1,'']]],
+  ['merge_8',['merge',['../classqbuem_1_1json_1_1Value.html#a024661711abd95a71ef343bcab093cab',1,'qbuem::json::Value']]],
+  ['merge_5fpatch_9',['merge_patch',['../classqbuem_1_1json_1_1Value.html#a2e3765443cbacb30364cd16965b82f5d',1,'qbuem::json::Value']]],
+  ['meta_10',['meta',['../structqbuem_1_1json_1_1TapeNode.html#a1c64cc1fb8c813888bba371ab676f1bb',1,'qbuem::json::TapeNode']]],
+  ['mismatch_11',['Type-checked access (throws on mismatch)',['../md_docs_2GETTING__STARTED.html#autotoc_md47',1,'']]],
+  ['mode_12',['RFC 8259 Strict Mode',['../md_docs_2GETTING__STARTED.html#autotoc_md68',1,'']]],
+  ['multi_20sanitizer_20verification_13',['5. Security &amp; Multi-Sanitizer Verification',['../md_docs_2TEST__CASES.html#autotoc_md91',1,'']]],
+  ['multi_20sanitizer_20verification_20memory_20integrity_14',['3. Security &amp; Multi-Sanitizer Verification (Memory Integrity)',['../md_docs_2TEST__CASES.html#autotoc_md88',1,'']]],
+  ['must_20outlive_20all_20value_20objects_15',['1. Document must outlive all Value objects',['../md_docs_2GETTING__STARTED.html#autotoc_md76',1,'']]],
+  ['must_20remain_20alive_16',['2. string_view source must remain alive',['../md_docs_2GETTING__STARTED.html#autotoc_md77',1,'']]],
+  ['mutating_20documents_17',['Mutating Documents',['../md_docs_2GETTING__STARTED.html#autotoc_md60',1,'']]],
+  ['mutation_20add_20remove_18',['Structural mutation (add / remove)',['../md_docs_2GETTING__STARTED.html#autotoc_md62',1,'']]],
+  ['mutation_20scalar_20overlay_19',['Value mutation (scalar overlay)',['../md_docs_2GETTING__STARTED.html#autotoc_md61',1,'']]],
+  ['mutation_20security_20stress_20test_20',['5.1 Mutation Security Stress Test',['../md_docs_2TEST__CASES.html#autotoc_md96',1,'']]],
+  ['mutationentry_21',['MutationEntry',['../structqbuem_1_1json_1_1MutationEntry.html',1,'qbuem::json']]],
+  ['mutations_22',['mutations',['../md_docs_2GETTING__STARTED.html#autotoc_md78',1,'3. Reusing a Document clears all mutations'],['../index.html#autotoc_md18',1,'4.2 Non-Destructive Mutations']]],
+  ['mutations_5f_23',['mutations_',['../structqbuem_1_1json_1_1DocumentState.html#aae98a1b908fb2d923e0e513260b132c4',1,'qbuem::json::DocumentState']]]
+];

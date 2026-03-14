@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Crawl-delay for non-essential bots
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+# Sitemap location
+Sitemap: https://qbuem.com/qbuem-json/sitemap.xml
