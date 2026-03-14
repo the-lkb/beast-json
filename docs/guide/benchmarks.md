@@ -15,6 +15,12 @@ Runs in parallel on three native GitHub-hosted runners (x86\_64 / Apple Silicon 
 
 ---
 
+## 🔗 Language Bindings Performance
+
+`qbuem-json` provides high-performance bindings for **Python**, **Go**, and **Rust**. The automated benchmark dashboard above includes a dedicated section for these bindings, comparing them against the native JSON libraries in each language.
+
+---
+
 ## 🔗 Object Mapping (Nexus Fusion)
 
 Unlike DOM-based parsing, **Nexus Fusion** maps JSON directly to C++ structs. These benchmarks measure the latency of full deserialization into complex STL types.

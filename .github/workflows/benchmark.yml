@@ -115,6 +115,49 @@ jobs:
         fi
         ./bench --quick --all 2>&1 | tee bench_output.txt || true
 
+    - name: Setup Go for benchmarks
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: Run Go benchmarks
+      working-directory: bindings/go
+      run: |
+        echo "##section bindings" >> ../../build_bench/benchmarks/bench_output.txt
+        echo "=== Go Bindings ===" >> ../../build_bench/benchmarks/bench_output.txt
+        DYLD_LIBRARY_PATH=../../build_bench/bindings/c LD_LIBRARY_PATH=../../build_bench/bindings/c \
+        go test -bench=. -benchmem qbuem_bench_test.go qbuem_json.go marshal.go decode.go | \
+        awk '/BenchmarkQbuemJSON/ { printf "qbuem-json (Go) | Parse: %.2f µs | Serialize: 0.00 µs | Alloc: 0 KB\n", $3/1000 } \
+             /BenchmarkStandardJSON/ { printf "encoding/json (Go) | Parse: %.2f µs | Serialize: 0.00 µs | Alloc: 0 KB\n", $3/1000 }' \
+        >> ../../build_bench/benchmarks/bench_output.txt || true
+
+    - name: Run Rust benchmarks
+      working-directory: bindings/rust
+      run: |
+        echo "##section bindings" >> ../../build_bench/benchmarks/bench_output.txt
+        echo "=== Rust Bindings ===" >> ../../build_bench/benchmarks/bench_output.txt
+        DYLD_LIBRARY_PATH=../../build_bench/bindings/c LD_LIBRARY_PATH=../../build_bench/bindings/c \
+        cargo bench --bench qbuem_bench | \
+        grep -E "Parsing/(qbuem_json|serde_json)" -A 1 | \
+        awk '/Parsing\/qbuem_json/ { name="qbuem-json (Rust)" } \
+             /Parsing\/serde_json/ { name="serde_json (Rust)" } \
+             /time:/ { \
+               val=$3; unit=$4; \
+               if (unit == "ns") val=val/1000; \
+               if (unit == "ms") val=val*1000; \
+               printf "%s | Parse: %.2f µs | Serialize: 0.00 µs | Alloc: 0 KB\n", name, val \
+             }' \
+        >> ../../build_bench/benchmarks/bench_output.txt || true
+
+    - name: Install Python dependencies
+      run: |
+        python3 -m pip install orjson nanobind scikit-build-core
+
+    - name: Run Python benchmarks
+      run: |
+        export PYTHONPATH=$PYTHONPATH:$(pwd)/bindings/python
+        python3 benchmarks/bench_bindings.py 2>&1 | tee -a build_bench/benchmarks/bench_output.txt || true
+
     # Run even if the benchmark step failed/crashed — we still upload partial results.
     - name: Parse results into JSON artifact
       if: always()
@@ -151,6 +194,7 @@ jobs:
 
         general = []
         structs = []
+        bindings = []
         current_section = "general"
         current_item    = None
         current_results = []
@@ -161,8 +205,10 @@ jobs:
                 entry = {"file": current_item, "results": current_results}
                 if current_section == "general":
                     general.append(entry)
-                else:
+                elif current_section == "structs":
                     structs.append(entry)
+                elif current_section == "bindings":
+                    bindings.append(entry)
             current_item    = None
             current_results = []
 
@@ -211,6 +257,7 @@ jobs:
             "label":   "${{ matrix.label }}",
             "general": general,
             "structs": structs,
+            "bindings": bindings,
         }
         os.makedirs("bench_artifacts", exist_ok=True)
         out = "bench_artifacts/results-${{ matrix.arch }}.json"
@@ -308,6 +355,8 @@ jobs:
             lines.extend(make_table(p.get("general", []), "general"))
             lines.append("#### 🧱 Struct Binding (C++ structs ↔ JSON)")
             lines.extend(make_table(p.get("structs", []), "structs"))
+            lines.append("#### 🔗 Language Bindings (Python/Go/Rust)")
+            lines.extend(make_table(p.get("bindings", []), "bindings"))
 
         summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
         with open(summary_path, "a", encoding="utf-8") as f:

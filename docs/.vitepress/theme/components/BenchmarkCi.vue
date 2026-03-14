@@ -110,9 +110,10 @@ interface FileData {
 interface PlatformData {
   arch: string
   label: string
-  // New two-section schema
+  // New three-section schema
   general?: FileData[]
   structs?: FileData[]
+  bindings?: FileData[]
   // Legacy flat format (backward compat)
   files?: FileData[]
   results?: BenchResult[]
@@ -125,8 +126,9 @@ interface BenchData {
 }
 
 const SECTIONS = [
-  { key: 'general', label: 'General JSON',    icon: '📄' },
-  { key: 'structs', label: 'Struct Binding',  icon: '🧱' },
+  { key: 'general',  label: 'General JSON',    icon: '📄' },
+  { key: 'structs',  label: 'Struct Binding',  icon: '🧱' },
+  { key: 'bindings', label: 'Language Bindings', icon: '🔗' },
 ] as const
 type SectionKey = typeof SECTIONS[number]['key']
 
@@ -188,6 +190,9 @@ const sectionItems = computed((): FileData[] => {
     if (p.files?.length) {
       return p.files.filter(f => !f.file.endsWith('.json'))
     }
+  }
+  if (selectedSection.value === 'bindings') {
+    if (p.bindings?.length) return p.bindings
   }
   return []
 })

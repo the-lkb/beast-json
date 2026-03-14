@@ -1,0 +1,28 @@
+[package]
+name = "qbuem-json"
+version = "1.0.6"
+edition = "2021"
+authors = ["The Qbuem Team"]
+description = "High-performance C++20 JSON parser bindings (DOM & Mapping) for Rust"
+license = "MIT"
+repository = "https://github.com/the-lkb/qbuem-json"
+documentation = "https://qbuem.com/qbuem-json"
+keywords = ["json", "parser", "performance", "cpp20"]
+categories = ["encoding", "parsing"]
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+cxx = "1.0"
+
+[dev-dependencies]
+criterion = "0.5"
+serde_json = "1.0"
+
+[build-dependencies]
+cxx-build = "1.0"
+
+[[bench]]
+name = "qbuem_bench"
+harness = false

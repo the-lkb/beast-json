@@ -5,21 +5,22 @@
  * Designed for use with ctypes (Python), cffi, or any C-compatible FFI.
  *
  * Lifetime model:
- *   1. bjson_doc_create()       → allocate a document context
- *   2. bjson_parse(doc, json)   → parse into the document, get root Value
- *   3. Access values via bjson_value_* functions
- *   4. bjson_doc_destroy(doc)   → release all memory
+ *   1. qbuem_json_doc_create()       → allocate a document context
+ *   2. qbuem_json_parse(doc, json)   → parse into the document, get root Value
+ *   3. Access values via qbuem_json_value_* functions (Value handles are POD)
+ *   4. qbuem_json_doc_destroy(doc)   → release all memory
  *
  * A document context is NOT thread-safe; use one per thread.
  * Values are only valid while the document is alive and has not been re-parsed.
  *
- * Error handling: functions that can fail return NULL or -1.
- * Use bjson_last_error() to retrieve the last error message.
+ * Error handling: functions that can fail return INVALID types or NULL pointers.
+ * Use qbuem_json_last_error() to retrieve the last error message.
  */
 
 #ifndef QBUEM_JSON_C_H
 #define QBUEM_JSON_C_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -27,52 +28,60 @@
 extern "C" {
 #endif
 
-/* ── Opaque handle types ────────────────────────────────────────────────────── */
+/* ── Opaque handle types ─────────────────────────────────────────────────── */
 
-typedef struct BJSONDocument_ BJSONDocument;
-typedef struct BJSONValue_    BJSONValue;
+typedef struct QbuemJSONDocument_ QbuemJSONDocument;
+
+/**
+ * QbuemJSONValue — Transparent POD handle to a JSON node.
+ * 
+ * This is a lightweight view into the document's tape. It does NOT require 
+ * manual allocation or deallocation. It can be passed by value across FFI.
+ */
+typedef struct {
+  void*    _internal_doc; /**< Internal: pointer to the DocumentState */
+  uint32_t _internal_idx; /**< Internal: index into the tape */
+} QbuemJSONValue;
 
 /* ── Value type enumeration ─────────────────────────────────────────────────── */
 
 typedef enum {
-  BJSON_TYPE_INVALID = 0,  /**< missing / out-of-range / default */
-  BJSON_TYPE_NULL    = 1,  /**< JSON null   */
-  BJSON_TYPE_BOOL    = 2,  /**< JSON boolean */
-  BJSON_TYPE_INT     = 3,  /**< JSON integer (fits in int64) */
-  BJSON_TYPE_DOUBLE  = 4,  /**< JSON floating-point number */
-  BJSON_TYPE_STRING  = 5,  /**< JSON string */
-  BJSON_TYPE_ARRAY   = 6,  /**< JSON array  */
-  BJSON_TYPE_OBJECT  = 7,  /**< JSON object */
-} BJSONType;
+  QBUEM_JSON_TYPE_INVALID = 0,  /**< missing / out-of-range / default */
+  QBUEM_JSON_TYPE_NULL    = 1,  /**< JSON null   */
+  QBUEM_JSON_TYPE_BOOL    = 2,  /**< JSON boolean */
+  QBUEM_JSON_TYPE_INT     = 3,  /**< JSON integer (fits in int64) */
+  QBUEM_JSON_TYPE_DOUBLE  = 4,  /**< JSON floating-point number */
+  QBUEM_JSON_TYPE_STRING  = 5,  /**< JSON string */
+  QBUEM_JSON_TYPE_ARRAY   = 6,  /**< JSON array  */
+  QBUEM_JSON_TYPE_OBJECT  = 7,  /**< JSON object */
+} QbuemJSONType;
 
 /* ── Document lifecycle ─────────────────────────────────────────────────────── */
 
 /** Allocate a new document context. Returns NULL on OOM. */
-BJSONDocument* bjson_doc_create(void);
+QbuemJSONDocument* qbuem_json_doc_create(void);
 
 /** Free a document context and all associated memory. */
-void bjson_doc_destroy(BJSONDocument* doc);
+void qbuem_json_doc_destroy(QbuemJSONDocument* doc);
 
 /* ── Parsing ────────────────────────────────────────────────────────────────── */
 
 /**
  * Parse \p json_data (length \p json_len) into \p doc.
- * Returns the root BJSONValue* on success, NULL on parse error.
- * The returned value is owned by \p doc — do not free it.
- * Use bjson_last_error(doc) to get the error message on failure.
+ * Returns the root QbuemJSONValue on success. On failure, returns a value 
+ * where qbuem_json_is_valid() is false.
  *
  * The JSON data must remain alive for the lifetime of the document
  * (the parser is zero-copy for string content).
  */
-BJSONValue* bjson_parse(BJSONDocument* doc,
-                        const char*    json_data,
-                        size_t         json_len);
+QbuemJSONValue qbuem_json_parse(QbuemJSONDocument* doc,
+                       const char*    json_data,
+                       size_t         json_len);
 
 /**
- * Like bjson_parse() but enforces strict RFC 8259 compliance.
- * Rejects: trailing commas, leading zeros, unescaped control chars, etc.
+ * Like qbuem_json_parse() but enforces strict RFC 8259 compliance.
  */
-BJSONValue* bjson_parse_strict(BJSONDocument* doc,
+QbuemJSONValue qbuem_json_parse_strict(QbuemJSONDocument* doc,
                                const char*    json_data,
                                size_t         json_len);
 
@@ -80,87 +89,90 @@ BJSONValue* bjson_parse_strict(BJSONDocument* doc,
  * Return the last error string for \p doc (valid until next call).
  * Returns "" if no error has occurred.
  */
-const char* bjson_last_error(const BJSONDocument* doc);
+const char* qbuem_json_last_error(const QbuemJSONDocument* doc);
+
+/**
+ * Return the root value of the document.
+ */
+QbuemJSONValue qbuem_json_doc_get_root(const QbuemJSONDocument* doc);
+
 
 /* ── Value introspection ────────────────────────────────────────────────────── */
 
-/** Return the type of \p val. Returns BJSON_TYPE_INVALID if val is NULL. */
-BJSONType bjson_type(const BJSONValue* val);
+/** Return the type of \p val. */
+QbuemJSONType qbuem_json_type(QbuemJSONValue val);
 
 /** Return the human-readable type name ("null","bool","int","double","string","array","object","invalid"). */
-const char* bjson_type_name(const BJSONValue* val);
+const char* qbuem_json_type_name(QbuemJSONValue val);
 
-/** Return non-zero if \p val is valid (non-NULL and not BJSON_TYPE_INVALID). */
-int bjson_is_valid(const BJSONValue* val);
+/** Return non-zero if \p val is valid. */
+int qbuem_json_is_valid(QbuemJSONValue val);
 
 /* ── Scalar extraction ──────────────────────────────────────────────────────── */
 
 /** Extract bool. Returns 0/1. On type mismatch returns 0. */
-int bjson_as_bool(const BJSONValue* val);
+int qbuem_json_as_bool(QbuemJSONValue val);
 
 /** Extract int64. On type mismatch returns 0. */
-int64_t bjson_as_int(const BJSONValue* val);
+int64_t qbuem_json_as_int(QbuemJSONValue val);
 
 /** Extract double. Converts int to double if needed. On mismatch returns 0.0. */
-double bjson_as_double(const BJSONValue* val);
+double qbuem_json_as_double(QbuemJSONValue val);
 
 /**
  * Extract string. Sets *out_len to the byte count (UTF-8, not null-terminated
  * in the original source).  Returns NULL on type mismatch.
  * The pointer is valid while the document is alive.
  */
-const char* bjson_as_string(const BJSONValue* val, size_t* out_len);
+const char* qbuem_json_as_string(QbuemJSONValue val, size_t* out_len);
 
 /* ── Container access ───────────────────────────────────────────────────────── */
 
 /** Return the number of elements (array) or key-value pairs (object). */
-size_t bjson_size(const BJSONValue* val);
+size_t qbuem_json_size(QbuemJSONValue val);
 
 /** Return non-zero if \p val has zero elements. */
-int bjson_empty(const BJSONValue* val);
+int qbuem_json_empty(QbuemJSONValue val);
 
 /**
- * Array index access.  Returns NULL (BJSON_TYPE_INVALID) if out of range.
- * The returned value is owned by the document.
+ * Array index access.  Returns an invalid QbuemJSONValue if out of range.
  */
-BJSONValue* bjson_get_idx(BJSONDocument* doc, const BJSONValue* val, size_t idx);
+QbuemJSONValue qbuem_json_get_idx(QbuemJSONValue val, size_t idx);
 
 /**
- * Object key access.  Returns NULL (BJSON_TYPE_INVALID) if key absent.
+ * Object key access.  Returns an invalid QbuemJSONValue if key absent.
  * \p key must be a null-terminated C string.
  */
-BJSONValue* bjson_get_key(BJSONDocument* doc, const BJSONValue* val,
-                          const char* key);
+QbuemJSONValue qbuem_json_get_key(QbuemJSONValue val, const char* key);
 
 /**
  * RFC 6901 JSON Pointer access.  \p pointer is a null-terminated path like
- * "/users/0/name".  Returns NULL if the path does not exist.
+ * "/users/0/name".  Returns an invalid value if the path does not exist.
  */
-BJSONValue* bjson_at_path(BJSONDocument* doc, const BJSONValue* val,
-                          const char* pointer);
+QbuemJSONValue qbuem_json_at_path(QbuemJSONValue val, const char* pointer);
 
 /* ── Object key iteration ───────────────────────────────────────────────────── */
 
 /**
- * Opaque iterator handle.  Use bjson_iter_* functions to walk object entries.
- * Call bjson_iter_destroy() when done.
+ * Opaque iterator handle.  Use qbuem_json_iter_* functions to walk object entries.
+ * Iterators are now zero-copy.
  */
-typedef struct BJSONIter_ BJSONIter;
+typedef struct QbuemJSONIter_ QbuemJSONIter;
 
 /** Create an iterator over the key-value pairs of an object value. */
-BJSONIter* bjson_iter_create(BJSONDocument* doc, const BJSONValue* obj);
+QbuemJSONIter* qbuem_json_iter_create(QbuemJSONValue obj);
 
 /** Advance the iterator. Returns non-zero if the current entry is valid. */
-int bjson_iter_next(BJSONIter* it);
+int qbuem_json_iter_next(QbuemJSONIter* it);
 
 /** Get the key string of the current entry. Sets *out_len if non-NULL. */
-const char* bjson_iter_key(const BJSONIter* it, size_t* out_len);
+const char* qbuem_json_iter_key(const QbuemJSONIter* it, size_t* out_len);
 
-/** Get the value of the current entry. Owned by the document. */
-BJSONValue* bjson_iter_value(BJSONIter* it);
+/** Get the value handle of the current entry. */
+QbuemJSONValue qbuem_json_iter_value(QbuemJSONIter* it);
 
 /** Destroy the iterator. */
-void bjson_iter_destroy(BJSONIter* it);
+void qbuem_json_iter_destroy(QbuemJSONIter* it);
 
 /* ── Serialization ──────────────────────────────────────────────────────────── */
 
@@ -168,43 +180,46 @@ void bjson_iter_destroy(BJSONIter* it);
  * Serialize \p val to JSON.  Sets *out_len to the byte count.
  * The returned buffer is owned by the document and valid until the next
  * dump call or re-parse.
- * Returns NULL on failure.
  */
-const char* bjson_dump(BJSONDocument* doc, const BJSONValue* val,
-                       size_t* out_len);
+const char* qbuem_json_dump(QbuemJSONDocument* doc, QbuemJSONValue val, size_t* out_len);
 
-/** Like bjson_dump() but with indentation (0 = compact, 2 = two-space, etc.). */
-const char* bjson_dump_pretty(BJSONDocument* doc, const BJSONValue* val,
-                              int indent, size_t* out_len);
+/** Like qbuem_json_dump() but with indentation (0 = compact, 2 = two-space, etc.). */
+const char* qbuem_json_dump_pretty(QbuemJSONDocument* doc, QbuemJSONValue val,
+                               int indent, size_t* out_len);
 
 /* ── Mutation ───────────────────────────────────────────────────────────────── */
 
 /** Set a numeric integer value (overlay, original tape unchanged). */
-void bjson_set_int(BJSONValue* val, int64_t v);
+void qbuem_json_set_int(QbuemJSONValue val, int64_t v);
 
 /** Set a floating-point value. */
-void bjson_set_double(BJSONValue* val, double v);
+void qbuem_json_set_double(QbuemJSONValue val, double v);
 
 /** Set a string value (\p str need not be null-terminated; length is \p len). */
-void bjson_set_string(BJSONValue* val, const char* str, size_t len);
+void qbuem_json_set_string(QbuemJSONValue val, const char* str, size_t len);
 
 /** Set null. */
-void bjson_set_null(BJSONValue* val);
+void qbuem_json_set_null(QbuemJSONValue val);
 
 /** Set bool. */
-void bjson_set_bool(BJSONValue* val, int b);
+void qbuem_json_set_bool(QbuemJSONValue val, int b);
 
 /**
  * Insert a key-value pair into an object value.
  * \p raw_json is a pre-serialized JSON string (e.g. "42" or "\"hello\"").
  */
-void bjson_insert_raw(BJSONValue* val, const char* key, const char* raw_json);
+void qbuem_json_insert_raw(QbuemJSONValue val, const char* key, const char* raw_json);
+
+/**
+ * Append a raw JSON value to an array value.
+ */
+void qbuem_json_append_raw(QbuemJSONValue val, const char* raw_json);
 
 /** Remove a key from an object value. */
-void bjson_erase_key(BJSONValue* val, const char* key);
+void qbuem_json_erase_key(QbuemJSONValue val, const char* key);
 
 /** Remove an element at index \p idx from an array value. */
-void bjson_erase_idx(BJSONValue* val, size_t idx);
+void qbuem_json_erase_idx(QbuemJSONValue val, size_t idx);
 
 #ifdef __cplusplus
 }  /* extern "C" */

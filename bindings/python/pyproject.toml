@@ -1,0 +1,24 @@
+[build-system]
+requires = ["scikit-build-core", "nanobind"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "qbuem-json"
+version = "1.0.6"
+description = "High-performance C++20 JSON parser bindings for Python"
+readme = "../../README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "The Qbuem Team" },
+]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C++",
+    "License :: OSI Approved :: MIT License",
+]
+
+[tool.scikit-build]
+cmake.args = ["-DQBUEM_JSON_BUILD_BINDINGS=ON", "-DQBUEM_JSON_BUILD_TESTS=OFF"]
+wheel.expand-macos-universal-tags = true
+install.components = ["python_bindings"]

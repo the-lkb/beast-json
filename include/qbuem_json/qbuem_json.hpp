@@ -2044,6 +2044,12 @@ public:
   /// Returns the type of this value, correctly accounting for live mutations.
   TapeNodeType type() const noexcept { return effective_type_(); }
 
+  /// Internal: Returns the tape index of this value.
+  uint32_t index() const noexcept { return idx_; }
+
+  /// Internal: Returns the DocumentState pointer.
+  DocumentState *state() const noexcept { return doc_; }
+
   // ── set<T>(): write / mutate a value
   //
   // Replaces the value at this tape position with a new value.
@@ -8629,7 +8635,7 @@ template <typename T> inline void NexusScanner::fill(T &obj) {
 }
 
 template <typename T>
-inline void from_json_field_fallback(const Value &v, T &obj, const char *fields) {
+inline void from_json_field_fallback(const Value &v, T &/*obj*/, const char */*fields*/) {
   if (!v.is_object()) return;
 }
 

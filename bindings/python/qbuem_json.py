@@ -113,155 +113,162 @@ def _setup_signatures(lib: ctypes.CDLL) -> None:
     c_int64 = ctypes.c_int64
     c_dbl   = ctypes.c_double
     c_void  = ctypes.c_void_p  # opaque pointers
+    c_uint32 = ctypes.c_uint32
 
-    lib.bjson_doc_create.restype  = c_void
-    lib.bjson_doc_create.argtypes = []
+    class QbuemJSONValue(ctypes.Structure):
+        _fields_ = [("state", c_void),
+                    ("index", c_uint32)]
 
-    lib.bjson_doc_destroy.restype  = None
-    lib.bjson_doc_destroy.argtypes = [c_void]
+    lib.QbuemJSONValue = QbuemJSONValue
 
-    lib.bjson_parse.restype  = c_void
-    lib.bjson_parse.argtypes = [c_void, c_str, c_szt]
+    lib.qbuem_json_doc_create.restype  = c_void
+    lib.qbuem_json_doc_create.argtypes = []
 
-    lib.bjson_parse_strict.restype  = c_void
-    lib.bjson_parse_strict.argtypes = [c_void, c_str, c_szt]
+    lib.qbuem_json_doc_destroy.restype  = None
+    lib.qbuem_json_doc_destroy.argtypes = [c_void]
 
-    lib.bjson_last_error.restype  = c_str
-    lib.bjson_last_error.argtypes = [c_void]
+    lib.qbuem_json_parse.restype  = QbuemJSONValue
+    lib.qbuem_json_parse.argtypes = [c_void, c_str, c_szt]
 
-    lib.bjson_type.restype  = c_int
-    lib.bjson_type.argtypes = [c_void]
+    lib.qbuem_json_parse_strict.restype  = QbuemJSONValue
+    lib.qbuem_json_parse_strict.argtypes = [c_void, c_str, c_szt]
 
-    lib.bjson_type_name.restype  = c_str
-    lib.bjson_type_name.argtypes = [c_void]
+    lib.qbuem_json_last_error.restype  = c_str
+    lib.qbuem_json_last_error.argtypes = [c_void]
 
-    lib.bjson_is_valid.restype  = c_int
-    lib.bjson_is_valid.argtypes = [c_void]
+    lib.qbuem_json_type.restype  = c_int
+    lib.qbuem_json_type.argtypes = [QbuemJSONValue]
 
-    lib.bjson_as_bool.restype  = c_int
-    lib.bjson_as_bool.argtypes = [c_void]
+    lib.qbuem_json_type_name.restype  = c_str
+    lib.qbuem_json_type_name.argtypes = [QbuemJSONValue]
 
-    lib.bjson_as_int.restype  = c_int64
-    lib.bjson_as_int.argtypes = [c_void]
+    lib.qbuem_json_is_valid.restype  = c_int
+    lib.qbuem_json_is_valid.argtypes = [QbuemJSONValue]
 
-    lib.bjson_as_double.restype  = c_dbl
-    lib.bjson_as_double.argtypes = [c_void]
+    lib.qbuem_json_as_bool.restype  = c_int
+    lib.qbuem_json_as_bool.argtypes = [QbuemJSONValue]
 
-    lib.bjson_as_string.restype  = c_str
-    lib.bjson_as_string.argtypes = [c_void, ctypes.POINTER(c_szt)]
+    lib.qbuem_json_as_int.restype  = c_int64
+    lib.qbuem_json_as_int.argtypes = [QbuemJSONValue]
 
-    lib.bjson_size.restype  = c_szt
-    lib.bjson_size.argtypes = [c_void]
+    lib.qbuem_json_as_double.restype  = c_dbl
+    lib.qbuem_json_as_double.argtypes = [QbuemJSONValue]
 
-    lib.bjson_empty.restype  = c_int
-    lib.bjson_empty.argtypes = [c_void]
+    lib.qbuem_json_as_string.restype  = c_str
+    lib.qbuem_json_as_string.argtypes = [QbuemJSONValue, ctypes.POINTER(c_szt)]
 
-    lib.bjson_get_idx.restype  = c_void
-    lib.bjson_get_idx.argtypes = [c_void, c_void, c_szt]
+    lib.qbuem_json_size.restype  = c_szt
+    lib.qbuem_json_size.argtypes = [QbuemJSONValue]
 
-    lib.bjson_get_key.restype  = c_void
-    lib.bjson_get_key.argtypes = [c_void, c_void, c_str]
+    lib.qbuem_json_empty.restype  = c_int
+    lib.qbuem_json_empty.argtypes = [QbuemJSONValue]
 
-    lib.bjson_at_path.restype  = c_void
-    lib.bjson_at_path.argtypes = [c_void, c_void, c_str]
+    lib.qbuem_json_get_idx.restype  = QbuemJSONValue
+    lib.qbuem_json_get_idx.argtypes = [QbuemJSONValue, c_szt]
 
-    lib.bjson_iter_create.restype  = c_void
-    lib.bjson_iter_create.argtypes = [c_void, c_void]
+    lib.qbuem_json_get_key.restype  = QbuemJSONValue
+    lib.qbuem_json_get_key.argtypes = [QbuemJSONValue, c_str]
 
-    lib.bjson_iter_next.restype  = c_int
-    lib.bjson_iter_next.argtypes = [c_void]
+    lib.qbuem_json_at_path.restype  = QbuemJSONValue
+    lib.qbuem_json_at_path.argtypes = [QbuemJSONValue, c_str]
 
-    lib.bjson_iter_key.restype  = c_str
-    lib.bjson_iter_key.argtypes = [c_void, ctypes.POINTER(c_szt)]
+    lib.qbuem_json_iter_create.restype  = c_void
+    lib.qbuem_json_iter_create.argtypes = [QbuemJSONValue]
 
-    lib.bjson_iter_value.restype  = c_void
-    lib.bjson_iter_value.argtypes = [c_void]
+    lib.qbuem_json_iter_next.restype  = c_int
+    lib.qbuem_json_iter_next.argtypes = [c_void]
 
-    lib.bjson_iter_destroy.restype  = None
-    lib.bjson_iter_destroy.argtypes = [c_void]
+    lib.qbuem_json_iter_key.restype  = c_str
+    lib.qbuem_json_iter_key.argtypes = [c_void, ctypes.POINTER(c_szt)]
 
-    lib.bjson_dump.restype  = c_str
-    lib.bjson_dump.argtypes = [c_void, c_void, ctypes.POINTER(c_szt)]
+    lib.qbuem_json_iter_value.restype  = QbuemJSONValue
+    lib.qbuem_json_iter_value.argtypes = [c_void]
 
-    lib.bjson_dump_pretty.restype  = c_str
-    lib.bjson_dump_pretty.argtypes = [c_void, c_void, c_int,
+    lib.qbuem_json_iter_destroy.restype  = None
+    lib.qbuem_json_iter_destroy.argtypes = [c_void]
+
+    lib.qbuem_json_dump.restype  = c_str
+    lib.qbuem_json_dump.argtypes = [c_void, QbuemJSONValue, ctypes.POINTER(c_szt)]
+
+    lib.qbuem_json_dump_pretty.restype  = c_str
+    lib.qbuem_json_dump_pretty.argtypes = [c_void, QbuemJSONValue, c_int,
                                        ctypes.POINTER(c_szt)]
 
-    lib.bjson_set_int.restype  = None
-    lib.bjson_set_int.argtypes = [c_void, c_int64]
+    lib.qbuem_json_set_int.restype  = None
+    lib.qbuem_json_set_int.argtypes = [QbuemJSONValue, c_int64]
 
-    lib.bjson_set_double.restype  = None
-    lib.bjson_set_double.argtypes = [c_void, c_dbl]
+    lib.qbuem_json_set_double.restype  = None
+    lib.qbuem_json_set_double.argtypes = [QbuemJSONValue, c_dbl]
 
-    lib.bjson_set_string.restype  = None
-    lib.bjson_set_string.argtypes = [c_void, c_str, c_szt]
+    lib.qbuem_json_set_string.restype  = None
+    lib.qbuem_json_set_string.argtypes = [QbuemJSONValue, c_str, c_szt]
 
-    lib.bjson_set_null.restype  = None
-    lib.bjson_set_null.argtypes = [c_void]
+    lib.qbuem_json_set_null.restype  = None
+    lib.qbuem_json_set_null.argtypes = [QbuemJSONValue]
 
-    lib.bjson_set_bool.restype  = None
-    lib.bjson_set_bool.argtypes = [c_void, c_int]
+    lib.qbuem_json_set_bool.restype  = None
+    lib.qbuem_json_set_bool.argtypes = [QbuemJSONValue, c_int]
 
-    lib.bjson_insert_raw.restype  = None
-    lib.bjson_insert_raw.argtypes = [c_void, c_str, c_str]
+    lib.qbuem_json_insert_raw.restype  = None
+    lib.qbuem_json_insert_raw.argtypes = [QbuemJSONValue, c_str, c_str]
 
-    lib.bjson_erase_key.restype  = None
-    lib.bjson_erase_key.argtypes = [c_void, c_str]
+    lib.qbuem_json_erase_key.restype  = None
+    lib.qbuem_json_erase_key.argtypes = [QbuemJSONValue, c_str]
 
-    lib.bjson_erase_idx.restype  = None
-    lib.bjson_erase_idx.argtypes = [c_void, c_szt]
+    lib.qbuem_json_erase_idx.restype  = None
+    lib.qbuem_json_erase_idx.argtypes = [QbuemJSONValue, c_szt]
 
 
-# ── BJSONType enum ────────────────────────────────────────────────────────────
+# ── QbuemJSONType enum ────────────────────────────────────────────────────────────
 
-BJSON_TYPE_INVALID = 0
-BJSON_TYPE_NULL    = 1
-BJSON_TYPE_BOOL    = 2
-BJSON_TYPE_INT     = 3
-BJSON_TYPE_DOUBLE  = 4
-BJSON_TYPE_STRING  = 5
-BJSON_TYPE_ARRAY   = 6
-BJSON_TYPE_OBJECT  = 7
+QbuemJSON_TYPE_INVALID = 0
+QbuemJSON_TYPE_NULL    = 1
+QbuemJSON_TYPE_BOOL    = 2
+QbuemJSON_TYPE_INT     = 3
+QbuemJSON_TYPE_DOUBLE  = 4
+QbuemJSON_TYPE_STRING  = 5
+QbuemJSON_TYPE_ARRAY   = 6
+QbuemJSON_TYPE_OBJECT  = 7
 
 # ── Value wrapper ─────────────────────────────────────────────────────────────
 
 class Value:
     """
-    Wraps a BJSONValue* — zero-copy lazy accessor.
+    Wraps a QbuemJSONValue* — zero-copy lazy accessor.
 
     Lifetime: tied to the parent Document.  Do not use a Value after its
     Document has been garbage-collected.
     """
 
-    __slots__ = ("_doc_ptr", "_val_ptr", "_lib")
-
-    def __init__(self, doc_ptr, val_ptr, lib):
-        self._doc_ptr = doc_ptr
-        self._val_ptr = val_ptr
+    __slots__ = ("_val_struct", "_lib", "_doc")
+ 
+    def __init__(self, val_struct, lib, doc=None):
+        self._val_struct = val_struct
         self._lib = lib
+        self._doc = doc
 
     # ── Type queries ──────────────────────────────────────────────────────────
 
     @property
     def type(self) -> int:
-        return self._lib.bjson_type(self._val_ptr)
+        return self._lib.qbuem_json_type(self._val_struct)
 
     @property
     def type_name(self) -> str:
-        b = self._lib.bjson_type_name(self._val_ptr)
+        b = self._lib.qbuem_json_type_name(self._val_struct)
         return b.decode() if b else "invalid"
 
     def is_valid(self) -> bool:
-        return bool(self._lib.bjson_is_valid(self._val_ptr))
+        return bool(self._lib.qbuem_json_is_valid(self._val_struct))
 
-    def is_null(self)   -> bool: return self.type == BJSON_TYPE_NULL
-    def is_bool(self)   -> bool: return self.type == BJSON_TYPE_BOOL
-    def is_int(self)    -> bool: return self.type == BJSON_TYPE_INT
-    def is_double(self) -> bool: return self.type == BJSON_TYPE_DOUBLE
-    def is_number(self) -> bool: return self.type in (BJSON_TYPE_INT, BJSON_TYPE_DOUBLE)
-    def is_string(self) -> bool: return self.type == BJSON_TYPE_STRING
-    def is_array(self)  -> bool: return self.type == BJSON_TYPE_ARRAY
-    def is_object(self) -> bool: return self.type == BJSON_TYPE_OBJECT
+    def is_null(self)   -> bool: return self.type == QbuemJSON_TYPE_NULL
+    def is_bool(self)   -> bool: return self.type == QbuemJSON_TYPE_BOOL
+    def is_int(self)    -> bool: return self.type == QbuemJSON_TYPE_INT
+    def is_double(self) -> bool: return self.type == QbuemJSON_TYPE_DOUBLE
+    def is_number(self) -> bool: return self.type in (QbuemJSON_TYPE_INT, QbuemJSON_TYPE_DOUBLE)
+    def is_string(self) -> bool: return self.type == QbuemJSON_TYPE_STRING
+    def is_array(self)  -> bool: return self.type == QbuemJSON_TYPE_ARRAY
+    def is_object(self) -> bool: return self.type == QbuemJSON_TYPE_OBJECT
 
     def __bool__(self) -> bool:
         return self.is_valid()
@@ -271,22 +278,22 @@ class Value:
     def get(self) -> Any:
         """Convert to the most natural Python type."""
         t = self.type
-        if t == BJSON_TYPE_NULL:    return None
-        if t == BJSON_TYPE_BOOL:    return bool(self._lib.bjson_as_bool(self._val_ptr))
-        if t == BJSON_TYPE_INT:     return int(self._lib.bjson_as_int(self._val_ptr))
-        if t == BJSON_TYPE_DOUBLE:  return float(self._lib.bjson_as_double(self._val_ptr))
-        if t == BJSON_TYPE_STRING:
+        if t == QbuemJSON_TYPE_NULL:    return None
+        if t == QbuemJSON_TYPE_BOOL:    return bool(self._lib.qbuem_json_as_bool(self._val_struct))
+        if t == QbuemJSON_TYPE_INT:     return int(self._lib.qbuem_json_as_int(self._val_struct))
+        if t == QbuemJSON_TYPE_DOUBLE:  return float(self._lib.qbuem_json_as_double(self._val_struct))
+        if t == QbuemJSON_TYPE_STRING:
             ln = ctypes.c_size_t(0)
-            p  = self._lib.bjson_as_string(self._val_ptr, ctypes.byref(ln))
+            p  = self._lib.qbuem_json_as_string(self._val_struct, ctypes.byref(ln))
             return p[:ln.value].decode("utf-8", errors="replace") if p else ""
-        if t == BJSON_TYPE_ARRAY:
+        if t == QbuemJSON_TYPE_ARRAY:
             return [self[i].get() for i in range(len(self))]
-        if t == BJSON_TYPE_OBJECT:
+        if t == QbuemJSON_TYPE_OBJECT:
             return {k: v.get() for k, v in self.items()}
         return None
 
-    def __int__(self)   -> int:   return int(self._lib.bjson_as_int(self._val_ptr))
-    def __float__(self) -> float: return float(self._lib.bjson_as_double(self._val_ptr))
+    def __int__(self)   -> int:   return int(self._lib.qbuem_json_as_int(self._val_struct))
+    def __float__(self) -> float: return float(self._lib.qbuem_json_as_double(self._val_struct))
     def __str__(self)   -> str:   return self.get() if self.is_string() else self.dump()
 
     def __repr__(self) -> str:
@@ -295,37 +302,37 @@ class Value:
     # ── Container access ──────────────────────────────────────────────────────
 
     def __len__(self) -> int:
-        return int(self._lib.bjson_size(self._val_ptr))
-
+        return int(self._lib.qbuem_json_size(self._val_struct))
+ 
     def __getitem__(self, key: Union[str, int]) -> "Value":
         if isinstance(key, int):
-            vp = self._lib.bjson_get_idx(self._doc_ptr, self._val_ptr,
+            vs = self._lib.qbuem_json_get_idx(self._val_struct,
                                           ctypes.c_size_t(key))
         else:
-            vp = self._lib.bjson_get_key(self._doc_ptr, self._val_ptr,
+            vs = self._lib.qbuem_json_get_key(self._val_struct,
                                           key.encode())
-        return Value(self._doc_ptr, vp, self._lib)
+        return Value(vs, self._lib, self._doc)
 
     def at(self, path: str) -> "Value":
         """RFC 6901 JSON Pointer access: value.at('/a/b/0')"""
-        vp = self._lib.bjson_at_path(self._doc_ptr, self._val_ptr,
+        vs = self._lib.qbuem_json_at_path(self._val_struct,
                                       path.encode())
-        return Value(self._doc_ptr, vp, self._lib)
+        return Value(vs, self._lib, self._doc)
 
     def items(self) -> Iterator[Tuple[str, "Value"]]:
         """Iterate over object key-value pairs."""
-        it = self._lib.bjson_iter_create(self._doc_ptr, self._val_ptr)
+        it = self._lib.qbuem_json_iter_create(self._val_struct)
         if not it:
             return
         try:
-            while self._lib.bjson_iter_next(it):
+            while self._lib.qbuem_json_iter_next(it):
                 ln  = ctypes.c_size_t(0)
-                kb  = self._lib.bjson_iter_key(it, ctypes.byref(ln))
+                kb  = self._lib.qbuem_json_iter_key(it, ctypes.byref(ln))
                 key = kb[:ln.value].decode("utf-8", errors="replace") if kb else ""
-                vp  = self._lib.bjson_iter_value(it)
-                yield key, Value(self._doc_ptr, vp, self._lib)
+                vs  = self._lib.qbuem_json_iter_value(it)
+                yield key, Value(vs, self._lib, self._doc)
         finally:
-            self._lib.bjson_iter_destroy(it)
+            self._lib.qbuem_json_iter_destroy(it)
 
     def keys(self) -> Iterator[str]:
         for k, _ in self.items():
@@ -350,12 +357,18 @@ class Value:
 
     def dump(self, indent: int = 0) -> str:
         ln = ctypes.c_size_t(0)
+        doc_ptr = self._doc._doc_ptr if self._doc else None
+        if not doc_ptr:
+            # Fallback for loads() where we don't hold the doc explicitly
+            return ""
         if indent > 0:
-            b = self._lib.bjson_dump_pretty(self._doc_ptr, self._val_ptr,
+            b = self._lib.qbuem_json_dump_pretty(doc_ptr,
+                                             self._val_struct,
                                              ctypes.c_int(indent),
                                              ctypes.byref(ln))
         else:
-            b = self._lib.bjson_dump(self._doc_ptr, self._val_ptr,
+            b = self._lib.qbuem_json_dump(doc_ptr,
+                                      self._val_struct,
                                       ctypes.byref(ln))
         return b[:ln.value].decode("utf-8", errors="replace") if b else ""
 
@@ -364,36 +377,36 @@ class Value:
     def __setitem__(self, key: Union[str, int], value: Any) -> None:
         """Mutate a field.  value can be int/float/str/bool/None."""
         child = self[key]
-        _set_value(self._lib, child._val_ptr, value)
+        _set_value(self._lib, child._val_struct, value)
 
     def insert(self, key: str, value: Any) -> None:
         """Insert a new key-value pair into this object."""
         raw = _to_raw_json(value)
-        self._lib.bjson_insert_raw(self._val_ptr, key.encode(), raw.encode())
+        self._lib.qbuem_json_insert_raw(self._val_struct, key.encode(), raw.encode())
 
     def erase(self, key: Union[str, int]) -> None:
         if isinstance(key, int):
-            self._lib.bjson_erase_idx(self._val_ptr, ctypes.c_size_t(key))
+            self._lib.qbuem_json_erase_idx(self._val_struct, ctypes.c_size_t(key))
         else:
-            self._lib.bjson_erase_key(self._val_ptr, key.encode())
+            self._lib.qbuem_json_erase_key(self._val_struct, key.encode())
 
     def set(self, value: Any) -> None:
         """Set this scalar value."""
-        _set_value(self._lib, self._val_ptr, value)
+        _set_value(self._lib, self._val_struct, value)
 
 
 def _set_value(lib, val_ptr, value: Any) -> None:
     if value is None:
-        lib.bjson_set_null(val_ptr)
+        lib.qbuem_json_set_null(val_ptr)
     elif isinstance(value, bool):
-        lib.bjson_set_bool(val_ptr, ctypes.c_int(1 if value else 0))
+        lib.qbuem_json_set_bool(val_ptr, ctypes.c_int(1 if value else 0))
     elif isinstance(value, int):
-        lib.bjson_set_int(val_ptr, ctypes.c_int64(value))
+        lib.qbuem_json_set_int(val_ptr, ctypes.c_int64(value))
     elif isinstance(value, float):
-        lib.bjson_set_double(val_ptr, ctypes.c_double(value))
+        lib.qbuem_json_set_double(val_ptr, ctypes.c_double(value))
     elif isinstance(value, str):
         b = value.encode("utf-8")
-        lib.bjson_set_string(val_ptr, b, ctypes.c_size_t(len(b)))
+        lib.qbuem_json_set_string(val_ptr, b, ctypes.c_size_t(len(b)))
     else:
         raise TypeError(f"Cannot set value of type {type(value).__name__}")
 
@@ -428,9 +441,9 @@ class Document:
     def __init__(self, json_str: Union[str, bytes], strict: bool = False):
         lib = _get_lib()
         self._lib = lib
-        self._doc_ptr = lib.bjson_doc_create()
+        self._doc_ptr = lib.qbuem_json_doc_create()
         if not self._doc_ptr:
-            raise MemoryError("bjson_doc_create() returned NULL")
+            raise MemoryError("qbuem_json_doc_create() returned NULL")
 
         # Keep a reference to the encoded bytes so the string stays alive
         if isinstance(json_str, str):
@@ -440,28 +453,29 @@ class Document:
         self._json_bytes = json_bytes  # keep alive
 
         if strict:
-            vp = lib.bjson_parse_strict(self._doc_ptr, json_bytes,
+            vs = lib.qbuem_json_parse_strict(self._doc_ptr, json_bytes,
                                          len(json_bytes))
         else:
-            vp = lib.bjson_parse(self._doc_ptr, json_bytes, len(json_bytes))
+            vs = lib.qbuem_json_parse(self._doc_ptr, json_bytes, len(json_bytes))
 
-        if not vp:
-            err = lib.bjson_last_error(self._doc_ptr)
+        if not vs.state:
+            err = lib.qbuem_json_last_error(self._doc_ptr)
             msg = err.decode() if err else "parse failed"
-            lib.bjson_doc_destroy(self._doc_ptr)
+            lib.qbuem_json_doc_destroy(self._doc_ptr)
             self._doc_ptr = None
             raise ValueError(f"JSON parse error: {msg}")
 
-        self._root_ptr = vp
+        self._root_struct = vs
+        self._root_value = Value(vs, self._lib, self)
 
     def __del__(self):
         if self._doc_ptr:
-            self._lib.bjson_doc_destroy(self._doc_ptr)
+            self._lib.qbuem_json_doc_destroy(self._doc_ptr)
             self._doc_ptr = None
 
     def root(self) -> Value:
         """Return the root Value."""
-        return Value(self._doc_ptr, self._root_ptr, self._lib)
+        return self._root_value
 
     # Convenience: proxy common Value methods directly on the Document
     def __getitem__(self, key):

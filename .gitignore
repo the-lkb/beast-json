@@ -10,7 +10,40 @@ _deps/
 *Config.cmake
 *ConfigVersion.cmake
 compile_commands.json
+.claude/
+.gemini/
+.history/
 .DS_Store
+
+
+# Programming Languages Artifacts
+# Python
+bindings/python/build/
+**/__pycache__/
+*.so
+*.dylib
+*.pyd
+venv/
+.venv/
+.pytest_cache/
+
+
+# Rust
+bindings/rust/target/
+**/Cargo.lock
+
+# Node.js
+**/node_modules/
+dist/
+out/
+ 
+ # Go
+ bindings/go/bin/
+ bindings/go/vendor/
+ *.test
+ *.exe
+ *.out
+
 
 # IDEs
 .vscode/
@@ -38,9 +71,12 @@ gsoc-2018.json
 docs/api/html/
 docs/api/reference/
 
-# Temporary Scripts
-*.py
-# CTest temporary output
-Testing/
-__pycache__/
-**/node_modules
+# Temporary Scripts & Logs
+*.log
+*.tmp
+# *.py - Keep benchmarks and utility scripts
+# __pycache__/ - Covered above
+# **/node_modules - Covered above
+bindings/python/build/
+bindings/rust/target/
+bindings/go/qbuem_json.test

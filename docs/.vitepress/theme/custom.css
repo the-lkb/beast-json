@@ -80,7 +80,7 @@ body, .VPApp {
 }
 
 .VPMenu {
-    background: transparent !important;
+    background: var(--vp-c-bg-elv) !important;
     padding: 6px !important;
 }
 
