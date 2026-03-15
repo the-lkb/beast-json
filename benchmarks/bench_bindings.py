@@ -60,7 +60,7 @@ print("=== Language Bindings ===")
 # 1. Standard json
 avg_p = bench("Python stdlib", json.loads, json_str)
 avg_s = bench("Python stdlib dump", lambda d: json.dumps(d), sample)
-print(f"Python stdlib | Parse: {avg_p*1000:8.2f} µs | Serialize: {avg_s*1000:8.2f} µs | Alloc: 0 KB")
+print(f"Python stdlib | Parse: {avg_p*1000:8.2f} us | Serialize: {avg_s*1000:8.2f} us | Alloc: 0 KB")
 
 # 2. qbuem-json (ctypes)
 if HAS_CTYPES:
@@ -72,7 +72,7 @@ if HAS_CTYPES:
     doc = bj_ctypes.Document(json_str)
     root = doc.root()
     avg_s = bench("qbuem-json (ctypes) dump", lambda r: r.dump(), root)
-    print(f"qbuem-json (ctypes) | Parse: {avg_p*1000:8.2f} µs | Serialize: {avg_s*1000:8.2f} µs | Alloc: 0 KB")
+    print(f"qbuem-json (ctypes) | Parse: {avg_p*1000:8.2f} us | Serialize: {avg_s*1000:8.2f} us | Alloc: 0 KB")
 
 # 3. qbuem-json (nanobind)
 if HAS_NATIVE:
@@ -84,13 +84,13 @@ if HAS_NATIVE:
     doc = bj_native.loads(json_str)
     root = doc.root()
     avg_s = bench("qbuem-json (nanobind) dump", lambda r: r.dump(), root)
-    print(f"qbuem-json (nanobind) | Parse: {avg_p*1000:8.2f} µs | Serialize: {avg_s*1000:8.2f} µs | Alloc: 0 KB")
+    print(f"qbuem-json (nanobind) | Parse: {avg_p*1000:8.2f} us | Serialize: {avg_s*1000:8.2f} us | Alloc: 0 KB")
 
 # 4. orjson
 if HAS_ORJSON:
     avg_p = bench("orjson", orjson.loads, json_str)
     avg_s = bench("orjson dump", orjson.dumps, sample)
-    print(f"orjson | Parse: {avg_p*1000:8.2f} µs | Serialize: {avg_s*1000:8.2f} µs | Alloc: 0 KB")
+    print(f"orjson | Parse: {avg_p*1000:8.2f} us | Serialize: {avg_s*1000:8.2f} us | Alloc: 0 KB")
 
 print("\nAccess Latency (root['users'][25]['name']):")
 

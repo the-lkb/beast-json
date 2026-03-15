@@ -82,9 +82,9 @@ struct Result {
   void print() const {
     std::cout << std::left << std::setw(15) << library
               << " | Parse: " << std::right << std::setw(9) << std::fixed
-              << std::setprecision(2) << (parse_time_ns / 1000.0) << " \xce\xbcs"
+              << std::setprecision(2) << (parse_time_ns / 1000.0) << " us"
               << " | Serialize: " << std::setw(9) << std::fixed
-              << std::setprecision(2) << (serialize_time_ns / 1000.0) << " \xce\xbcs"
+              << std::setprecision(2) << (serialize_time_ns / 1000.0) << " us"
               << " | Alloc: " << std::setw(6) << alloc_kb << " KB"
               << " | \xe2\x9c\x93 " << (correctness_check ? "PASS" : "FAIL") << "\n";
   }
