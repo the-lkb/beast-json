@@ -19,7 +19,7 @@
 
   <!-- Testing -->
   <p>
-    <a href="https://qbuem.com/qbuem-json/guide/correctness"><img src="https://img.shields.io/badge/tests-521%20passing-brightgreen" alt="521 tests passing"></a>
+    <a href="https://qbuem.com/qbuem-json/guide/correctness"><img src="https://img.shields.io/badge/tests-523%20passing-brightgreen" alt="523 tests passing"></a>
     <a href="https://qbuem.com/qbuem-json/guide/correctness#fuzz-testing"><img src="https://img.shields.io/badge/fuzz-3%20libFuzzer%20targets-orange" alt="3 libFuzzer targets"></a>
   </p>
 
@@ -110,8 +110,8 @@ qbuem-json is licensed under the **Apache License 2.0** — permissive commercia
 
 * **[Raffaello Giulietti](https://drive.google.com/file/d/1IEeATSVnEE6TkrHlCYNY2GjaraBjOT4f)** — Schubfach algorithm (2020), foundation for shortest round-trip double serialization.
 * **[yyjson / ibireme (Y. Yuan)](https://github.com/ibireme/yyjson)** — MIT-licensed source of the Schubfach port and yy-itoa integer serialization used in qbuem-json's `qj_nc` namespace.
-* **[Russ Cox](https://research.swtch.com/fp-all/)** — Fast Unrounded Scaling algorithm (2026), foundation for bit-accurate number **parsing**.
-* **[Daniel Lemire](https://github.com/lemire) & Michael Eisel** — Eisel-Lemire algorithm and [`fast_float`](https://github.com/fastfloat/fast_float), defining modern 64-bit float parsing.
+* **[Russ Cox](https://research.swtch.com/fp-all/)** — Fast Unrounded Scaling algorithm (2026), referenced in the number-parsing architecture. Actual parsing uses `std::strtod` / `std::from_chars`.
+* **[Daniel Lemire](https://github.com/lemire) & Michael Eisel** — Eisel-Lemire algorithm and [`fast_float`](https://github.com/fastfloat/fast_float), influential work in modern 64-bit float parsing (not directly used in this library).
 * **[simdjson](https://github.com/simdjson/simdjson)** — Pioneered SIMD-accelerated JSON parsing at L1-cache speeds.
 * **[glaze / Stephen Berry](https://github.com/stephenberry/glaze)** — Compile-time FNV-1a dispatch and struct reflection patterns that influenced Nexus Fusion.
 * **[RapidJSON](https://github.com/Tencent/rapidjson)** — A decade of excellence in C++ JSON processing.

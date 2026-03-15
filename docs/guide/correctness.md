@@ -5,7 +5,7 @@
   <a href="https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml/badge.svg" alt="Sanitizers (ASan · UBSan · TSan)" /></a>
   <a href="https://github.com/qbuem/qbuem-json/actions/workflows/benchmark.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/benchmark.yml/badge.svg" alt="Benchmark CI" /></a>
   <a href="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml/badge.svg" alt="CodeQL" /></a>
-  <img src="https://img.shields.io/badge/tests-521%20passing-brightgreen" alt="521 tests passing" />
+  <img src="https://img.shields.io/badge/tests-523%20passing-brightgreen" alt="523 tests passing" />
   <img src="https://img.shields.io/badge/fuzz-3%20libFuzzer%20targets-orange" alt="3 libFuzzer targets" />
   <img src="https://img.shields.io/badge/RFC%208259-compliant-brightgreen" alt="RFC 8259" />
   <img src="https://img.shields.io/badge/RFC%206901-JSON%20Pointer-brightgreen" alt="RFC 6901" />
@@ -16,7 +16,7 @@
 <!-- Summary stats -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.75rem; background: linear-gradient(135deg, #f0f4ff, #e8f0ff); border: 1px solid #c0d0ff; border-radius: 12px; padding: 1.25rem 1.5rem; margin: 0 0 2rem; text-align: center;">
   <div>
-    <div style="font-size: 1.9rem; font-weight: 800; color: #1e2e5c; line-height: 1.1;">521</div>
+    <div style="font-size: 1.9rem; font-weight: 800; color: #1e2e5c; line-height: 1.1;">523</div>
     <div style="font-size: 0.78rem; color: #555; margin-top: 0.2rem;">tests passing</div>
   </div>
   <div>
@@ -24,7 +24,7 @@
     <div style="font-size: 0.78rem; color: #555; margin-top: 0.2rem;">RFC 8259 cases</div>
   </div>
   <div>
-    <div style="font-size: 1.9rem; font-weight: 800; color: #1e2e5c; line-height: 1.1;">12</div>
+    <div style="font-size: 1.9rem; font-weight: 800; color: #1e2e5c; line-height: 1.1;">10</div>
     <div style="font-size: 0.78rem; color: #555; margin-top: 0.2rem;">CI configurations</div>
   </div>
   <div>
@@ -47,7 +47,7 @@ reproduce locally.
 
 | Signal | Status | Details |
 |:---|:---:|:---|
-| Total tests | **521** | 20 test files, 5,556 lines |
+| Total tests | **523** | 20 test files, 5,556 lines |
 | RFC 8259 compliance tests | **73** | y_ accept · n_ reject · i_ implementation-defined |
 | RFC 6901 JSON Pointer | ✅ | Pointer navigation + edge cases |
 | RFC 6902 JSON Patch | ✅ | add / remove / replace / move / copy / test ops, transactional rollback |
@@ -55,9 +55,9 @@ reproduce locally.
 | UndefinedBehaviorSanitizer (UBSan) | ✅ CI | [sanitizers.yml](https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml) |
 | ThreadSanitizer (TSan) | ✅ CI | [sanitizers.yml](https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml) |
 | Fuzz testing | ✅ | 3 libFuzzer targets · seed corpus |
-| IEEE 754 round-trip | ✅ | All 64-bit doubles; Schubfach shortest-decimal + Eisel-Lemire |
+| IEEE 754 round-trip | ✅ | All 64-bit doubles; Schubfach serialization (Giulietti 2020) + `std::strtod` parsing |
 | CodeQL static analysis | ✅ CI weekly | security-extended query suite |
-| Multi-platform CI | ✅ 12 configs | GCC 13/14 · Clang 18 · Apple Clang · x86_64 · aarch64 · Apple Silicon |
+| Multi-platform CI | ✅ [10 configs](https://github.com/qbuem/qbuem-json/blob/main/.github/workflows/ci.yml) | GCC 13/14 · Clang 18 · Apple Clang · x86_64 · aarch64 · Apple Silicon |
 
 ---
 
@@ -178,9 +178,8 @@ satisfies the **shortest round-trip** guarantee:
 
 This is enforced by two algorithms working in tandem:
 
-- **Parsing** — Eisel-Lemire fast path (handles ~98.8 % of inputs in constant
-  time) with the Russ Cox (2026) algorithm as fallback.  Both are provably
-  correct for all 2⁶⁴ IEEE 754 double representations.
+- **Parsing** — `std::strtod` (C standard library).  Correct for all IEEE 754
+  finite doubles when fed the shortest-decimal output of Schubfach.
 - **Serialisation** — Schubfach (Giulietti 2020) produces the unique shortest
   decimal representation.  No trailing zeros, no round-trip loss.
 
@@ -237,8 +236,8 @@ cmake --build build -j$(nproc)
 ctest --test-dir build --output-on-failure
 
 # Expected output:
-# 521/521 Test #521: StringEdge.SpecialKeyNames .......... Passed  0.00 sec
-# 100% tests passed, 0 tests failed out of 521
+# 523/523 Test #523: StringEdge.SpecialKeyNames .......... Passed  0.00 sec
+# 100% tests passed, 0 tests failed out of 523
 ```
 
 The test suite takes under 1 second on any modern machine.

@@ -18,8 +18,8 @@ hero:
 
 features:
   - icon: ⚡
-    title: "2.7 GB/s Parsing"
-    details: "AVX-512 (x86) and ARM NEON SIMD structural scanning. Two-pass tape architecture eliminates all per-node allocation overhead."
+    title: "Up to 2.5 GB/s Parsing"
+    details: "AVX-512 (x86) and ARM NEON SIMD structural scanning. Two-pass tape architecture eliminates all per-node allocation overhead. Numbers from live CI — see Benchmarks page."
 
   - icon: 🎯
     title: "Zero-Allocation Design"
@@ -35,7 +35,7 @@ features:
 
   - icon: 🔒
     title: "RFC Compliant & Hardened"
-    details: "RFC 6901 JSON Pointer. RFC 6902 JSON Patch with transactional rollback. 521 tests · ASan, UBSan, TSan run on every commit · 3 libFuzzer targets."
+    details: "RFC 6901 JSON Pointer. RFC 6902 JSON Patch with transactional rollback. 523 tests · ASan, UBSan, TSan run on every commit · 3 libFuzzer targets."
 
   - icon: 📦
     title: "Single Header · Apache 2.0"
@@ -69,7 +69,7 @@ features:
   <!-- Row 3: Testing -->
   <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
     <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #999; min-width: 5.5rem; flex-shrink: 0;">Testing</span>
-    <a href="/guide/correctness"><img src="https://img.shields.io/badge/tests-521%20passing-brightgreen" alt="521 tests passing" /></a>
+    <a href="/guide/correctness"><img src="https://img.shields.io/badge/tests-523%20passing-brightgreen" alt="523 tests passing" /></a>
     <a href="/guide/correctness#fuzz-testing"><img src="https://img.shields.io/badge/fuzz-3%20libFuzzer%20targets-orange" alt="3 libFuzzer targets" /></a>
   </div>
 
@@ -87,20 +87,30 @@ features:
 
 ## Why qbuem-json?
 
-**qbuem-json** was built for production systems where latency and allocation count — HFT tick data, real-time game state, large-scale data pipelines. Every design decision is measurable: benchmarks run on CI across three architectures, 521 automated tests guard correctness, and the library ships as a single header with zero dependencies.
+**qbuem-json** was built for production systems where latency and allocation count — HFT tick data, real-time game state, large-scale data pipelines. Every design decision is measurable: benchmarks run on CI across three architectures, 523 automated tests guard correctness, and the library ships as a single header with zero dependencies.
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin: 2rem 0;">
 
 <div style="background: #f5f0e8; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.25rem;">
   <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📊</div>
-  <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">2.7 GB/s parse</div>
-  <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">Measured on twitter.json (631 KB) with GCC 13 -O3 -march=native on x86_64.</div>
+  <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">Parsing throughput</div>
+  <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">
+    twitter.json (631 KB) · from <a href="/guide/benchmarks">live CI results</a>:<br>
+    x86_64 GCC 13: <strong>2.0 GB/s</strong><br>
+    Linux aarch64 GCC 14: <strong>2.4 GB/s</strong><br>
+    Apple Silicon: <strong>2.5 GB/s</strong>
+  </div>
 </div>
 
 <div style="background: #f5f0e8; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.25rem;">
   <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🏎️</div>
-  <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">8.1 GB/s serialize</div>
-  <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">Schubfach shortest round-trip floats + yy-itoa integer serialization without division.</div>
+  <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">Serialization throughput</div>
+  <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">
+    twitter.json (631 KB) · from <a href="/guide/benchmarks">live CI results</a>:<br>
+    x86_64 GCC 13: <strong>3.4 GB/s</strong><br>
+    Linux aarch64 GCC 14: <strong>6.1 GB/s</strong><br>
+    Apple Silicon: <strong>7.2 GB/s</strong>
+  </div>
 </div>
 
 <div style="background: #f5f0e8; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.25rem;">
@@ -111,8 +121,8 @@ features:
 
 <div style="background: #f5f0e8; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.25rem;">
   <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔬</div>
-  <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">Eisel-Lemire floats</div>
-  <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">Fast decimal-to-double with Russ Cox 2026 fallback. Correct for all 64-bit IEEE 754 values.</div>
+  <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">Schubfach serialization</div>
+  <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">Giulietti 2020 Schubfach produces the shortest round-trip decimal for every finite <code>double</code>. Parsing uses <code>std::strtod</code>. <a href="/guide/correctness#ieee-754-floating-point-correctness">Verified →</a></div>
 </div>
 
 </div>
@@ -144,9 +154,9 @@ std::string json = qbuem::write(player);
 
 qbuem-json ships **two complementary engines** in a single header:
 
-| Engine | Use Case | Allocation | Throughput |
+| Engine | Use Case | Allocation | Throughput (twitter.json) |
 |---|---|---|---|
-| **DOM (Tape)** | Exploratory access, partial reads, dynamic keys | Single arena | ~2.7 GB/s |
+| **DOM (Tape)** | Exploratory access, partial reads, dynamic keys | Single arena | [2.0–2.5 GB/s](/guide/benchmarks) |
 | **Nexus Fusion** | Struct mapping, HFT, embedded | Zero tape | Compile-time dispatch |
 
 Choose the DOM engine when key names are dynamic or unknown at compile time. Switch to Nexus when you know your schema upfront and want maximum throughput with deterministic latency.
@@ -191,7 +201,7 @@ to CI you can inspect:
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 1.5rem 0 2rem;">
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
-  <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">521 tests · 20 files</div>
+  <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">523 tests · 20 files</div>
   <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;">5,556 lines of C++ tests covering DOM, Nexus, STL mapping, error handling, Unicode, and edge cases.  <a href="/guide/correctness">Details →</a></div>
 </div>
 
@@ -211,13 +221,13 @@ to CI you can inspect:
 </div>
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
-  <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">12-config CI matrix</div>
-  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;">GCC 13/14 · Clang 18 · Apple Clang · x86_64 · aarch64 · Apple Silicon · Debug + Release — native runners, no QEMU.</div>
+  <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">10-config CI matrix</div>
+  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;">GCC 13/14 · Clang 18 · Apple Clang · x86_64 · aarch64 · Apple Silicon · Debug + Release — native runners, no QEMU. <a href="https://github.com/qbuem/qbuem-json/blob/main/.github/workflows/ci.yml">ci.yml →</a></div>
 </div>
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
   <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">IEEE 754 round-trip</div>
-  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;"><code>parse(serialize(x)) == x</code> for all finite doubles.  Schubfach serialisation · Eisel-Lemire parsing.  <a href="/guide/correctness#ieee-754-floating-point-correctness">Details →</a></div>
+  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;"><code>parse(serialize(x)) == x</code> for all finite doubles.  Schubfach serialization (Giulietti 2020) · <code>std::strtod</code> parsing.  <a href="/guide/correctness#ieee-754-floating-point-correctness">Details →</a></div>
 </div>
 
 </div>
