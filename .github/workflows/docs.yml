@@ -36,13 +36,13 @@ jobs:
       # When triggered by workflow_run, github.sha points to the commit that
       # *started* the benchmark — before it committed benchmark-results.json.
       # Check out the branch HEAD instead so we always get the latest data.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 1
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: 'npm'

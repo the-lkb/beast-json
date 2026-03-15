@@ -43,7 +43,7 @@ jobs:
             install_cmd: echo "Apple Clang pre-installed"
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Install compiler
       run: ${{ matrix.install_cmd }}
@@ -51,7 +51,7 @@ jobs:
     # Cache the benchmark JSON data files separately so network failures
     # on simdjson-data do not silently produce empty general-section results.
     - name: Cache benchmark data files
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: bench_data
         key: bench-data-v1
@@ -320,7 +320,7 @@ jobs:
     # Upload even when benchmark step failed so aggregate always gets data.
     - name: Upload results artifact
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: bench-results-${{ matrix.arch }}
         path: bench_artifacts/results-${{ matrix.arch }}.json
@@ -337,12 +337,12 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
     - name: Download all per-platform results
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         pattern: bench-results-*
         path: bench_artifacts
