@@ -130,10 +130,12 @@ jobs:
       run: |
         echo "##section bindings" >> ../../build_bench/benchmarks/bench_output.txt
         echo "=== Go Bindings ===" >> ../../build_bench/benchmarks/bench_output.txt
-        # Set paths to the built C API library
+        # Set paths for linking and runtime
+        export CGO_CFLAGS="-I$(pwd)/../c"
+        export CGO_LDFLAGS="-L$(pwd)/../../build_bench/bindings/c -lqbuem_json_c"
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/../../build_bench/bindings/c
         export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$(pwd)/../../build_bench/bindings/c
-        go test -bench=. -benchmem qbuem_bench_test.go qbuem_json.go marshal.go decode.go | \
+        go test -bench=. -benchmem . | \
         awk '
           /BenchmarkQbuemJSON/ { p=$3 }
           /BenchmarkQbuemDump/ { s=$3 }
