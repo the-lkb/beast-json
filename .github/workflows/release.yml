@@ -57,10 +57,11 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.22.0
+        with:
+          package-dir: bindings/python
         env:
           CIBW_BEFORE_BUILD: pip install nanobind scikit-build-core
           CIBW_BUILD_FRONTEND: "pip"
-          CIBW_PROJECT_DIR: "bindings/python"
           # Skip 32-bit builds and musl
           CIBW_SKIP: "*-manylinux_i686 *-musllinux_*"
 
