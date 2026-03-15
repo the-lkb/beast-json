@@ -1,5 +1,23 @@
 # Correctness & Safety
 
+<div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1rem 0 1.5rem; line-height: 1.9;">
+  <a href="https://github.com/qbuem/qbuem-json/actions/workflows/ci.yml">
+    <img src="https://github.com/qbuem/qbuem-json/actions/workflows/ci.yml/badge.svg" alt="CI" />
+  </a>
+  <a href="https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml">
+    <img src="https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml/badge.svg" alt="Sanitizers (ASan · UBSan · TSan)" />
+  </a>
+  <a href="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml">
+    <img src="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml/badge.svg" alt="CodeQL" />
+  </a>
+  <img src="https://img.shields.io/badge/tests-521%20passing-brightgreen" alt="521 tests passing" />
+  <img src="https://img.shields.io/badge/fuzz-3%20libFuzzer%20targets-orange" alt="3 libFuzzer targets" />
+  <img src="https://img.shields.io/badge/RFC%208259-compliant-brightgreen" alt="RFC 8259" />
+  <img src="https://img.shields.io/badge/RFC%206901-JSON%20Pointer-brightgreen" alt="RFC 6901" />
+  <img src="https://img.shields.io/badge/RFC%206902-JSON%20Patch-brightgreen" alt="RFC 6902" />
+  <img src="https://img.shields.io/badge/IEEE%20754-round--trip-brightgreen" alt="IEEE 754 round-trip" />
+</div>
+
 This page documents the concrete testing and verification infrastructure behind
 qbuem-json.  Every claim here is backed by a CI job you can inspect and
 reproduce locally.

@@ -1,10 +1,35 @@
 <div align="center">
 
+  <!-- CI & Security -->
   <p>
-    <a href="https://github.com/qbuem/qbuem-json/actions/workflows/ci.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/ci.yml/badge.svg" alt="C++20 CI"></a>
-    <a href="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml/badge.svg" alt="CodeQL Static Analysis"></a>
-    <a href="https://github.com/qbuem/qbuem-json/releases"><img src="https://img.shields.io/badge/Version-v1.0.6-blue" alt="Version 1.0.6"></a>
-    <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
+    <a href="https://github.com/qbuem/qbuem-json/actions/workflows/ci.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml/badge.svg" alt="Sanitizers (ASan · UBSan · TSan)"></a>
+    <a href="https://github.com/qbuem/qbuem-json/actions/workflows/benchmark.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/benchmark.yml/badge.svg" alt="Benchmark CI"></a>
+    <a href="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml"><img src="https://github.com/qbuem/qbuem-json/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
+  </p>
+
+  <!-- Compliance & Standards -->
+  <p>
+    <a href="https://en.cppreference.com/w/cpp/20"><img src="https://img.shields.io/badge/C%2B%2B-20-blue" alt="C++20"></a>
+    <a href="https://qbuem.com/qbuem-json/guide/correctness#rfc-8259-compliance"><img src="https://img.shields.io/badge/RFC%208259-compliant-brightgreen" alt="RFC 8259 compliant"></a>
+    <a href="https://qbuem.com/qbuem-json/guide/correctness#rfc-8259-compliance"><img src="https://img.shields.io/badge/RFC%206901-JSON%20Pointer-brightgreen" alt="RFC 6901 JSON Pointer"></a>
+    <a href="https://qbuem.com/qbuem-json/guide/correctness#rfc-8259-compliance"><img src="https://img.shields.io/badge/RFC%206902-JSON%20Patch-brightgreen" alt="RFC 6902 JSON Patch"></a>
+    <a href="https://qbuem.com/qbuem-json/guide/correctness#ieee-754-floating-point-correctness"><img src="https://img.shields.io/badge/IEEE%20754-round--trip-brightgreen" alt="IEEE 754 round-trip"></a>
+  </p>
+
+  <!-- Testing -->
+  <p>
+    <a href="https://qbuem.com/qbuem-json/guide/correctness"><img src="https://img.shields.io/badge/tests-521%20passing-brightgreen" alt="521 tests passing"></a>
+    <a href="https://qbuem.com/qbuem-json/guide/correctness#fuzz-testing"><img src="https://img.shields.io/badge/fuzz-3%20libFuzzer%20targets-orange" alt="3 libFuzzer targets"></a>
+  </p>
+
+  <!-- Distribution -->
+  <p>
+    <a href="https://github.com/qbuem/qbuem-json/releases/tag/v1.0.6"><img src="https://img.shields.io/badge/version-v1.0.6-blue" alt="v1.0.6"></a>
+    <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="Apache 2.0"></a>
+    <a href="https://github.com/qbuem/qbuem-json/blob/main/include/qbuem_json/qbuem_json.hpp"><img src="https://img.shields.io/badge/header--only-single%20file-lightgrey" alt="header-only"></a>
+    <img src="https://img.shields.io/badge/dependencies-zero-brightgreen" alt="zero dependencies">
+    <img src="https://img.shields.io/badge/platforms-Linux%20%7C%20macOS-lightgrey" alt="Linux | macOS">
   </p>
 
   <p>
