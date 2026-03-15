@@ -8321,6 +8321,7 @@ QBUEM_INLINE void ws(const char *&p, const char *end) noexcept {
 struct NexusScanner {
   const char *p;
   const char *end;
+  const char *begin = nullptr; // optional: set by fuse()/fuse_strict() for offset reporting
 
   QBUEM_INLINE void ws() noexcept { detail::ws(p, end); }
 
@@ -8449,6 +8450,67 @@ inline void skip_direct(const char *&p, const char *end) {
   try { v.parse_value(); p = v.p; } catch (...) { p = end; }
 }
 
+// ── Nexus diagnostic helpers ─────────────────────────────────────────────────
+// nexus_strict_mode() — returns a reference to the thread-local strict-mode
+// flag.  When true, from_json_direct throws on type mismatches instead of
+// silently skipping.
+//
+// Two ways to enable:
+//  1. Compile-time: define QBUEM_NEXUS_STRICT before including this header.
+//     The flag is permanently true; fuse() and fuse_strict() behave the same.
+//  2. Runtime: call fuse_strict<T>() which sets/clears the flag around a
+//     single deserialization call.  Zero overhead on the non-strict path.
+inline bool &nexus_strict_mode() noexcept {
+#ifdef QBUEM_NEXUS_STRICT
+  // Compile-time strict: return a reference to a permanently-true thread-local.
+  static thread_local bool always_true = true;
+  return always_true;
+#else
+  thread_local bool flag = false;
+  return flag;
+#endif
+}
+
+// peek_json_type: returns a human-readable label for the JSON token at *p.
+// Used in Nexus error messages so callers see "expected number, got string"
+// instead of a raw type tag or a silent skip.
+inline const char *peek_json_type(const char *p, const char *end) noexcept {
+  if (p >= end) return "end-of-input";
+  switch (static_cast<unsigned char>(*p)) {
+    case '{': return "object";
+    case '[': return "array";
+    case '"': return "string";
+    case 't': case 'f': return "boolean";
+    case 'n': return "null";
+    case '-':
+    case '0': case '1': case '2': case '3': case '4':
+    case '5': case '6': case '7': case '8': case '9': return "number";
+    default:  return "unknown token";
+  }
+}
+
+// nexus_type_error: build and throw a runtime_error describing a Nexus type
+// mismatch.  |expected| is the C++ side expectation, |p| points to the
+// offending JSON token, |begin| (may be nullptr) enables byte-offset reporting.
+[[noreturn]] inline void nexus_type_error(
+    const char *expected, const char *p, const char *end,
+    const char *begin = nullptr)
+{
+  char buf[160];
+  const char *got = peek_json_type(p, end);
+  if (begin) {
+    const std::ptrdiff_t off = p - begin;
+    std::snprintf(buf, sizeof(buf),
+                  "Nexus: expected %s, got %s at byte offset %td",
+                  expected, got, off);
+  } else {
+    std::snprintf(buf, sizeof(buf),
+                  "Nexus: expected %s, got %s",
+                  expected, got);
+  }
+  throw std::runtime_error(buf);
+}
+
 template <typename T> void from_json_direct(const char *&p, const char *end, T &out) {
   if (p >= end) return;
   if constexpr (HasNexusPulse<T>) {
@@ -8459,9 +8521,19 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
     while (p < end && (unsigned char)*p <= 32) ++p;
     if (p + 4 <= end && !std::memcmp(p, "true", 4)) { out = true; p += 4; }
     else if (p + 5 <= end && !std::memcmp(p, "false", 5)) { out = false; p += 5; }
-    else skip_direct(p, end);
+    else {
+      if (nexus_strict_mode()) nexus_type_error("boolean", p, end);
+      else skip_direct(p, end);
+    }
   } else if constexpr (JsonDetailArith<T>) {
     while (p < end && (unsigned char)*p <= 32) ++p;
+    // In strict mode, reject any non-number token before scanning digits.
+    // Without this check, from_chars silently returns zero on type mismatches.
+    if (nexus_strict_mode()) {
+      const char c = p < end ? *p : '\0';
+      const bool looks_numeric = (c >= '0' && c <= '9') || c == '-';
+      if (!looks_numeric) nexus_type_error("number", p, end);
+    }
     const char *start = p;
     while (p < end && ((*p >= '0' && *p <= '9') || *p == '-' || *p == '.' || *p == 'e' || *p == 'E' || *p == '+')) ++p;
     if constexpr (std::is_floating_point_v<T>) {
@@ -8476,7 +8548,10 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
       out = static_cast<T>(std::strtod(_fc_buf, nullptr));
 #endif
     } else {
-      std::from_chars(start, p, out);
+      auto [_nxt, _ec] = std::from_chars(start, p, out);
+      if (nexus_strict_mode() && _ec != std::errc{}) {
+        throw std::runtime_error("Nexus: integer parse failed (overflow or unexpected digits)");
+      }
     }
   } else if constexpr (JsonDetailOptional<T>) {
     detail::ws(p, end);
@@ -8551,8 +8626,10 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
         out.assign(start, p - start);
         if (p < end) ++p;
       }
-    } else
-      skip_direct(p, end);
+    } else {
+      if (nexus_strict_mode()) nexus_type_error("string", p, end);
+      else skip_direct(p, end);
+    }
   } else if constexpr (JsonDetailMap<T>) {
     out.clear();
     detail::ws(p, end);
@@ -8577,8 +8654,10 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
       }
       if (p < end)
         ++p;
-    } else
-      skip_direct(p, end);
+    } else {
+      if (nexus_strict_mode()) nexus_type_error("object", p, end);
+      else skip_direct(p, end);
+    }
   } else if constexpr (JsonDetailTuple<T>) {
     detail::ws(p, end);
     if (p < end && *p == '[') {
@@ -8592,8 +8671,10 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
         ++p;
       if (p < end)
         ++p;
-    } else
-      skip_direct(p, end);
+    } else {
+      if (nexus_strict_mode()) nexus_type_error("array", p, end);
+      else skip_direct(p, end);
+    }
   } else if constexpr (JsonDetailSeq<T>) {
     out.clear();
     while (p < end && (unsigned char)*p <= 32) ++p;
@@ -8607,7 +8688,10 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
         if (p < end && *p == ',') { ++p; while (p < end && (unsigned char)*p <= 32) ++p; }
       }
       if (p < end) ++p;
-    } else skip_direct(p, end);
+    } else {
+      if (nexus_strict_mode()) nexus_type_error("array", p, end);
+      else skip_direct(p, end);
+    }
   } else {
     skip_direct(p, end);
   }
@@ -8615,7 +8699,12 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
 
 template <typename T> inline void NexusScanner::fill(T &obj) {
   ws();
-  if (p >= end || *p != '{') [[unlikely]] return;
+  if (p >= end || *p != '{') [[unlikely]] {
+    // Always throw here: passing a non-object root to Nexus fill() is a
+    // programming error — the target C++ struct has no way to represent
+    // anything other than a JSON object.
+    nexus_type_error("object", p, end, begin);
+  }
   ++p;
   if (p < end && *p == '}') [[unlikely]] { ++p; return; } // empty object
   ws();
@@ -8652,9 +8741,39 @@ template <typename T> T read(::std::string_view json) {
 
 template <typename T> T fuse(::std::string_view json) {
   T obj{};
-  json::detail::NexusScanner scanner{json.data(), json.data() + json.size()};
+  json::detail::NexusScanner scanner{json.data(), json.data() + json.size(), json.data()};
   scanner.fill(obj);
   return obj;
+}
+
+/// fuse_strict<T> — zero-tape deserialization with strict type checking.
+///
+/// Any type mismatch between the JSON value and the target C++ field throws
+/// std::runtime_error with a human-readable message of the form:
+///
+///   "Nexus: expected <type>, got <type> at byte offset <N>"
+///
+/// This is implemented via a thread-local flag so that the same compiled
+/// from_json_direct code is used by both fuse() and fuse_strict() — no
+/// recompilation required.  The flag is always cleared before the call
+/// returns (including on exception), so it is safe to use from multiple
+/// threads simultaneously.
+///
+/// Typical usage: use fuse_strict() during development / unit tests, then
+/// switch to fuse() once the schema is validated.
+/// See docs/guide/nexus-diagnostics.md for a full guide.
+template <typename T> T fuse_strict(::std::string_view json) {
+  json::detail::nexus_strict_mode() = true;
+  try {
+    T obj{};
+    json::detail::NexusScanner scanner{json.data(), json.data() + json.size(), json.data()};
+    scanner.fill(obj);
+    json::detail::nexus_strict_mode() = false;
+    return obj;
+  } catch (...) {
+    json::detail::nexus_strict_mode() = false;
+    throw;
+  }
 }
 
 template <typename T>::std::string write(const T &obj) {
