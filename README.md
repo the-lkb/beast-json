@@ -19,7 +19,7 @@
 
   <!-- Testing -->
   <p>
-    <a href="https://qbuem.com/qbuem-json/guide/correctness"><img src="https://img.shields.io/badge/tests-523%20passing-brightgreen" alt="523 tests passing"></a>
+    <a href="https://qbuem.com/qbuem-json/guide/correctness"><img src="https://img.shields.io/badge/tests-521%20passing-brightgreen" alt="521 tests passing"></a>
     <a href="https://qbuem.com/qbuem-json/guide/correctness#fuzz-testing"><img src="https://img.shields.io/badge/fuzz-3%20libFuzzer%20targets-orange" alt="3 libFuzzer targets"></a>
   </p>
 

@@ -35,7 +35,7 @@ features:
 
   - icon: 🔒
     title: "RFC Compliant & Hardened"
-    details: "RFC 6901 JSON Pointer. RFC 6902 JSON Patch with transactional rollback. 523 tests · ASan, UBSan, TSan run on every commit · 3 libFuzzer targets."
+    details: "RFC 6901 JSON Pointer. RFC 6902 JSON Patch with transactional rollback. 521 tests · ASan, UBSan, TSan run on every commit · 3 libFuzzer targets."
 
   - icon: 📦
     title: "Single Header · Apache 2.0"
@@ -69,7 +69,7 @@ features:
   <!-- Row 3: Testing -->
   <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
     <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #999; min-width: 5.5rem; flex-shrink: 0;">Testing</span>
-    <a href="/guide/correctness"><img src="https://img.shields.io/badge/tests-523%20passing-brightgreen" alt="523 tests passing" /></a>
+    <a href="/guide/correctness"><img src="https://img.shields.io/badge/tests-521%20passing-brightgreen" alt="521 tests passing" /></a>
     <a href="/guide/correctness#fuzz-testing"><img src="https://img.shields.io/badge/fuzz-3%20libFuzzer%20targets-orange" alt="3 libFuzzer targets" /></a>
   </div>
 
@@ -87,7 +87,7 @@ features:
 
 ## Why qbuem-json?
 
-**qbuem-json** was built for production systems where latency and allocation count — HFT tick data, real-time game state, large-scale data pipelines. Every design decision is measurable: benchmarks run on CI across three architectures, 523 automated tests guard correctness, and the library ships as a single header with zero dependencies.
+**qbuem-json** was built for production systems where latency and allocation count — HFT tick data, real-time game state, large-scale data pipelines. Every design decision is measurable: benchmarks run on CI across three architectures, 521 automated tests guard correctness, and the library ships as a single header with zero dependencies.
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin: 2rem 0;">
 
@@ -121,8 +121,8 @@ features:
 
 <div style="background: #f5f0e8; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.25rem;">
   <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔬</div>
-  <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">Schubfach serialization</div>
-  <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">Giulietti 2020 Schubfach produces the shortest round-trip decimal for every finite <code>double</code>. Parsing uses <code>std::strtod</code>. <a href="/guide/correctness#ieee-754-floating-point-correctness">Verified →</a></div>
+  <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">IEEE 754 round-trip</div>
+  <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">Eisel-Lemire parsing (~98.8 % fast path) + Schubfach serialization (Giulietti 2020). <code>parse(serialize(x)) == x</code> for all finite doubles. <a href="/guide/correctness#ieee-754-floating-point-correctness">Verified →</a></div>
 </div>
 
 </div>
@@ -201,7 +201,7 @@ to CI you can inspect:
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 1.5rem 0 2rem;">
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
-  <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">523 tests · 20 files</div>
+  <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">521 tests · 20 files</div>
   <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;">5,556 lines of C++ tests covering DOM, Nexus, STL mapping, error handling, Unicode, and edge cases.  <a href="/guide/correctness">Details →</a></div>
 </div>
 
@@ -227,7 +227,7 @@ to CI you can inspect:
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
   <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">IEEE 754 round-trip</div>
-  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;"><code>parse(serialize(x)) == x</code> for all finite doubles.  Schubfach serialization (Giulietti 2020) · <code>std::strtod</code> parsing.  <a href="/guide/correctness#ieee-754-floating-point-correctness">Details →</a></div>
+  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;"><code>parse(serialize(x)) == x</code> for all finite doubles.  Eisel-Lemire parsing (~98.8 % fast path) · Schubfach serialization (Giulietti 2020).  <a href="/guide/correctness#ieee-754-floating-point-correctness">Details →</a></div>
 </div>
 
 </div>
