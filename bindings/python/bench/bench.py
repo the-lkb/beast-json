@@ -43,7 +43,7 @@ sample = {
         {"id": i, "name": f"User {i}", "active": i % 2 == 0, "scores": [j for j in range(10)]}
         for i in range(50)
     ],
-    "meta": {"total": 50, "version": "1.0.6", "desc": "Benchmarking data"}
+    "meta": {"total": 50, "version": "1.0.7", "desc": "Benchmarking data"}
 }
 json_str = json.dumps(sample)
 

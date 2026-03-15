@@ -25,7 +25,7 @@
 
   <!-- Distribution -->
   <p>
-    <a href="https://github.com/qbuem/qbuem-json/releases/tag/v1.0.6"><img src="https://img.shields.io/badge/version-v1.0.6-blue" alt="v1.0.6"></a>
+    <a href="https://github.com/qbuem/qbuem-json/releases/tag/v1.0.7"><img src="https://img.shields.io/badge/version-v1.0.7-blue" alt="v1.0.7"></a>
     <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="Apache 2.0"></a>
     <a href="https://github.com/qbuem/qbuem-json/blob/main/include/qbuem_json/qbuem_json.hpp"><img src="https://img.shields.io/badge/header--only-single%20file-lightgrey" alt="header-only"></a>
     <img src="https://img.shields.io/badge/dependencies-zero-brightgreen" alt="zero dependencies">

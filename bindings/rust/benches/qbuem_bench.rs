@@ -10,7 +10,7 @@ const BENCH_DATA: &str = r#"{
         {"id": 3, "name": "User 3", "active": false, "scores": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]},
         {"id": 4, "name": "User 4", "active": true, "scores": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
     ],
-    "meta": {"total": 5, "version": "1.0.6", "desc": "Benchmarking data"}
+    "meta": {"total": 5, "version": "1.0.7", "desc": "Benchmarking data"}
 }"#;
 
 fn bench_parsing(c: &mut Criterion) {
