@@ -55,7 +55,7 @@ reproduce locally.
 | UndefinedBehaviorSanitizer (UBSan) | ✅ CI | [sanitizers.yml](https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml) |
 | ThreadSanitizer (TSan) | ✅ CI | [sanitizers.yml](https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml) |
 | Fuzz testing | ✅ | 3 libFuzzer targets · seed corpus |
-| IEEE 754 round-trip | ✅ | All 64-bit doubles; Schubfach (Giulietti 2020) serialization + Eisel-Lemire → Russ Cox Unrounded Scaling → `std::strtod` parsing pipeline |
+| IEEE 754 round-trip | ✅ | All 64-bit doubles; parsing: `eisel_lemire_f64` (~98.8 %) → `russ_cox_uscale_f64` (~1.2 %) → `strtod` (subnormals); serialization: Schubfach / `qj_nc::f64_to_dec` |
 | CodeQL static analysis | ✅ CI weekly | security-extended query suite |
 | Multi-platform CI | ✅ [10 configs](https://github.com/qbuem/qbuem-json/blob/main/.github/workflows/ci.yml) | GCC 13/14 · Clang 18 · Apple Clang · x86_64 · aarch64 · Apple Silicon |
 
@@ -176,16 +176,23 @@ satisfies the **shortest round-trip** guarantee:
 
 > `parse(serialize(x)) == x` for all finite `double` values.
 
-This is enforced by two algorithms working in tandem:
+This is enforced by a three-stage parsing pipeline and one serialization algorithm, all implemented in `include/qbuem_json/qbuem_json.hpp`:
 
-- **Parsing — three-stage pipeline:**
-  1. **Eisel-Lemire** ([Eisel & Lemire 2020](https://arxiv.org/abs/2101.11408)) — 128-bit multiplication against the pre-built power-of-10 table, with a second-multiply refinement.  Handles ~98.8 % of inputs in constant time.
-  2. **Russ Cox Fast Unrounded Scaling** ([Cox 2026](https://research.swtch.com/fp)) — ceiling of the table's high word (`ph_ceil = ph + (pl ≠ 0)`) ensures the sticky bit is always decisive, eliminating the ~1.2 % of cases Eisel-Lemire cannot resolve.  Proved correct for all finite float64 by the [Ivy companion proof](https://research.swtch.com/fp-proof).
-  3. **`std::strtod`** — always-correct fallback for subnormals and >19-digit mantissas only (< 0.01 % of typical JSON workloads).
-- **Serialisation** — Schubfach (Giulietti 2020) produces the unique shortest
-  decimal representation.  No trailing zeros, no round-trip loss.
+### Parsing — three-stage pipeline
 
-Test coverage:
+| Stage | Function | Coverage | Algorithm |
+|:---|:---|:---|:---|
+| 1 | `eisel_lemire_f64()` | ~98.8 % | 128-bit multiplication of normalized mantissa × table entry; second-multiply refinement if guard bits ambiguous. Returns false if still unresolved. |
+| 2 | `russ_cox_uscale_f64()` | ~1.2 % | Ceiling of table high word: `ph_ceil = ph + (pl ≠ 0)`. The ceiling bias guarantees `lower ≠ 0` whenever rounding is genuinely undecidable — no return-false path. Proved by [Ivy](https://research.swtch.com/fp-proof). |
+| 3 | `std::strtod` | < 0.01 % | Subnormals (biased exponent ≤ 0) and >19-digit mantissas only. |
+
+Both fast-path functions share the pre-built `pow10_sig_table_128` (128-bit powers of 10 from 10⁻³⁴³ to 10³²⁴) that the Schubfach serializer already uses. No extra memory overhead.
+
+### Serialization
+
+**Schubfach** (Giulietti 2020, ported from yyjson MIT) — implemented in `qj_nc::f64_to_dec()`.  Produces the unique shortest decimal representation in O(1) via 128-bit lookup.  No trailing zeros, no round-trip loss.
+
+### Test coverage
 
 ```cpp
 // tests/test_serializer.cpp — excerpt

@@ -122,7 +122,14 @@ features:
 <div style="background: #f5f0e8; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.25rem;">
   <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔬</div>
   <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">IEEE 754 round-trip</div>
-  <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">Eisel-Lemire parsing (~98.8 % fast path) + Schubfach serialization (Giulietti 2020). <code>parse(serialize(x)) == x</code> for all finite doubles. <a href="/guide/correctness#ieee-754-floating-point-correctness">Verified →</a></div>
+  <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">
+    Three-stage parsing pipeline:<br>
+    ① <strong>Eisel-Lemire</strong> (~98.8 %) — 128-bit table, two-multiply<br>
+    ② <strong>Russ Cox Unrounded Scaling</strong> (~1.2 %) — ceiling table, always decisive<br>
+    ③ <strong><code>strtod</code></strong> — subnormals only (&lt;0.01 %)<br>
+    Serialization: <strong>Schubfach</strong> (Giulietti 2020) — shortest decimal, no trailing zeros.<br>
+    <code>parse(serialize(x)) == x</code> for all finite doubles. <a href="/guide/correctness#ieee-754-floating-point-correctness">Details →</a>
+  </div>
 </div>
 
 </div>
@@ -227,7 +234,7 @@ to CI you can inspect:
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
   <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">IEEE 754 round-trip</div>
-  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;"><code>parse(serialize(x)) == x</code> for all finite doubles.  Eisel-Lemire parsing (~98.8 % fast path) · Schubfach serialization (Giulietti 2020).  <a href="/guide/correctness#ieee-754-floating-point-correctness">Details →</a></div>
+  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;"><code>parse(serialize(x)) == x</code> for all finite doubles. Parsing: Eisel-Lemire (~98.8 %) → Russ Cox Unrounded Scaling (~1.2 %) → <code>strtod</code> (subnormals). Serialization: Schubfach (Giulietti 2020).  <a href="/guide/correctness#ieee-754-floating-point-correctness">Details →</a></div>
 </div>
 
 </div>
