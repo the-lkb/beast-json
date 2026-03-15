@@ -1,0 +1,201 @@
+name: Sanitizers
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'include/**'
+      - 'tests/**'
+      - 'CMakeLists.txt'
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'include/**'
+      - 'tests/**'
+      - 'CMakeLists.txt'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  # ── AddressSanitizer + UndefinedBehaviorSanitizer ─────────────────────────
+  # ASan detects: heap/stack buffer overflows, use-after-free, use-after-return,
+  #               use-after-scope, double-free, memory leaks.
+  # UBSan detects: signed integer overflow, null pointer deref, misaligned access,
+  #                out-of-bounds array indexing, invalid enum casts.
+  asan-ubsan:
+    name: ASan + UBSan · Clang 18 · x86_64
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install Clang 18
+      run: wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s 18
+
+    - name: Configure (ASan + UBSan)
+      run: >
+        cmake -B build
+        -DCMAKE_BUILD_TYPE=Debug
+        -DQBUEM_JSON_BUILD_TESTS=ON
+        -DQBUEM_JSON_BUILD_BENCHMARKS=OFF
+        -DCMAKE_CXX_COMPILER=clang++-18
+        -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+
+    - name: Build
+      run: cmake --build build -j2
+
+    - name: Test (ASan + UBSan)
+      working-directory: build
+      env:
+        ASAN_OPTIONS: "halt_on_error=1:detect_leaks=1:abort_on_error=1"
+        UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1:abort_on_error=1"
+      run: ctest --output-on-failure --timeout 300
+
+  # ── AddressSanitizer + UndefinedBehaviorSanitizer · ARM64 ─────────────────
+  # Covers the NEON code path (vld1q_u8, vst1q_u8, …) which is distinct from
+  # the x86_64 SSE2/AVX-512 path — bugs in either path are invisible to the other.
+  asan-ubsan-arm64:
+    name: ASan + UBSan · Clang 18 · aarch64
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install Clang 18
+      run: wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s 18
+
+    - name: Configure (ASan + UBSan)
+      run: >
+        cmake -B build
+        -DCMAKE_BUILD_TYPE=Debug
+        -DQBUEM_JSON_BUILD_TESTS=ON
+        -DQBUEM_JSON_BUILD_BENCHMARKS=OFF
+        -DCMAKE_CXX_COMPILER=clang++-18
+        -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+
+    - name: Build
+      run: cmake --build build -j2
+
+    - name: Test (ASan + UBSan)
+      working-directory: build
+      env:
+        ASAN_OPTIONS: "halt_on_error=1:detect_leaks=1:abort_on_error=1"
+        UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1:abort_on_error=1"
+      run: ctest --output-on-failure --timeout 300
+
+  # ── ThreadSanitizer ───────────────────────────────────────────────────────
+  # TSan detects: data races, lock-order inversions, use of uninitialised mutexes.
+  # Note: TSan is incompatible with ASan; they run in separate jobs.
+  tsan:
+    name: TSan · Clang 18 · x86_64
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install Clang 18
+      run: wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s 18
+
+    - name: Configure (TSan)
+      run: >
+        cmake -B build
+        -DCMAKE_BUILD_TYPE=Debug
+        -DQBUEM_JSON_BUILD_TESTS=ON
+        -DQBUEM_JSON_BUILD_BENCHMARKS=OFF
+        -DCMAKE_CXX_COMPILER=clang++-18
+        -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer -g"
+
+    - name: Build
+      run: cmake --build build -j2
+
+    - name: Test (TSan)
+      working-directory: build
+      env:
+        TSAN_OPTIONS: "halt_on_error=1:abort_on_error=1"
+      run: ctest --output-on-failure --timeout 300
+
+  # ── ThreadSanitizer · ARM64 ───────────────────────────────────────────────
+  # Covers NEON-path data races separately from x86_64.
+  tsan-arm64:
+    name: TSan · Clang 18 · aarch64
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install Clang 18
+      run: wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s 18
+
+    - name: Configure (TSan)
+      run: >
+        cmake -B build
+        -DCMAKE_BUILD_TYPE=Debug
+        -DQBUEM_JSON_BUILD_TESTS=ON
+        -DQBUEM_JSON_BUILD_BENCHMARKS=OFF
+        -DCMAKE_CXX_COMPILER=clang++-18
+        -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer -g"
+
+    - name: Build
+      run: cmake --build build -j2
+
+    - name: Test (TSan)
+      working-directory: build
+      env:
+        TSAN_OPTIONS: "halt_on_error=1:abort_on_error=1"
+      run: ctest --output-on-failure --timeout 300
+
+  # ── AddressSanitizer + UndefinedBehaviorSanitizer · Apple Silicon ─────────
+  # Apple Silicon runs the same NEON code path as Linux ARM64 but under Darwin:
+  # different allocator, syscall ABI, and Apple Clang sanitizer runtime — bugs
+  # that are silent on Linux aarch64 can surface here and vice-versa.
+  # Note: LeakSanitizer is not supported on macOS; detect_leaks is omitted.
+  asan-ubsan-apple-silicon:
+    name: ASan + UBSan · Apple Clang · Apple Silicon
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Configure (ASan + UBSan)
+      run: >
+        cmake -B build
+        -DCMAKE_BUILD_TYPE=Debug
+        -DQBUEM_JSON_BUILD_TESTS=ON
+        -DQBUEM_JSON_BUILD_BENCHMARKS=OFF
+        -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g"
+
+    - name: Build
+      run: cmake --build build -j3
+
+    - name: Test (ASan + UBSan)
+      working-directory: build
+      env:
+        ASAN_OPTIONS: "halt_on_error=1:abort_on_error=1"
+        UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1:abort_on_error=1"
+      run: ctest --output-on-failure --timeout 300
+
+  # ── ThreadSanitizer · Apple Silicon ──────────────────────────────────────
+  tsan-apple-silicon:
+    name: TSan · Apple Clang · Apple Silicon
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Configure (TSan)
+      run: >
+        cmake -B build
+        -DCMAKE_BUILD_TYPE=Debug
+        -DQBUEM_JSON_BUILD_TESTS=ON
+        -DQBUEM_JSON_BUILD_BENCHMARKS=OFF
+        -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer -g"
+
+    - name: Build
+      run: cmake --build build -j3
+
+    - name: Test (TSan)
+      working-directory: build
+      env:
+        TSAN_OPTIONS: "halt_on_error=1:abort_on_error=1"
+      run: ctest --output-on-failure --timeout 300

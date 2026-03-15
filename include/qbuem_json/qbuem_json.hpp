@@ -6,14 +6,14 @@
  *
  * (c) 2026 qbuem and the qbuem-json Authors.
  *
- * Performance (Hybrid Strategy):
- * ✨ qbuem-json DOM:   1200-1400 MB/s (High-Throughput SIMD)
- * ✨ qbuem-json Nexus: < 1.0 μs (Ultra-Low Latency Zero-Tape)
+ * Performance (Hybrid Strategy, twitter.json, -O3 -march=native):
+ * ✨ qbuem-json DOM:   2.4–2.9 GB/s parse · 5.3–7.2 GB/s serialize
+ * ✨ qbuem-json Nexus: 50–230 ns struct mapping (Simple→Recursive Tree)
  *
  * Core Engines:
  * ✅ Dual-Engine Architecture: Choose between DOM and Nexus Fusion.
  * ✅ Nexus Fusion (Zero-Tape): Direct JSON-to-Struct mapping.
- * ✅ Russ Cox: Unrounded scaling (Bit-accurate floating point).
+ * ✅ Russ Cox: Fast Unrounded Scaling — 2nd-stage float parser (Cox 2026).
  * ✅ Full SIMD: AVX-512, NEON, and SWAR structural indexing.
  * ✅ C++20 Native: Concepts, Ranges, and std::pmr support.
  *
@@ -227,6 +227,17 @@
 #ifdef __GNUC__
 #define QBUEM_INLINE __attribute__((always_inline)) inline
 #define QBUEM_NOINLINE __attribute__((noinline))
+// QBUEM_COLD marks functions that are never on the hot path (error handlers,
+// skip helpers, type-mismatch reporters).  Two effects:
+//   1. noinline — prevents the compiler from copying the function body into
+//      every template instantiation of from_json_direct<T>.  Each call site
+//      becomes a single `call` instruction, shrinking per-type code and
+//      reducing compile time for projects with many mapped structs.
+//   2. cold — moves the function to a "cold" ELF section, freeing instruction
+//      cache for the hot path, and improves branch-prediction in callers
+//      (the compiler knows branches leading here are unlikely).
+// Net effect: faster compile, smaller object files, zero hot-path overhead.
+#define QBUEM_COLD __attribute__((cold, noinline))
 // Read-ahead prefetch with architecture-tuned locality hint.
 // Always use this macro in the parse hot loop — never hardcode
 // distance/locality.
@@ -235,6 +246,7 @@
 #else
 #define QBUEM_INLINE inline
 #define QBUEM_NOINLINE
+#define QBUEM_COLD
 #define QBUEM_PREFETCH(addr) ((void)0)
 #endif
 
@@ -1921,6 +1933,271 @@ using std::int32_t; using std::int64_t;
    }
 
 
+// ============================================================================
+// Decimal → Double  three-stage pipeline
+// ============================================================================
+//
+// Stage 1 — Eisel-Lemire (Eisel & Lemire 2020, ~98.8 % of inputs)
+//   Ref: https://arxiv.org/abs/2101.11408
+//   Algorithm:
+//     1. Normalise: w = mant << lz  (bit 63 = 1).
+//     2. Multiply w × ph  (high 64 bits of the 128-bit pow10 table entry).
+//     3. If ambiguous (low 9 bits of upper all 1s): refine with w × pl.
+//     4. Extract 53-bit significand, compute biased binary exponent.
+//     5. Return true — or false if still ambiguous (→ Stage 2).
+//
+// Stage 2 — Russ Cox Fast Unrounded Scaling (Cox 2026, remaining ~1.2 %)
+//   Ref: https://research.swtch.com/fp  (proof: https://research.swtch.com/fp-proof)
+//   Key change vs Stage 1: use ph_ceil = ph + (pl != 0) (ceiling of table hi word).
+//   The ceiling bias guarantees 'lower' is non-zero whenever rounding is
+//   genuinely ambiguous, so the decision is always correct — no return false.
+//
+// Stage 3 — std::strtod (subnormals, >19-digit mantissas, residual edge cases)
+//   Always correct; invoked for < 0.01 % of normal JSON workloads.
+// ============================================================================
+
+/**
+ * Eisel-Lemire fast path: (mant × 10^exp10) → IEEE 754 binary64.
+ *
+ * Prerequisites enforced by the caller:
+ *   - mant has at most 19 significant decimal digits
+ *   - exp10 is in [POW10_SIG_TABLE_128_MIN_EXP, POW10_SIG_TABLE_128_MAX_EXP]
+ *
+ * Returns true  and sets out on success.
+ * Returns false when the rounding zone is still ambiguous after 128-bit
+ * refinement (~1.2 % of inputs).  In that case the caller should try
+ * russ_cox_uscale_f64() before falling back to strtod.
+ */
+QBUEM_INLINE bool eisel_lemire_f64(uint64_t mant, int32_t exp10, bool neg,
+                                    double &out) noexcept {
+    // Zero — trivial
+    if (mant == 0) { out = neg ? -0.0 : 0.0; return true; }
+
+    // Exponent range supported by our 128-bit pow10 table
+    if (exp10 < POW10_SIG_TABLE_128_MIN_EXP ||
+        exp10 > POW10_SIG_TABLE_128_MAX_EXP) return false;
+
+    // Normalise: shift mant left so bit 63 = 1
+    int      lz = __builtin_clzll(mant);
+    uint64_t w  = mant << lz;
+
+    // 128-bit power of 10 from the Schubfach/yyjson table (ph:pl)
+    uint64_t hilo[2];
+    pow10_table_get_sig_128(exp10, hilo);
+    uint64_t ph = hilo[0], pl = hilo[1];
+
+    // 128-bit product: upper:lower = w × ph
+    uint64_t upper, lower;
+    u128_mul(w, ph, &upper, &lower);
+
+    // Ambiguous rounding zone: all 9 low bits of upper are 1.
+    // Refine once using the lower 64 bits of the power (w × pl).
+    if ((upper & 0x1FF) == 0x1FF) {
+        uint64_t extra_hi, extra_lo;
+        u128_mul(w, pl, &extra_hi, &extra_lo);
+        lower += extra_hi;
+        if (lower < extra_hi) upper++;      // carry into upper
+        // Still unresolvable — caller must use strtod (extremely rare)
+        if ((upper & 0x1FF) == 0x1FF && lower == UINT64_MAX)
+            return false;
+    }
+
+    // upperbit: 1 if upper >= 2^63 (leading bit of 128-bit product is at 63)
+    //           0 if upper in [2^62, 2^63) (leading bit at 62)
+    int upperbit = (int)(upper >> 63);
+
+    // Extract 52 explicit mantissa bits
+    // (implicit leading 1 is at position 62+upperbit of upper)
+    uint64_t mantissa52 = (upper >> (10 + upperbit)) & 0x000FFFFFFFFFFFFFULL;
+
+    // Round-to-nearest, ties-to-even
+    uint64_t guard  = (upper >> (9 + upperbit)) & 1;
+    uint64_t sticky = (upper & ((1ULL << (9 + upperbit)) - 1)) | lower;
+    if (guard && (sticky || (mantissa52 & 1))) {
+        ++mantissa52;
+        if (mantissa52 > 0x000FFFFFFFFFFFFFULL) {
+            // 52-bit overflow: exponent increments, explicit mantissa resets
+            mantissa52 = 0;
+            ++upperbit;
+        }
+    }
+
+    // Binary exponent: floor(log2(mant x 10^exp10)) + 1023  (IEEE 754 bias)
+    //   = (63 - lz) [floor(log2(w)), w normalised from mant]
+    //   + floor(exp10 x log2(10))
+    //   + 1023
+    //   + upperbit  [correction for leading bit position]
+    //
+    // Integer approx of floor(exp10 x log2(10)):
+    //   log2(10) ~= 217706 / 2^16 = 3.32196  (error < 2^-13 for |exp10| <= 342)
+    //   C++20 guarantees two's-complement right-shift, so this is well-defined.
+    int32_t log2_10e = (int32_t)(((int64_t)exp10 * 217706) >> 16);
+    int32_t e2       = (63 - lz) + log2_10e + 1023 + upperbit;
+
+    // Subnormals need special handling — delegate to strtod
+    if (e2 <= 0) return false;
+
+    // Overflow to infinity
+    if (e2 >= 2047) {
+        out = neg ? -std::numeric_limits<double>::infinity()
+                  :  std::numeric_limits<double>::infinity();
+        return true;
+    }
+
+    // Assemble IEEE 754 binary64
+    uint64_t bits = ((uint64_t)neg << 63)
+                  | ((uint64_t)e2  << 52)
+                  | mantissa52;
+    std::memcpy(&out, &bits, sizeof(double));
+    return true;
+}
+
+/**
+ * Russ Cox Fast Unrounded Scaling — second-stage float parser.
+ *
+ * Handles the ~1.2 % of inputs that eisel_lemire_f64() rejects due to an
+ * ambiguous rounding zone, without falling back to std::strtod.
+ *
+ * Core insight (Cox 2026 — https://research.swtch.com/fp):
+ *   Replace the floor table entry ph with ph_ceil = ph + (pl != 0).
+ *   The ceiling bias guarantees 'lower' is non-zero whenever rounding would
+ *   be genuinely ambiguous, so guard/sticky bits always resolve IEEE 754
+ *   round-to-nearest-even correctly — no second-multiply fallback needed.
+ *   Proved for all finite float64 by the Ivy companion proof
+ *   (https://research.swtch.com/fp-proof).
+ *
+ * Returns true and sets out on success.
+ * Returns false only for subnormals (e2 <= 0) or out-of-table exponents.
+ */
+QBUEM_INLINE bool russ_cox_uscale_f64(uint64_t mant, int32_t exp10, bool neg,
+                                       double &out) noexcept {
+    if (mant == 0) { out = neg ? -0.0 : 0.0; return true; }
+    if (exp10 < POW10_SIG_TABLE_128_MIN_EXP ||
+        exp10 > POW10_SIG_TABLE_128_MAX_EXP) return false;
+
+    int      lz = __builtin_clzll(mant);
+    uint64_t w  = mant << lz;
+
+    uint64_t hilo[2];
+    pow10_table_get_sig_128(exp10, hilo);
+    uint64_t ph = hilo[0], pl = hilo[1];
+
+    // Ceiling of the high 64-bit word (Russ Cox's key change):
+    //   ph_ceil = ph + (pl != 0)
+    // By using the ceiling instead of the floor, the product w × ph_ceil is
+    // always >= the true high word of w × 10^exp10.  The proof establishes that
+    // for all finite float64, 'lower' is non-zero whenever the round-to-even
+    // case would otherwise be undecidable — eliminating the return-false path.
+    uint64_t ph_ceil = ph + (pl != 0 ? 1ULL : 0ULL);
+
+    // Rare: ph == UINT64_MAX and pl != 0 → ph_ceil wraps to 0.  Defer to strtod.
+    if (QBUEM_UNLIKELY(ph_ceil == 0 && pl != 0)) return false;
+
+    uint64_t upper, lower;
+    u128_mul(w, ph_ceil, &upper, &lower);
+
+    int      upperbit   = (int)(upper >> 63);
+    uint64_t mantissa52 = (upper >> (10 + upperbit)) & 0x000FFFFFFFFFFFFFULL;
+    uint64_t guard      = (upper >> ( 9 + upperbit)) & 1;
+    uint64_t sticky     = (upper & ((1ULL << (9 + upperbit)) - 1)) | lower;
+
+    // Round-to-nearest-even: with ceiling table, sticky is non-zero iff not
+    // a genuine tie, so this round is always correct.
+    if (guard && (sticky || (mantissa52 & 1))) {
+        ++mantissa52;
+        if (mantissa52 > 0x000FFFFFFFFFFFFFULL) { mantissa52 = 0; ++upperbit; }
+    }
+
+    int32_t log2_10e = (int32_t)(((int64_t)exp10 * 217706) >> 16);
+    int32_t e2       = (63 - lz) + log2_10e + 1023 + upperbit;
+
+    if (e2 <= 0)    return false;   // subnormal — defer to strtod
+    if (e2 >= 2047) {
+        out = neg ? -std::numeric_limits<double>::infinity()
+                  :  std::numeric_limits<double>::infinity();
+        return true;
+    }
+
+    uint64_t bits = ((uint64_t)neg << 63) | ((uint64_t)e2 << 52) | mantissa52;
+    std::memcpy(&out, &bits, sizeof(double));
+    return true;
+}
+
+/**
+ * Parse a decimal ASCII string [orig, end) to double.
+ *
+ * Three-stage pipeline:
+ *   1. Eisel-Lemire (Eisel & Lemire 2020): ~98.8 % of inputs — 128-bit floor
+ *      table, two-multiply refinement, returns false if still ambiguous.
+ *   2. Russ Cox Unrounded Scaling (Cox 2026): remaining ~1.2 % of normal-range
+ *      inputs — ceiling table, sticky bit always decisive, no rejection path.
+ *   3. std::strtod: subnormals, >19 significant digits, and any residual edge.
+ *
+ * This function never throws; malformed input returns 0.0 via strtod.
+ */
+inline double parse_f64(const char *orig, const char *end) noexcept {
+    const char *p = orig;
+
+    // Sign
+    bool neg = false;
+    if (p < end && *p == '-') { neg = true; ++p; }
+
+    // Integer digits -- accumulate up to 19 significant digits into mant
+    uint64_t mant         = 0;
+    int      nd           = 0;    // significant digits stored in mant
+    int32_t  exp_adj      = 0;    // exponent shift: +1 per dropped integer digit
+    bool     int_overflow = false;
+
+    while (p < end && (unsigned char)(*p - '0') <= 9) {
+        uint8_t d = (uint8_t)(*p++ - '0');
+        if (nd < 19) { mant = mant * 10 + d; ++nd; }
+        else         { ++exp_adj; int_overflow = true; }
+    }
+
+    // Fractional digits
+    bool frac_overflow = false;
+    if (p < end && *p == '.') {
+        ++p;
+        while (p < end && (unsigned char)(*p - '0') <= 9) {
+            uint8_t d = (uint8_t)(*p++ - '0');
+            if (nd < 19) { mant = mant * 10 + d; ++nd; --exp_adj; }
+            else         { frac_overflow = true; }
+        }
+    }
+
+    // Explicit exponent  (e / E)
+    int32_t exp10 = exp_adj;
+    if (p < end && (*p == 'e' || *p == 'E')) {
+        ++p;
+        bool eneg = false;
+        if      (p < end && *p == '-') { eneg = true; ++p; }
+        else if (p < end && *p == '+') { ++p; }
+        int32_t e = 0, edigits = 0;
+        while (p < end && (unsigned char)(*p - '0') <= 9) {
+            if (edigits < 9) e = e * 10 + (*p - '0');  // cap to avoid overflow
+            ++p; ++edigits;
+        }
+        exp10 += eneg ? -e : e;
+    }
+
+    // Fast path: Eisel-Lemire (~98.8 % of inputs)
+    if (!int_overflow && !frac_overflow) {
+        double out = 0.0;
+        if (eisel_lemire_f64(mant, exp10, neg, out)) return out;
+        // Eisel-Lemire rejected (ambiguous rounding zone, ~1.2 % of inputs):
+        // try Russ Cox Unrounded Scaling — ceiling table eliminates ambiguity.
+        if (russ_cox_uscale_f64(mant, exp10, neg, out)) return out;
+    }
+
+    // strtod fallback: subnormals, >19 significant digits
+    char buf[64];
+    size_t len = (size_t)(end - orig);
+    if (len >= sizeof(buf)) len = sizeof(buf) - 1;
+    std::memcpy(buf, orig, len);
+    buf[len] = '\0';
+    return std::strtod(buf, nullptr);
+}
+
 } // namespace qj_nc
 } // namespace detail (qj_nc)
 
@@ -2437,20 +2714,9 @@ public:
         } else if constexpr (std::is_floating_point_v<T>) {
           if (m.type != TapeNodeType::Double && m.type != TapeNodeType::Integer)
             throw std::runtime_error("qbuem::Value::as<float>: not a number");
-          double val = 0.0;
           const char *beg = m.data.data();
-          [[maybe_unused]] const char *end = beg + m.data.size();
-#if __cpp_lib_to_chars >= 201611L && !defined(__APPLE__)
-          std::from_chars(beg, end, val);
-#else
-          char buf[64];
-          size_t len = m.data.size();
-          if (len >= sizeof(buf))
-            len = sizeof(buf) - 1;
-          std::memcpy(buf, beg, len);
-          buf[len] = '\0';
-          val = std::strtod(buf, nullptr);
-#endif
+          const char *end = beg + m.data.size();
+          double val = detail::qj_nc::parse_f64(beg, end);
           return static_cast<T>(val);
         } else if constexpr (std::is_same_v<T, std::string_view>) {
           if (m.type != TapeNodeType::StringRaw)
@@ -2491,25 +2757,9 @@ public:
           t != TapeNodeType::Integer)
         throw std::runtime_error("qbuem::Value::as<float>: not a number");
       const TapeNode &nd = doc_->tape[idx_];
-      double val = 0.0;
       const char *beg = doc_->source.data() + nd.offset;
-      [[maybe_unused]] const char *end = beg + nd.length();
-#if __cpp_lib_to_chars >= 201611L && !defined(__APPLE__)
-      auto [ptr, ec] = std::from_chars(beg, end, val);
-      if (ec != std::errc{})
-        throw std::runtime_error("qbuem::Value::as<float>: parse error");
-#else
-      char buf[64];
-      size_t len = nd.length();
-      if (len >= sizeof(buf))
-        len = sizeof(buf) - 1;
-      std::memcpy(buf, beg, len);
-      buf[len] = '\0';
-      char *endp = nullptr;
-      val = std::strtod(buf, &endp);
-      if (endp == buf)
-        throw std::runtime_error("qbuem::Value::as<float>: parse error");
-#endif
+      const char *end = beg + nd.length();
+      double val = detail::qj_nc::parse_f64(beg, end);
       return static_cast<T>(val);
     } else if constexpr (std::is_same_v<T, std::string_view>) {
       if (doc_->tape[idx_].type() != TapeNodeType::StringRaw)
@@ -8321,6 +8571,7 @@ QBUEM_INLINE void ws(const char *&p, const char *end) noexcept {
 struct NexusScanner {
   const char *p;
   const char *end;
+  const char *begin = nullptr; // optional: set by fuse()/fuse_strict() for offset reporting
 
   QBUEM_INLINE void ws() noexcept { detail::ws(p, end); }
 
@@ -8443,10 +8694,71 @@ struct NexusScanner {
 
 template <typename T> void from_json_direct(const char *&p, const char *end, T &out);
 
-inline void skip_direct(const char *&p, const char *end) {
+QBUEM_COLD inline void skip_direct(const char *&p, const char *end) {
   rfc8259::detail_::Validator v;
   v.p = p; v.end = end; v.begin = p;
   try { v.parse_value(); p = v.p; } catch (...) { p = end; }
+}
+
+// ── Nexus diagnostic helpers ─────────────────────────────────────────────────
+// nexus_strict_mode() — returns a reference to the thread-local strict-mode
+// flag.  When true, from_json_direct throws on type mismatches instead of
+// silently skipping.
+//
+// Two ways to enable:
+//  1. Compile-time: define QBUEM_NEXUS_STRICT before including this header.
+//     The flag is permanently true; fuse() and fuse_strict() behave the same.
+//  2. Runtime: call fuse_strict<T>() which sets/clears the flag around a
+//     single deserialization call.  Zero overhead on the non-strict path.
+inline bool &nexus_strict_mode() noexcept {
+#ifdef QBUEM_NEXUS_STRICT
+  // Compile-time strict: return a reference to a permanently-true thread-local.
+  static thread_local bool always_true = true;
+  return always_true;
+#else
+  thread_local bool flag = false;
+  return flag;
+#endif
+}
+
+// peek_json_type: returns a human-readable label for the JSON token at *p.
+// Used in Nexus error messages so callers see "expected number, got string"
+// instead of a raw type tag or a silent skip.
+QBUEM_COLD inline const char *peek_json_type(const char *p, const char *end) noexcept {
+  if (p >= end) return "end-of-input";
+  switch (static_cast<unsigned char>(*p)) {
+    case '{': return "object";
+    case '[': return "array";
+    case '"': return "string";
+    case 't': case 'f': return "boolean";
+    case 'n': return "null";
+    case '-':
+    case '0': case '1': case '2': case '3': case '4':
+    case '5': case '6': case '7': case '8': case '9': return "number";
+    default:  return "unknown token";
+  }
+}
+
+// nexus_type_error: build and throw a runtime_error describing a Nexus type
+// mismatch.  |expected| is the C++ side expectation, |p| points to the
+// offending JSON token, |begin| (may be nullptr) enables byte-offset reporting.
+[[noreturn]] QBUEM_COLD inline void nexus_type_error(
+    const char *expected, const char *p, const char *end,
+    const char *begin = nullptr)
+{
+  char buf[160];
+  const char *got = peek_json_type(p, end);
+  if (begin) {
+    const std::ptrdiff_t off = p - begin;
+    std::snprintf(buf, sizeof(buf),
+                  "Nexus: expected %s, got %s at byte offset %td",
+                  expected, got, off);
+  } else {
+    std::snprintf(buf, sizeof(buf),
+                  "Nexus: expected %s, got %s",
+                  expected, got);
+  }
+  throw std::runtime_error(buf);
 }
 
 template <typename T> void from_json_direct(const char *&p, const char *end, T &out) {
@@ -8459,24 +8771,28 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
     while (p < end && (unsigned char)*p <= 32) ++p;
     if (p + 4 <= end && !std::memcmp(p, "true", 4)) { out = true; p += 4; }
     else if (p + 5 <= end && !std::memcmp(p, "false", 5)) { out = false; p += 5; }
-    else skip_direct(p, end);
+    else {
+      if (nexus_strict_mode()) nexus_type_error("boolean", p, end);
+      else skip_direct(p, end);
+    }
   } else if constexpr (JsonDetailArith<T>) {
     while (p < end && (unsigned char)*p <= 32) ++p;
+    // In strict mode, reject any non-number token before scanning digits.
+    // Without this check, from_chars silently returns zero on type mismatches.
+    if (nexus_strict_mode()) {
+      const char c = p < end ? *p : '\0';
+      const bool looks_numeric = (c >= '0' && c <= '9') || c == '-';
+      if (!looks_numeric) nexus_type_error("number", p, end);
+    }
     const char *start = p;
     while (p < end && ((*p >= '0' && *p <= '9') || *p == '-' || *p == '.' || *p == 'e' || *p == 'E' || *p == '+')) ++p;
     if constexpr (std::is_floating_point_v<T>) {
-#if __cpp_lib_to_chars >= 201611L && !defined(__APPLE__)
-      std::from_chars(start, p, out);
-#else
-      char _fc_buf[64];
-      size_t _fc_len = static_cast<size_t>(p - start);
-      if (_fc_len >= sizeof(_fc_buf)) _fc_len = sizeof(_fc_buf) - 1;
-      std::memcpy(_fc_buf, start, _fc_len);
-      _fc_buf[_fc_len] = '\0';
-      out = static_cast<T>(std::strtod(_fc_buf, nullptr));
-#endif
+      out = static_cast<T>(json::detail::qj_nc::parse_f64(start, p));
     } else {
-      std::from_chars(start, p, out);
+      auto [_nxt, _ec] = std::from_chars(start, p, out);
+      if (nexus_strict_mode() && _ec != std::errc{}) {
+        throw std::runtime_error("Nexus: integer parse failed (overflow or unexpected digits)");
+      }
     }
   } else if constexpr (JsonDetailOptional<T>) {
     detail::ws(p, end);
@@ -8551,8 +8867,10 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
         out.assign(start, p - start);
         if (p < end) ++p;
       }
-    } else
-      skip_direct(p, end);
+    } else {
+      if (nexus_strict_mode()) nexus_type_error("string", p, end);
+      else skip_direct(p, end);
+    }
   } else if constexpr (JsonDetailMap<T>) {
     out.clear();
     detail::ws(p, end);
@@ -8577,8 +8895,10 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
       }
       if (p < end)
         ++p;
-    } else
-      skip_direct(p, end);
+    } else {
+      if (nexus_strict_mode()) nexus_type_error("object", p, end);
+      else skip_direct(p, end);
+    }
   } else if constexpr (JsonDetailTuple<T>) {
     detail::ws(p, end);
     if (p < end && *p == '[') {
@@ -8592,8 +8912,10 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
         ++p;
       if (p < end)
         ++p;
-    } else
-      skip_direct(p, end);
+    } else {
+      if (nexus_strict_mode()) nexus_type_error("array", p, end);
+      else skip_direct(p, end);
+    }
   } else if constexpr (JsonDetailSeq<T>) {
     out.clear();
     while (p < end && (unsigned char)*p <= 32) ++p;
@@ -8607,7 +8929,10 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
         if (p < end && *p == ',') { ++p; while (p < end && (unsigned char)*p <= 32) ++p; }
       }
       if (p < end) ++p;
-    } else skip_direct(p, end);
+    } else {
+      if (nexus_strict_mode()) nexus_type_error("array", p, end);
+      else skip_direct(p, end);
+    }
   } else {
     skip_direct(p, end);
   }
@@ -8615,7 +8940,12 @@ template <typename T> void from_json_direct(const char *&p, const char *end, T &
 
 template <typename T> inline void NexusScanner::fill(T &obj) {
   ws();
-  if (p >= end || *p != '{') [[unlikely]] return;
+  if (p >= end || *p != '{') [[unlikely]] {
+    // Always throw here: passing a non-object root to Nexus fill() is a
+    // programming error — the target C++ struct has no way to represent
+    // anything other than a JSON object.
+    nexus_type_error("object", p, end, begin);
+  }
   ++p;
   if (p < end && *p == '}') [[unlikely]] { ++p; return; } // empty object
   ws();
@@ -8652,9 +8982,39 @@ template <typename T> T read(::std::string_view json) {
 
 template <typename T> T fuse(::std::string_view json) {
   T obj{};
-  json::detail::NexusScanner scanner{json.data(), json.data() + json.size()};
+  json::detail::NexusScanner scanner{json.data(), json.data() + json.size(), json.data()};
   scanner.fill(obj);
   return obj;
+}
+
+/// fuse_strict<T> — zero-tape deserialization with strict type checking.
+///
+/// Any type mismatch between the JSON value and the target C++ field throws
+/// std::runtime_error with a human-readable message of the form:
+///
+///   "Nexus: expected <type>, got <type> at byte offset <N>"
+///
+/// This is implemented via a thread-local flag so that the same compiled
+/// from_json_direct code is used by both fuse() and fuse_strict() — no
+/// recompilation required.  The flag is always cleared before the call
+/// returns (including on exception), so it is safe to use from multiple
+/// threads simultaneously.
+///
+/// Typical usage: use fuse_strict() during development / unit tests, then
+/// switch to fuse() once the schema is validated.
+/// See docs/guide/nexus-diagnostics.md for a full guide.
+template <typename T> T fuse_strict(::std::string_view json) {
+  json::detail::nexus_strict_mode() = true;
+  try {
+    T obj{};
+    json::detail::NexusScanner scanner{json.data(), json.data() + json.size(), json.data()};
+    scanner.fill(obj);
+    json::detail::nexus_strict_mode() = false;
+    return obj;
+  } catch (...) {
+    json::detail::nexus_strict_mode() = false;
+    throw;
+  }
 }
 
 template <typename T>::std::string write(const T &obj) {

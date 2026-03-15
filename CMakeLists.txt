@@ -8,7 +8,6 @@ add_library(qbuem_json::qbuem_json ALIAS qbuem_json)
 # Include Directories
 target_include_directories(qbuem_json INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external> # For sse2neon.h
     $<INSTALL_INTERFACE:include>
 )
 
@@ -26,7 +25,6 @@ install(TARGETS qbuem_json
 )
 
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES external/sse2neon.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/qbuem_json/external)
 
 # Export Configuration
 install(EXPORT qbuem_jsonTargets
