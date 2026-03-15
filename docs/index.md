@@ -95,8 +95,8 @@ features:
   <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📊</div>
   <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">Parsing throughput</div>
   <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">
-    twitter.json (631 KB) · from <a href="/guide/benchmarks">live CI results</a>:<br>
-    x86_64 GCC 13: <strong>2.0 GB/s</strong><br>
+    twitter.json (617 KB) · from <a href="/guide/benchmarks">live CI results</a>:<br>
+    x86_64 GCC 13: <strong>2.9 GB/s</strong><br>
     Linux aarch64 GCC 14: <strong>2.4 GB/s</strong><br>
     Apple Silicon: <strong>2.5 GB/s</strong>
   </div>
@@ -106,8 +106,8 @@ features:
   <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🏎️</div>
   <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">Serialization throughput</div>
   <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">
-    twitter.json (631 KB) · from <a href="/guide/benchmarks">live CI results</a>:<br>
-    x86_64 GCC 13: <strong>3.4 GB/s</strong><br>
+    twitter.json (617 KB) · from <a href="/guide/benchmarks">live CI results</a>:<br>
+    x86_64 GCC 13: <strong>5.3 GB/s</strong><br>
     Linux aarch64 GCC 14: <strong>6.1 GB/s</strong><br>
     Apple Silicon: <strong>7.2 GB/s</strong>
   </div>

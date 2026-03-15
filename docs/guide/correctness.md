@@ -48,7 +48,7 @@ reproduce locally.
 | Signal | Status | Details |
 |:---|:---:|:---|
 | Total tests | **521** | 20 test files, 5,556 lines |
-| RFC 8259 compliance tests | **73** | y_ accept · n_ reject · i_ implementation-defined |
+| RFC 8259 compliance tests | **73** | 23 accept · 24 reject · 8 impl-defined · 3 roundtrip · 3 API |
 | RFC 6901 JSON Pointer | ✅ | Pointer navigation + edge cases |
 | RFC 6902 JSON Patch | ✅ | add / remove / replace / move / copy / test ops, transactional rollback |
 | AddressSanitizer (ASan) | ✅ CI | [sanitizers.yml](https://github.com/qbuem/qbuem-json/actions/workflows/sanitizers.yml) |
@@ -63,14 +63,19 @@ reproduce locally.
 
 ## RFC 8259 compliance
 
-qbuem-json ships 73 RFC 8259 test cases in `tests/test_compliance.cpp` following
-the [JSONTestSuite](https://github.com/nst/JSONTestSuite) naming convention:
+qbuem-json ships 73 compliance test cases in `tests/test_compliance.cpp`.
+Test suite names map to JSONTestSuite semantics:
 
-| Prefix | Meaning | Count |
+| Suite | Meaning | Count |
 |:---|:---|---:|
-| `y_` | **Must accept** — valid JSON; parser must not throw | 45 |
-| `n_` | **Must reject** — invalid JSON; `parse_strict()` must throw | 22 |
-| `i_` | **Implementation-defined** — we document our choice | 6 |
+| `RFC8259_Accept` | **Must accept** — valid JSON; parser must not throw | 23 |
+| `RFC8259_Reject` | **Must reject** — invalid JSON; `parse_strict()` must throw | 24 |
+| `RFC8259_ImplDefined` | **Implementation-defined** — we document our choice | 8 |
+| `RFC8259_Roundtrip` | Parse → serialize → re-parse equality | 3 |
+| `RFC8259_API` | API-level compliance (lenient vs strict mode) | 3 |
+| `RFC6901_Pointer` | JSON Pointer navigation and edge cases | 3 |
+| `RFC6902_Patch` | JSON Patch operations + transactional rollback | 9 |
+| **Total** | | **73** |
 
 ### What is tested
 

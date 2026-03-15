@@ -6,9 +6,9 @@
  *
  * (c) 2026 qbuem and the qbuem-json Authors.
  *
- * Performance (Hybrid Strategy):
- * ✨ qbuem-json DOM:   1200-1400 MB/s (High-Throughput SIMD)
- * ✨ qbuem-json Nexus: < 1.0 μs (Ultra-Low Latency Zero-Tape)
+ * Performance (Hybrid Strategy, twitter.json, -O3 -march=native):
+ * ✨ qbuem-json DOM:   2.4–2.9 GB/s parse · 5.3–7.2 GB/s serialize
+ * ✨ qbuem-json Nexus: 50–230 ns struct mapping (Simple→Recursive Tree)
  *
  * Core Engines:
  * ✅ Dual-Engine Architecture: Choose between DOM and Nexus Fusion.
