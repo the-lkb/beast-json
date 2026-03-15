@@ -4,12 +4,7 @@ import sys
 import os
 from pathlib import Path
 
-# Paths
-BUILD_DIR = Path("build")
-PY_BINDINGS_DIR = BUILD_DIR / "bindings" / "python"
-C_BINDINGS_DIR = BUILD_DIR / "bindings" / "c"
-
-sys.path.append(str(PY_BINDINGS_DIR))
+# Paths - Rely on PYTHONPATH for extensions
 sys.path.append("bindings/python")
 
 # Try to import both

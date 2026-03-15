@@ -90,6 +90,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=Release
         -DQBUEM_JSON_BUILD_TESTS=OFF
         -DQBUEM_JSON_BUILD_BENCHMARKS=ON
+        -DQBUEM_JSON_BUILD_BINDINGS=ON
         -DQBUEM_DISABLE_LTO=ON
         -DCMAKE_C_COMPILER_LAUNCHER=ccache
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
@@ -129,16 +130,19 @@ jobs:
       run: |
         echo "##section bindings" >> ../../build_bench/benchmarks/bench_output.txt
         echo "=== Go Bindings ===" >> ../../build_bench/benchmarks/bench_output.txt
-        DYLD_LIBRARY_PATH=../../build_bench/bindings/c LD_LIBRARY_PATH=../../build_bench/bindings/c \
+        # Set paths to the built C API library
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/../../build_bench/bindings/c
+        export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$(pwd)/../../build_bench/bindings/c
         go test -bench=. -benchmem qbuem_bench_test.go qbuem_json.go marshal.go decode.go | \
-        awk '/BenchmarkQbuemJSON/ { p=$3 } \
-             /BenchmarkQbuemDump/ { s=$3 } \
-             /BenchmarkStandardJSON/ { sp=$3 } \
-             /BenchmarkStandardMarshal/ { ss=$3 } \
-             END { \
-               printf "qbuem-json (Go) | Parse: %.2f us | Serialize: %.2f us | Alloc: 0 KB\n", p/1000, s/1000; \
-               printf "encoding/json (Go) | Parse: %.2f us | Serialize: %.2f us | Alloc: 0 KB\n", sp/1000, ss/1000; \
-             }' \
+        awk '
+          /BenchmarkQbuemJSON/ { p=$3 }
+          /BenchmarkQbuemDump/ { s=$3 }
+          /BenchmarkStandardJSON/ { sp=$3 }
+          /BenchmarkStandardMarshal/ { ss=$3 }
+          END {
+            if (p>0) printf "qbuem-json (Go) | Parse: %.2f us | Serialize: %.2f us | Alloc: 0 KB\n", p/1000, s/1000;
+            if (sp>0) printf "encoding/json (Go) | Parse: %.2f us | Serialize: %.2f us | Alloc: 0 KB\n", sp/1000, ss/1000;
+          }' \
         >> ../../build_bench/benchmarks/bench_output.txt || true
 
     - name: Run Rust benchmarks
@@ -146,17 +150,21 @@ jobs:
       run: |
         echo "##section bindings" >> ../../build_bench/benchmarks/bench_output.txt
         echo "=== Rust Bindings ===" >> ../../build_bench/benchmarks/bench_output.txt
-        DYLD_LIBRARY_PATH=../../build_bench/bindings/c LD_LIBRARY_PATH=../../build_bench/bindings/c \
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/../../build_bench/bindings/c
+        export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$(pwd)/../../build_bench/bindings/c
+        # Criterion output is multiline; we use a state machine
         cargo bench --bench qbuem_bench | \
-        awk '/Parsing\/qbuem_json/ { name="qbuem-json (Rust)" } \
-             /Parsing\/serde_json/ { name="serde_json (Rust)" } \
-             /time:/ { \
-               v=$3; sub(/\[/, "", v); \
-               u=$4; sub(/\]/, "", u); \
-               if (u ~ /ns/) v=v/1000; \
-               if (u ~ /ms/) v=v*1000; \
-               printf "%s | Parse: %.2f us | Serialize: 0.00 us | Alloc: 0 KB\n", name, v \
-             }' \
+        awk '
+          /Parsing\/qbuem_json/ { name="qbuem-json (Rust)"; found=1 }
+          /Parsing\/serde_json/ { name="serde_json (Rust)"; found=1 }
+          found && /time:/ {
+            v=$3; sub(/\[/, "", v);
+            u=$4; sub(/\]/, "", u);
+            if (u ~ /ns/) v=v/1000;
+            if (u ~ /ms/) v=v*1000;
+            printf "%s | Parse: %.2f us | Serialize: 0.00 us | Alloc: 0 KB\n", name, v
+            found=0
+          }' \
         >> ../../build_bench/benchmarks/bench_output.txt || true
 
     - name: Setup Python
@@ -171,7 +179,10 @@ jobs:
 
     - name: Run Python benchmarks
       run: |
-        export PYTHONPATH=$PYTHONPATH:$(pwd)/bindings/python
+        # Point to both the wrapper source and the built native extension
+        export PYTHONPATH=$(pwd)/bindings/python:$(pwd)/build_bench/bindings/python
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/build_bench/bindings/c
+        export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$(pwd)/build_bench/bindings/c
         python3 benchmarks/bench_bindings.py 2>&1 | tee -a build_bench/benchmarks/bench_output.txt || true
 
     # Run even if the benchmark step failed/crashed — we still upload partial results.
