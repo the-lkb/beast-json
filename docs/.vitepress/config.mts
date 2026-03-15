@@ -21,10 +21,48 @@ export default withMermaid(
                 .replace(/\.md$/, '.html')
 
             pageData.frontmatter.head ??= []
-            pageData.frontmatter.head.push([
-                'link',
-                { rel: 'canonical', href: canonicalUrl }
-            ])
+            pageData.frontmatter.head.push(['link', { rel: 'canonical', href: canonicalUrl }])
+
+            // BreadcrumbList — tells Google the hierarchy of every page so it can
+            // show structured breadcrumbs instead of raw URLs in search snippets.
+            // Segments: "guide/parsing.md" → Home › Guide › Parsing & Access
+            const segments = pageData.relativePath
+                .replace(/\.md$/, '')
+                .replace(/\/index$/, '')
+                .split('/')
+                .filter(Boolean)
+
+            const SECTION_LABELS: Record<string, string> = {
+                guide: 'Guide',
+                theory: 'Architecture',
+                api: 'API Reference',
+            }
+
+            const items: { '@type': string; position: number; name: string; item: string }[] = [
+                { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://qbuem.com/qbuem-json/' }
+            ]
+
+            let accumulated = 'https://qbuem.com/qbuem-json'
+            segments.forEach((seg, idx) => {
+                accumulated += `/${seg}`
+                const label = idx === 0
+                    ? (SECTION_LABELS[seg] ?? (seg.charAt(0).toUpperCase() + seg.slice(1)))
+                    : (pageData.title || seg.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
+                items.push({
+                    '@type': 'ListItem',
+                    position: idx + 2,
+                    name: label,
+                    item: accumulated + (idx < segments.length - 1 ? '/' : '.html')
+                })
+            })
+
+            if (items.length > 1) {
+                pageData.frontmatter.head.push([
+                    'script',
+                    { type: 'application/ld+json' },
+                    JSON.stringify({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items })
+                ])
+            }
         },
         head: [
             // Domain Redirect (github.io -> qbuem.com)
@@ -39,6 +77,11 @@ export default withMermaid(
 
             // Google Site Verification
             ['meta', { name: 'google-site-verification', content: 'lyhYqUe6A757oe9CdwPEGxsyL7jHnqJ87ssXVuJdE_k' }],
+
+            // Preconnect — open TCP/TLS to font origins before CSS @import fires.
+            // Cuts 100-300ms from first-contentful-paint on cold loads (Core Web Vitals).
+            ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+            ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
 
             // Favicon — Google uses these to display the site icon in search result snippets.
             // SVG is preferred by modern browsers; ICO/PNG fallbacks cover older clients.
