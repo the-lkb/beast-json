@@ -127,8 +127,14 @@ jobs:
         echo "=== Go Bindings ===" >> ../../build_bench/benchmarks/bench_output.txt
         DYLD_LIBRARY_PATH=../../build_bench/bindings/c LD_LIBRARY_PATH=../../build_bench/bindings/c \
         go test -bench=. -benchmem qbuem_bench_test.go qbuem_json.go marshal.go decode.go | \
-        awk '/BenchmarkQbuemJSON/ { printf "qbuem-json (Go) | Parse: %.2f µs | Serialize: 0.00 µs | Alloc: 0 KB\n", $3/1000 } \
-             /BenchmarkStandardJSON/ { printf "encoding/json (Go) | Parse: %.2f µs | Serialize: 0.00 µs | Alloc: 0 KB\n", $3/1000 }' \
+        awk '/BenchmarkQbuemJSON/ { p=$3 } \
+             /BenchmarkQbuemDump/ { s=$3 } \
+             /BenchmarkStandardJSON/ { sp=$3 } \
+             /BenchmarkStandardMarshal/ { ss=$3 } \
+             END { \
+               printf "qbuem-json (Go) | Parse: %.2f µs | Serialize: %.2f µs | Alloc: 0 KB\n", p/1000, s/1000; \
+               printf "encoding/json (Go) | Parse: %.2f µs | Serialize: %.2f µs | Alloc: 0 KB\n", sp/1000, ss/1000; \
+             }' \
         >> ../../build_bench/benchmarks/bench_output.txt || true
 
     - name: Run Rust benchmarks

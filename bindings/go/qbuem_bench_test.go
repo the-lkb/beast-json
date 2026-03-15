@@ -47,3 +47,20 @@ func BenchmarkQbuemAccess(b *testing.B) {
 		_ = root.At("/users/2/name").AsString()
 	}
 }
+
+func BenchmarkStandardMarshal(b *testing.B) {
+	var m map[string]interface{}
+	_ = json.Unmarshal(benchmarkData, &m)
+	for i := 0; i < b.N; i++ {
+		_, _ = json.Marshal(m)
+	}
+}
+
+func BenchmarkQbuemDump(b *testing.B) {
+	doc := NewDocument()
+	_ = doc.Parse(string(benchmarkData))
+	root := doc.Root()
+	for i := 0; i < b.N; i++ {
+		_ = root.Dump(0)
+	}
+}
