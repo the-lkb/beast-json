@@ -185,7 +185,7 @@ jobs:
             if m:
                 cur_group = m.group(1)
                 cur_name = 'serde_json (Rust)' if 'serde' in m.group(2) else 'qbuem-json (Rust)'
-                continue
+                # Do NOT continue: Criterion may put name and time: on the same line
             if cur_name is None:
                 continue
             m2 = TIME_RE.search(line)
