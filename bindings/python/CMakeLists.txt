@@ -45,9 +45,7 @@ add_library(qbuem_json_c_native SHARED ../c/qbuem_json_c.cpp)
 target_include_directories(qbuem_json_c_native PRIVATE ${QBUEM_JSON_INCLUDE_DIR} ../c)
 target_compile_features(qbuem_json_c_native PRIVATE cxx_std_20)
 set_target_properties(qbuem_json_c_native PROPERTIES
-    OUTPUT_NAME "qbuem_json_c"
-    VERSION 1.0.0
-    SOVERSION 1)
+    OUTPUT_NAME "qbuem_json_c")
 
 # Install rules for scikit-build-core
 # Both targets and the python wrapper go into the 'qbuem_json' package directory.
