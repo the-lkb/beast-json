@@ -1,3 +1,3 @@
-module github.com/the-lkb/qbuem-json/bindings/go
+module qbuem-json
 
 go 1.21
