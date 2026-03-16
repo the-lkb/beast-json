@@ -166,69 +166,41 @@ jobs:
         echo "=== Rust Bindings ===" >> ../../build_bench/benchmarks/bench_output.txt
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/../../build_bench/bindings/c
         export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$(pwd)/../../build_bench/bindings/c
-        # Capture Criterion output, then parse with Python for robustness.
-        # Criterion 0.5 uses a two-line format: name on one line, "time: [lo mean hi]" on next.
-        # We write a parser script to a temp file so we can pipe cargo bench output to it.
-        cat > /tmp/parse_rust_bench.py << 'PYEOF'
-import sys, re
-
-lines = sys.stdin.readlines()
-
-# Extract the mean value from a Criterion "time:" line.
-# Format: "time:   [1.23 ns  2.34 ns  3.45 ns]"  (lo mean hi, all same unit)
-# The mean is the SECOND value in the bracket triplet.
-TIME_RE = re.compile(r'time:\s+\[\s*[\d.]+\s+\S+\s+([\d.]+)\s+(\S+)')
-
-def to_us(val_str, unit_str):
-    v = float(val_str)
-    u = unit_str.lower().rstrip(']').replace('\u03bc', 'u')  # µ → u
-    if 'ns' in u:
-        return v / 1000.0
-    elif 'ms' in u:
-        return v * 1000.0
-    elif u.rstrip('s') == '' or u == 's':
-        return v * 1e6
-    return v  # already µs
-
-parse_times = {}
-ser_times = {}
-current_name = None
-current_group = None
-
-for line in lines:
-    line = line.rstrip()
-    # Criterion bench name line: "Parsing/qbuem_json" or "Serialization/serde_json"
-    m_name = re.search(r'\b(Parsing|Serialization)/(\S+)', line)
-    if m_name:
-        current_group = m_name.group(1)
-        raw = m_name.group(2)
-        if 'serde' in raw:
-            current_name = 'serde_json (Rust)'
-        else:
-            current_name = 'qbuem-json (Rust)'
-        continue
-
-    if current_name is None:
-        continue
-
-    m = TIME_RE.search(line)
-    if m:
-        us = to_us(m.group(1), m.group(2))
-        if current_group == 'Parsing':
-            parse_times[current_name] = us
-        elif current_group == 'Serialization':
-            ser_times[current_name] = us
-        current_name = None
-
-# Emit "lib | Parse: X.XX us | Serialize: Y.YY us | Alloc: 0 KB"
-all_libs = sorted(set(list(parse_times) + list(ser_times)))
-for lib in all_libs:
-    p = parse_times.get(lib, 0.0)
-    s = ser_times.get(lib, 0.0)
-    print(f"{lib} | Parse: {p:.2f} us | Serialize: {s:.2f} us | Alloc: 0 KB")
-PYEOF
-        cargo bench --bench qbuem_bench 2>&1 | python3 /tmp/parse_rust_bench.py \
-        >> ../../build_bench/benchmarks/bench_output.txt || true
+        cargo bench --bench qbuem_bench 2>&1 > /tmp/rust_bench_raw.txt || true
+        python3 << 'PYEOF'
+        import re, sys
+        text = open("/tmp/rust_bench_raw.txt").read()
+        # Criterion 0.5 two-line format: bench name on one line, time: [...] on next.
+        # Mean is the SECOND value in the [lo mean hi] triplet.
+        TIME_RE = re.compile(r'time:\s+\[\s*[\d.]+\s+\S+\s+([\d.]+)\s+(\S+)')
+        def to_us(v, u):
+            v = float(v)
+            u = u.lower().rstrip(']').replace('\u03bc', 'u')
+            if 'ns' in u: return v / 1000.0
+            if 'ms' in u: return v * 1000.0
+            return v
+        parse_times, ser_times, cur_name, cur_group = {}, {}, None, None
+        for line in text.splitlines():
+            m = re.search(r'\b(Parsing|Serialization)/(\S+)', line)
+            if m:
+                cur_group = m.group(1)
+                cur_name = 'serde_json (Rust)' if 'serde' in m.group(2) else 'qbuem-json (Rust)'
+                continue
+            if cur_name is None:
+                continue
+            m2 = TIME_RE.search(line)
+            if m2:
+                us = to_us(m2.group(1), m2.group(2))
+                if cur_group == 'Parsing': parse_times[cur_name] = us
+                elif cur_group == 'Serialization': ser_times[cur_name] = us
+                cur_name = None
+        out_path = "../../build_bench/benchmarks/bench_output.txt"
+        with open(out_path, "a") as f:
+            for lib in sorted(set(list(parse_times) + list(ser_times))):
+                p = parse_times.get(lib, 0.0)
+                s = ser_times.get(lib, 0.0)
+                f.write(f"{lib} | Parse: {p:.2f} us | Serialize: {s:.2f} us | Alloc: 0 KB\n")
+        PYEOF
 
     - name: Run Python benchmarks
       run: |
