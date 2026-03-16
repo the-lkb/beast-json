@@ -1,0 +1,503 @@
+# qbuem-json — Complete Reference for AI Agents
+
+> qbuem-json is a high-performance, header-only C++20 JSON library with dual-engine architecture.
+> GitHub: https://github.com/qbuem/qbuem-json
+> Docs: https://qbuem.com/qbuem-json/
+> Version: 1.0.7 · License: Apache 2.0
+
+---
+
+## Overview
+
+qbuem-json provides two complementary JSON engines in a single header file (`qbuem_json.hpp`):
+
+- **DOM engine** — flat-tape architecture, SIMD-accelerated (AVX-512 on x86, NEON on ARM), single arena allocation. Best for exploratory access, dynamic keys, partial reads, large files. Up to 2.9 GB/s parsing, 7.2 GB/s serialization.
+- **Nexus Fusion engine** — zero-tape, compile-time FNV-1a dispatch that maps JSON directly into C++ structs. Best for latency-critical micro-DTOs, HFT tick data, embedded. 50–230 ns struct mapping.
+
+**Requirements:** C++20, GCC 13+ or Clang 18+ or Apple Clang.
+**Supported platforms:** Linux x86_64, Linux aarch64, macOS Apple Silicon. Windows is NOT supported.
+**Dependencies:** Zero. Single header file.
+
+---
+
+## Installation
+
+### Option A: Single Header Drop-in (Recommended)
+
+```bash
+wget https://raw.githubusercontent.com/qbuem/qbuem-json/main/include/qbuem_json/qbuem_json.hpp
+```
+
+```cpp
+#include "qbuem_json.hpp"
+```
+
+Compile with:
+```bash
+g++ -std=c++20 -O3 -march=native my_app.cpp -o my_app
+```
+
+### Option B: CMake FetchContent
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+    qbuem_json
+    GIT_REPOSITORY https://github.com/qbuem/qbuem-json
+    GIT_TAG        v1.0.7
+)
+FetchContent_MakeAvailable(qbuem_json)
+target_link_libraries(your_target PRIVATE qbuem_json::qbuem_json)
+```
+
+### Option C: Clone & Build
+
+```bash
+git clone https://github.com/qbuem/qbuem-json.git
+cd qbuem-json
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DQBUEM_JSON_BUILD_TESTS=ON
+cmake --build build -j$(nproc)
+ctest --test-dir build --output-on-failure
+cmake --install build --prefix /usr/local
+```
+
+---
+
+## Quick Start — DOM Engine
+
+```cpp
+#include <qbuem_json/qbuem_json.hpp>
+
+int main() {
+    std::string json = R"({"name": "Alice", "age": 30, "active": true})";
+
+    qbuem::Document doc;
+    qbuem::Value root = qbuem::parse(doc, json);
+
+    std::string name = root["name"].as<std::string>(); // "Alice"
+    int         age  = root["age"].as<int>();           // 30
+    bool        flag = root["active"].as<bool>();       // true
+
+    // Zero-copy string view (valid while doc is alive)
+    std::string_view sv = root["name"].as<std::string_view>();
+}
+```
+
+## Quick Start — Nexus Fusion Engine (Zero-Tape)
+
+```cpp
+#include <qbuem_json/qbuem_json.hpp>
+
+struct Player {
+    std::string name;
+    int         score = 0;
+};
+QBUEM_JSON_FIELDS(Player, name, score)  // MUST be outside struct, at namespace scope
+
+int main() {
+    // Zero intermediate tape — direct stream-to-struct mapping
+    auto player = qbuem::fuse<Player>(R"({"name":"Bob","score":99})");
+
+    // Serialize back to JSON
+    std::string json = qbuem::write(player);  // {"name":"Bob","score":99}
+}
+```
+
+---
+
+## Parsing API
+
+### Parse Functions
+
+| Function | Description |
+|---|---|
+| `qbuem::parse(doc, json)` | Standard parse. Builds flat tape. Returns `Value`. Throws on error. |
+| `qbuem::parse_reuse(doc, json)` | Same as `parse()` but documents intent to reuse the doc in a hot loop (tape memory is reused, not reallocated). |
+| `qbuem::parse_strict(doc, json)` | RFC 8259 strict mode. Throws on trailing commas, leading zeros, lone surrogates. |
+| `qbuem::read<T>(json)` | Parse JSON and deserialize into type `T`. Uses DOM engine + type mapping. |
+| `qbuem::fuse<T>(json)` | Nexus Fusion: zero-tape direct struct mapping. Fastest path. Requires `QBUEM_JSON_FIELDS`. |
+
+**Important:** `Document` must outlive all `Value` objects derived from it. Values are 16-byte handles pointing into the document's tape.
+
+```cpp
+// Hot loop pattern — reuse tape memory
+qbuem::Document doc;
+doc.reserve(4 * 1024);  // pre-warm to avoid first-parse realloc
+
+while (std::getline(stream, line)) {
+    qbuem::Value root = qbuem::parse_reuse(doc, line);
+    if (!root.is_valid()) continue;
+    process(root);
+}
+```
+
+### Value Access
+
+```cpp
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"id": 101, "score": 9.87, "tag": "vip", "active": true})");
+
+// Throwing access — use when you trust the schema
+int64_t     id     = root["id"].as<int64_t>();
+double      score  = root["score"].as<double>();
+std::string tag    = root["tag"].as<std::string>();
+bool        active = root["active"].as<bool>();
+
+// Non-throwing — returns std::optional<T>
+std::optional<int> id_opt = root["id"].try_as<int>();
+
+// Pipe fallback — never throws, returns default if missing or wrong type
+int      id2   = root["id"]     | -1;
+double   sc2   = root["score"]  | 0.0;
+bool     flag2 = root["active"] | false;
+
+// Safe monadic chain — propagates absent state
+std::string city = root.get("user").get("profile").get("city").value_or("Unknown");
+
+// Access with default
+int timeout = root.value("timeout", 5000);
+```
+
+### Type Checkers (never throw)
+
+```cpp
+v.is_valid();    // false if key doesn't exist
+v.is_object();
+v.is_array();
+v.is_string();
+v.is_int();
+v.is_double();
+v.is_bool();
+v.is_null();
+v.is_number();   // is_int() || is_double()
+std::string_view tname = v.type_name();  // "int", "string", "array", etc.
+```
+
+### Object Access
+
+```cpp
+if (auto config = root.find("config")) {   // returns std::optional<Value>
+    int timeout = config->value("timeout", 5000);
+}
+if (root.contains("optional_field")) {
+    process(root["optional_field"]);
+}
+```
+
+### Array and Object Iteration
+
+```cpp
+// Object key-value pairs (C++20 structured bindings)
+for (auto [key, val] : root.items()) { /* ... */ }
+for (std::string_view key : root.keys()) { /* ... */ }
+for (auto val : root.values()) { /* ... */ }
+
+// Array elements
+for (auto elem : root["scores"].elements()) {
+    int s = elem.as<int>();
+}
+
+// Typed array view — zero allocation
+for (int score : root["scores"].as_array<int>()) { /* ... */ }
+
+// C++20 ranges
+auto high = root["scores"].elements()
+    | std::views::filter([](auto v){ return v.as<int>() >= 90; });
+```
+
+### JSON Pointer (RFC 6901)
+
+```cpp
+// Runtime JSON Pointer
+std::string t = root.at("/store/book/0/title").as<std::string>();
+
+// Compile-time JSON Pointer
+using namespace qbuem::literals;
+auto title = root.at("/store/book/1/title"_jptr).as<std::string>();
+```
+
+---
+
+## Struct Mapping — QBUEM_JSON_FIELDS Macro
+
+The `QBUEM_JSON_FIELDS` macro must be placed **outside** the struct, at namespace scope. It generates free functions for ADL-based serialization/deserialization.
+
+```cpp
+struct Address {
+    std::string street;
+    std::string city;
+    std::string country;
+};
+QBUEM_JSON_FIELDS(Address, street, city, country)
+
+struct User {
+    uint64_t    id;
+    std::string username;
+    Address     address;                         // nested struct — works automatically
+    std::vector<std::string> tags;               // STL container — works automatically
+    std::optional<double>    score;              // optional — maps to null when empty
+    bool        active = true;                   // default values are preserved
+};
+QBUEM_JSON_FIELDS(User, id, username, address, tags, score, active)
+
+// Deserialize
+User u = qbuem::read<User>(json_str);      // DOM engine path
+User u2 = qbuem::fuse<User>(json_str);    // Nexus Fusion path (zero-tape, fastest)
+
+// Serialize
+std::string json    = qbuem::write(u);      // compact
+std::string pretty  = qbuem::write(u, 2);   // 2-space indented
+```
+
+**WRONG — placing QBUEM_JSON_FIELDS inside the struct:**
+```cpp
+struct User {
+    int id;
+    QBUEM_JSON_FIELDS(User, id)  // ❌ compile error — ADL breaks
+};
+```
+
+**CORRECT — at namespace scope:**
+```cpp
+struct User { int id; };
+QBUEM_JSON_FIELDS(User, id)  // ✅
+```
+
+Supports up to 32 fields. For more, use manual ADL hooks (`nexus_pulse`, `from_qbuem_json`, `to_qbuem_json`).
+
+---
+
+## STL Type Mapping
+
+| C++ Type | JSON |
+|---|---|
+| `std::vector<T>`, `std::list`, `std::deque` | Array `[...]` |
+| `std::array<T, N>` | Fixed array |
+| `std::set<T>`, `std::unordered_set<T>` | Sorted array |
+| `std::map<string, T>`, `std::unordered_map<string, T>` | Object `{...}` |
+| `std::optional<T>` | Value or `null` |
+| `std::tuple<T...>` | Heterogeneous array |
+| `std::pair<T1, T2>` | 2-element array |
+| `std::variant<T...>` | Dynamic value match |
+
+All mappings are fully recursive. Example:
+```cpp
+auto data = qbuem::read<std::map<std::string, std::vector<int>>>(
+    R"({"scores": [95, 87, 100], "ids": [1, 2]})"
+);
+```
+
+---
+
+## Serialization
+
+```cpp
+// dump() — re-serialize a parsed Value (includes mutations)
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"user": {"name": "Alice", "age": 25}})");
+root["user"]["age"] = 26;
+std::string json   = root.dump();        // compact
+std::string pretty = root.dump(2);       // 2-space pretty-print
+std::string sub    = root["user"].dump(); // serialize subtree only
+
+// write() — serialize a C++ object
+struct Order { int id; double price; std::string symbol; };
+QBUEM_JSON_FIELDS(Order, id, price, symbol)
+Order o{42, 99.5, "AAPL"};
+std::string json2   = qbuem::write(o);       // compact
+std::string pretty2 = qbuem::write(o, 2);    // indented
+
+// write_to() — append into a reusable buffer (avoids allocation)
+std::string buf;
+buf.reserve(4096);
+qbuem::write_to(buf, my_struct);
+buf.clear();
+root.dump(buf);  // dump also accepts a buffer ref
+```
+
+---
+
+## Mutations (Non-Destructive Overlay)
+
+The original tape is immutable. Mutations are stored in a fast overlay map.
+
+```cpp
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"user": {"id": 1, "name": "Alice"}})");
+
+// Scalar mutation
+root["user"]["id"]   = 99;
+root["user"]["name"] = "Bob";
+root["user"]["active"] = true;  // new field
+root["user"]["extra"] = nullptr;
+
+// Restore original
+root["user"]["id"].unset();  // reverts to original tape value (not null)
+
+// Structural mutations
+root.insert("version", 2);
+root.insert("label", std::string_view{"preview"});
+root.insert_json("meta", R"({"build": "release"})");
+root.erase("deprecated_field");
+root["tags"].push_back(std::string_view{"simd"});
+root["tags"].push_back_json(R"({"nested": "value"})");
+root["tags"].erase(0u);  // remove by index (accepts size_t or unsigned int)
+
+// RFC 7396 merge patch
+root.merge_patch(R"({"b": 99, "c": null, "d": "new"})");
+// c is removed (null in patch), b is updated, d is added
+```
+
+---
+
+## Error Handling
+
+```cpp
+// Strategy 1: Exceptions (for trusted schemas)
+try {
+    qbuem::Document doc;
+    auto root = qbuem::parse(doc, json);
+    int id = root["user"]["id"].as<int>();  // throws if missing or wrong type
+} catch (const std::runtime_error& e) {
+    std::cerr << "JSON error: " << e.what() << "\n";
+}
+
+// Strategy 2: Monadic chain (no throw, for untrusted data)
+int timeout = root.get("config").get("server").get("timeout_ms")
+    .value_or(5000);  // returns 5000 if any key is missing
+
+// Strategy 3: Boolean checks
+if (root["count"].is_int()) {
+    process(root["count"].as<int>());
+}
+
+// Strategy 4: Pipe fallback (safest, most ergonomic)
+int id = root["id"] | -1;
+```
+
+---
+
+## Third-Party Types (ADL Hooks)
+
+For types you can't modify (e.g., from glm):
+
+```cpp
+namespace glm {
+    inline void from_qbuem_json(const qbuem::Value& v, vec3& out) {
+        out.x = v[0u].as<float>();
+        out.y = v[1u].as<float>();
+        out.z = v[2u].as<float>();
+    }
+    inline void to_qbuem_json(qbuem::Value& root, const vec3& in) {
+        root = qbuem::Value::array();
+        root.push_back(qbuem::Value(in.x));
+        root.push_back(qbuem::Value(in.y));
+        root.push_back(qbuem::Value(in.z));
+    }
+}
+glm::vec3 pos = qbuem::read<glm::vec3>("[1.0, 2.0, 3.5]");
+```
+
+For Nexus Fusion with third-party types, define `nexus_pulse` in the same namespace:
+
+```cpp
+namespace third_party {
+    struct Custom { int x; };
+    inline void nexus_pulse(std::string_view key, const char*& p, const char* end, Custom& obj) {
+        switch (qbuem::json::detail::fnv1a_hash(key)) {
+            case qbuem::json::detail::fnv1a_hash_ce("x"):
+                qbuem::json::detail::from_json_direct(p, end, obj.x);
+                break;
+            default:
+                qbuem::json::detail::skip_direct(p, end);
+                break;
+        }
+    }
+}
+```
+
+---
+
+## JSON Patch (RFC 6902)
+
+```cpp
+// Apply a JSON Patch with transactional rollback
+qbuem::Document doc;
+auto root = qbuem::parse(doc, R"({"a": 1, "b": {"c": 2}})");
+
+std::string patch = R"([
+    {"op": "replace", "path": "/a", "value": 99},
+    {"op": "add",     "path": "/d", "value": "new"},
+    {"op": "remove",  "path": "/b/c"}
+])";
+root.apply_patch(patch);
+```
+
+---
+
+## Performance Reference
+
+| Benchmark (twitter.json, 617 KB) | DOM Parsing | Serialization |
+|---|---|---|
+| Linux x86_64 GCC 13 (AVX-512) | 2.9 GB/s | 5.3 GB/s |
+| Linux aarch64 GCC 14 (NEON) | 2.4 GB/s | 6.1 GB/s |
+| macOS Apple Silicon (NEON) | 2.5 GB/s | 7.2 GB/s |
+
+Nexus Fusion: 50–230 ns for direct struct mapping (zero tape).
+
+Competitors (same benchmark): simdjson ~2.5 GB/s parse, yyjson ~2.3 GB/s, RapidJSON ~0.8 GB/s, nlohmann ~0.3 GB/s.
+
+---
+
+## Correctness & Safety
+
+- RFC 8259 (JSON), RFC 6901 (JSON Pointer), RFC 6902 (JSON Patch) compliant
+- IEEE 754 round-trip: `parse(serialize(x)) == x` for all finite doubles
+- Three-stage float parsing: Eisel-Lemire (~98.8%) → Russ Cox Unrounded Scaling (~1.2%) → strtod (subnormals <0.01%)
+- Float serialization: Schubfach (Giulietti 2020) — shortest decimal, no trailing zeros
+- 521 passing tests across 20 files (5,556 lines of test code)
+- 11 libFuzzer targets
+- ASan, UBSan, TSan on every commit
+
+---
+
+## Platform & Compiler Matrix
+
+| Platform | Compiler | SIMD |
+|---|---|---|
+| Linux x86_64 | GCC 13+, Clang 18+ | AVX-512 / SSE4.2 |
+| Linux aarch64 | GCC 14+, Clang 18+ | ARM NEON |
+| macOS Apple Silicon | Apple Clang | ARM NEON |
+
+Build flags for maximum performance:
+- GCC/Clang: `-std=c++20 -O3 -march=native`
+- Apple Silicon: `-std=c++20 -O3 -mcpu=apple-m1`
+
+---
+
+## Common Pitfalls
+
+1. **Document must outlive Values** — `Value` is a 16-byte handle into the tape. Store `Document` and `Value` together (e.g., in a struct).
+2. **QBUEM_JSON_FIELDS must be at namespace scope** — placing it inside the struct body breaks ADL.
+3. **Use `parse_reuse()` for hot loops** — reuses allocated tape memory without reallocation.
+4. **`SafeValue::size()` vs `SafeValue->size()`** — always call `.size()` directly on `SafeValue` (without `->`), which safely returns 0 if the value is absent.
+5. **`unset()` restores original tape value** — it does not set to null; it removes the mutation overlay.
+6. **Array indices accept plain `int`** — no cast to `size_t` needed; negative indices return invalid `Value{}` safely.
+
+---
+
+## Links
+
+- Documentation: https://qbuem.com/qbuem-json/
+- GitHub: https://github.com/qbuem/qbuem-json
+- Getting Started: https://qbuem.com/qbuem-json/guide/getting-started
+- Parsing Guide: https://qbuem.com/qbuem-json/guide/parsing
+- Type Mapping: https://qbuem.com/qbuem-json/guide/mapping
+- Serialization: https://qbuem.com/qbuem-json/guide/serialization
+- Error Handling: https://qbuem.com/qbuem-json/guide/errors
+- Benchmarks: https://qbuem.com/qbuem-json/guide/benchmarks
+- Correctness: https://qbuem.com/qbuem-json/guide/correctness
+- Architecture (Tape): https://qbuem.com/qbuem-json/theory/architecture
+- Nexus Fusion: https://qbuem.com/qbuem-json/theory/nexus-fusion
+- API Reference: https://qbuem.com/qbuem-json/api/
+- Releases: https://github.com/qbuem/qbuem-json/releases

@@ -78,6 +78,11 @@ export default withMermaid(
             // Google Site Verification
             ['meta', { name: 'google-site-verification', content: 'lyhYqUe6A757oe9CdwPEGxsyL7jHnqJ87ssXVuJdE_k' }],
 
+            // AI-readable documentation index (llms.txt standard — https://llmstxt.org/)
+            // Tells AI crawlers (GPTBot, ClaudeBot, PerplexityBot, etc.) where to find
+            // structured documentation for RAG pipelines and LLM training.
+            ['link', { rel: 'alternate', type: 'text/plain', title: 'LLMs.txt — AI-readable docs index', href: '/qbuem-json/llms.txt' }],
+
             // Preconnect — open TCP/TLS to font origins before CSS @import fires.
             // Cuts 100-300ms from first-contentful-paint on cold loads (Core Web Vitals).
             ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
@@ -116,17 +121,15 @@ export default withMermaid(
             ['meta', { name: 'twitter:image', content: 'https://qbuem.com/qbuem-json/banner.png' }],
             ['meta', { name: 'twitter:image:alt', content: 'qbuem-json — blazing-fast C++20 JSON library' }],
 
-            // JSON-LD — three graph nodes in one block for minimal HTTP overhead.
+            // JSON-LD — five graph nodes in one block for minimal HTTP overhead.
             //
-            // 1. Organization — the "logo" property here is what Google displays in
-            //    Knowledge Panels and rich results. Image must be ≥112×112px and
-            //    accessible without auth (logo.png: 263×234 ✓).
-            //
-            // 2. WebSite + SearchAction — activates the Sitelinks Searchbox in Google
-            //    when the site gains enough authority. The query_input target points at
-            //    VitePress's built-in search endpoint.
-            //
-            // 3. SoftwareSourceCode — preserves the existing software-specific signals.
+            // 1. Organization — logo used in Knowledge Panels and rich results.
+            // 2. WebSite + SearchAction — activates Sitelinks Searchbox.
+            // 3. SoftwareApplication — richer than SoftwareSourceCode; enables
+            //    applicationCategory, featureList, and screenshot in search snippets.
+            // 4. SoftwareSourceCode — code-specific signals (repository, language).
+            // 5. HowTo — enables rich "how to use" step snippets in Google Search.
+            // 6. FAQPage — enables FAQ accordion rich results.
             ['script', { type: 'application/ld+json' }, JSON.stringify({
                 '@context': 'https://schema.org',
                 '@graph': [
@@ -164,23 +167,197 @@ export default withMermaid(
                         }
                     },
                     {
+                        // SoftwareApplication enables richer snippets: applicationCategory,
+                        // featureList, screenshot — these help both Google and AI models
+                        // understand this is a developer library, not a website.
+                        '@type': 'SoftwareApplication',
+                        '@id': 'https://qbuem.com/qbuem-json/#application',
+                        name: 'qbuem-json',
+                        alternateName: ['qbuem json', 'qbuem-json library'],
+                        description: 'qbuem-json is a header-only C++20 JSON library with dual-engine architecture. DOM engine: AVX-512/NEON SIMD, up to 2.9 GB/s parsing, 7.2 GB/s serialization. Nexus Fusion engine: zero-tape direct struct mapping, 50–230 ns latency. Single header file, zero dependencies, Apache 2.0.',
+                        url: 'https://qbuem.com/qbuem-json/',
+                        applicationCategory: 'DeveloperApplication',
+                        applicationSubCategory: 'C++ Library',
+                        operatingSystem: 'Linux, macOS',
+                        version: '1.0.7',
+                        softwareVersion: '1.0.7',
+                        releaseNotes: 'https://github.com/qbuem/qbuem-json/releases/tag/v1.0.7',
+                        downloadUrl: 'https://github.com/qbuem/qbuem-json/releases/tag/v1.0.7',
+                        installUrl: 'https://qbuem.com/qbuem-json/guide/getting-started',
+                        license: 'https://www.apache.org/licenses/LICENSE-2.0',
+                        keywords: 'C++ JSON library, C++20 JSON, fastest JSON parser, SIMD JSON, AVX-512 JSON, zero-allocation JSON, high-performance JSON, HFT JSON, JSON serializer, single header JSON, header-only JSON, nlohmann alternative, simdjson alternative, RapidJSON alternative',
+                        featureList: [
+                            'AVX-512 and ARM NEON SIMD acceleration',
+                            'Zero-allocation flat tape DOM',
+                            'Nexus Fusion: direct JSON-to-struct mapping (zero tape)',
+                            'Single header file, zero external dependencies',
+                            'C++20 concepts-based API',
+                            'RFC 8259, RFC 6901, RFC 6902 compliant',
+                            'IEEE 754 round-trip float correctness',
+                            '521 passing tests, 11 libFuzzer targets',
+                            'STL container support (vector, map, optional, tuple, variant)',
+                            'Up to 2.9 GB/s parsing, 7.2 GB/s serialization',
+                            'Apache 2.0 license — free for commercial use',
+                            'C, Python, Rust, Go language bindings'
+                        ],
+                        screenshot: {
+                            '@type': 'ImageObject',
+                            url: 'https://qbuem.com/qbuem-json/banner.png',
+                            width: 989,
+                            height: 232,
+                            caption: 'qbuem-json — blazing-fast C++20 JSON library banner'
+                        },
+                        author: { '@id': 'https://qbuem.com/#organization' },
+                        publisher: { '@id': 'https://qbuem.com/#organization' },
+                        offers: {
+                            '@type': 'Offer',
+                            price: '0',
+                            priceCurrency: 'USD'
+                        }
+                    },
+                    {
                         '@type': 'SoftwareSourceCode',
                         '@id': 'https://qbuem.com/qbuem-json/#software',
                         name: 'qbuem-json',
                         description: 'The fastest C++20 JSON parser and serializer. Single header, zero dependencies, AVX-512 SIMD accelerated, zero-allocation design.',
                         url: 'https://qbuem.com/qbuem-json/',
                         codeRepository: 'https://github.com/qbuem/qbuem-json',
-                        programmingLanguage: 'C++',
+                        programmingLanguage: {
+                            '@type': 'ComputerLanguage',
+                            name: 'C++',
+                            version: 'C++20',
+                            url: 'https://en.cppreference.com/w/cpp/20'
+                        },
                         runtimePlatform: 'C++20',
+                        targetProduct: { '@id': 'https://qbuem.com/qbuem-json/#application' },
                         version: '1.0.7',
                         license: 'https://www.apache.org/licenses/LICENSE-2.0',
                         keywords: 'C++, JSON, SIMD, AVX-512, High-Performance, HFT, parser, serializer, zero-allocation',
-                        author: { '@id': 'https://qbuem.com/#organization' },
-                        offers: {
-                            '@type': 'Offer',
-                            price: '0',
-                            priceCurrency: 'USD'
-                        }
+                        author: { '@id': 'https://qbuem.com/#organization' }
+                    },
+                    {
+                        // HowTo schema — enables step-by-step rich snippets for
+                        // "how to use qbuem-json" queries in Google Search.
+                        '@type': 'HowTo',
+                        '@id': 'https://qbuem.com/qbuem-json/#howto',
+                        name: 'How to use qbuem-json in a C++ project',
+                        description: 'qbuem-json is a single-header C++20 JSON library. Add the header to your project, register your structs with QBUEM_JSON_FIELDS, then use qbuem::parse / qbuem::read / qbuem::fuse to deserialize and qbuem::write to serialize.',
+                        image: 'https://qbuem.com/qbuem-json/banner.png',
+                        totalTime: 'PT5M',
+                        supply: [
+                            { '@type': 'HowToSupply', name: 'C++20 compiler (GCC 13+, Clang 18+, or Apple Clang)' },
+                            { '@type': 'HowToSupply', name: 'qbuem_json.hpp (single header file)' }
+                        ],
+                        step: [
+                            {
+                                '@type': 'HowToStep',
+                                position: 1,
+                                name: 'Download the header',
+                                text: 'Copy qbuem_json.hpp into your project: wget https://raw.githubusercontent.com/qbuem/qbuem-json/main/include/qbuem_json/qbuem_json.hpp',
+                                url: 'https://qbuem.com/qbuem-json/guide/getting-started#option-a-single-header-drop-in'
+                            },
+                            {
+                                '@type': 'HowToStep',
+                                position: 2,
+                                name: 'Include the header and parse JSON',
+                                text: 'Include <qbuem_json/qbuem_json.hpp>. Create a qbuem::Document and call qbuem::parse(doc, json_string) to get a qbuem::Value root. Access fields with root["key"].as<T>().',
+                                url: 'https://qbuem.com/qbuem-json/guide/parsing'
+                            },
+                            {
+                                '@type': 'HowToStep',
+                                position: 3,
+                                name: 'Register your struct with QBUEM_JSON_FIELDS',
+                                text: 'Define your struct, then add QBUEM_JSON_FIELDS(MyStruct, field1, field2, ...) outside the struct at namespace scope. Use qbuem::read<MyStruct>(json) or qbuem::fuse<MyStruct>(json) to deserialize.',
+                                url: 'https://qbuem.com/qbuem-json/guide/mapping'
+                            },
+                            {
+                                '@type': 'HowToStep',
+                                position: 4,
+                                name: 'Serialize to JSON',
+                                text: 'Call qbuem::write(my_struct) to get a compact JSON string, or qbuem::write(my_struct, 2) for pretty-printed output. For parsed documents use value.dump().',
+                                url: 'https://qbuem.com/qbuem-json/guide/serialization'
+                            },
+                            {
+                                '@type': 'HowToStep',
+                                position: 5,
+                                name: 'Compile with C++20',
+                                text: 'Compile with: g++ -std=c++20 -O3 -march=native my_app.cpp -o my_app',
+                                url: 'https://qbuem.com/qbuem-json/guide/getting-started#build-configuration'
+                            }
+                        ]
+                    },
+                    {
+                        // FAQPage schema — enables FAQ accordion rich results in Google Search.
+                        // These questions are the most common ones developers ask when
+                        // evaluating or starting with a new JSON library.
+                        '@type': 'FAQPage',
+                        '@id': 'https://qbuem.com/qbuem-json/#faq',
+                        mainEntity: [
+                            {
+                                '@type': 'Question',
+                                name: 'What is qbuem-json?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'qbuem-json is a header-only C++20 JSON library with two engines: the DOM engine (flat tape, AVX-512/NEON SIMD, up to 2.9 GB/s parsing) and Nexus Fusion (zero-tape direct struct mapping, 50–230 ns). It is distributed as a single header file with zero external dependencies and is licensed under Apache 2.0.'
+                                }
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'How do I install qbuem-json?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'Option A (recommended): copy qbuem_json.hpp into your project with: wget https://raw.githubusercontent.com/qbuem/qbuem-json/main/include/qbuem_json/qbuem_json.hpp. Option B: use CMake FetchContent. Option C: clone the repository and build with cmake. All options require a C++20 compiler (GCC 13+, Clang 18+, or Apple Clang).'
+                                }
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'How do I parse JSON with qbuem-json?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'Create a qbuem::Document and call qbuem::parse(doc, json_string). Access values with root["key"].as<T>(). For struct mapping, add QBUEM_JSON_FIELDS(MyStruct, fields...) outside the struct and call qbuem::read<MyStruct>(json) or qbuem::fuse<MyStruct>(json) for zero-tape mapping.'
+                                }
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'How does qbuem-json compare to nlohmann/json, simdjson, and RapidJSON?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'qbuem-json outperforms all three on parsing and serialization benchmarks. It achieves 2.9 GB/s parsing vs simdjson ~2.5 GB/s, yyjson ~2.3 GB/s, RapidJSON ~0.8 GB/s, and nlohmann ~0.3 GB/s. It also offers direct struct mapping via Nexus Fusion (50–230 ns) which has no equivalent in nlohmann or RapidJSON.'
+                                }
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'What is the QBUEM_JSON_FIELDS macro and where should I put it?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'QBUEM_JSON_FIELDS(StructName, field1, field2, ...) registers a struct for automatic JSON serialization and deserialization. It must be placed OUTSIDE the struct body at namespace scope. Placing it inside the struct breaks ADL (Argument-Dependent Lookup) and will cause compile errors. It supports up to 32 fields and works with nested structs and STL containers automatically.'
+                                }
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'What is Nexus Fusion and when should I use it?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'Nexus Fusion is qbuem-json\'s zero-tape engine. Instead of building a DOM tape first, it streams JSON bytes directly into struct fields using compile-time FNV-1a key hashing for O(1) dispatch. Use qbuem::fuse<T>() instead of qbuem::read<T>() when you need minimum latency (50–230 ns), such as in HFT tick data processing or real-time game state. Requires QBUEM_JSON_FIELDS registration.'
+                                }
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'Does qbuem-json support Windows?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'No. qbuem-json supports Linux (x86_64 and aarch64) and macOS (Apple Silicon) only. Windows is not supported.'
+                                }
+                            },
+                            {
+                                '@type': 'Question',
+                                name: 'Is qbuem-json free for commercial use?',
+                                acceptedAnswer: {
+                                    '@type': 'Answer',
+                                    text: 'Yes. qbuem-json is released under the Apache License 2.0, which is a permissive open-source license that allows commercial use, modification, and distribution.'
+                                }
+                            }
+                        ]
                     }
                 ]
             })]

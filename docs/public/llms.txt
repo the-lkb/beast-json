@@ -1,0 +1,44 @@
+# qbuem-json
+
+> qbuem-json is a high-performance, header-only C++20 JSON library with dual-engine architecture. It provides AVX-512/NEON SIMD-accelerated parsing (up to 2.9 GB/s), zero-allocation design via a flat-tape DOM, and direct JSON-to-struct mapping through the Nexus Fusion engine (50–230 ns). Single header file, zero external dependencies, Apache 2.0 license.
+
+qbuem-json ships two complementary engines in one header (`qbuem_json.hpp`):
+- **DOM engine** — flat tape architecture for flexible parsing; single arena allocation; up to 2.9 GB/s parsing, 7.2 GB/s serialization
+- **Nexus Fusion engine** — zero-tape, compile-time FNV-1a dispatch for direct JSON-to-struct mapping with micro-latency
+
+Minimum requirements: C++20, GCC 13+ or Clang 18+ or Apple Clang. Supported platforms: Linux x86_64, Linux aarch64, macOS Apple Silicon. Windows is not supported.
+
+## Docs
+
+- [Introduction](https://qbuem.com/qbuem-json/guide/introduction): What qbuem-json is, engine overview, and when to use each engine
+- [Getting Started](https://qbuem.com/qbuem-json/guide/getting-started): Installation (single header, CMake FetchContent, clone & build) and first usage examples
+- [Parsing & Access](https://qbuem.com/qbuem-json/guide/parsing): DOM parsing, value access, JSON Pointer, iteration, error handling
+- [Serialization](https://qbuem.com/qbuem-json/guide/serialization): Struct-to-JSON, STL container support, custom serialization hooks
+- [Object Mapping (Macros)](https://qbuem.com/qbuem-json/guide/mapping): QBUEM_JSON_FIELDS macro, nested structs, optional fields, STL type mappings
+- [Error Handling](https://qbuem.com/qbuem-json/guide/errors): ParseError, typed exceptions, safe vs. unsafe access patterns
+- [Custom Allocators](https://qbuem.com/qbuem-json/guide/allocators): Arena allocators, stack allocators, custom memory strategies
+- [Language Bindings](https://qbuem.com/qbuem-json/guide/bindings): C FFI, Python, Rust, Go bindings
+- [Low-Latency Patterns](https://qbuem.com/qbuem-json/guide/low-latency-patterns): HFT tick data patterns, pre-allocated documents, reuse strategies
+- [Correctness & Safety](https://qbuem.com/qbuem-json/guide/correctness): RFC 8259/6901/6902 compliance, IEEE 754 round-trip, 521 tests, sanitizers, fuzzing
+- [Benchmarks](https://qbuem.com/qbuem-json/guide/benchmarks): Live CI benchmark results vs. simdjson, yyjson, RapidJSON, nlohmann
+- [Vision & Roadmap](https://qbuem.com/qbuem-json/guide/vision): Project goals and planned features
+
+## Architecture
+
+- [Tape Architecture](https://qbuem.com/qbuem-json/theory/architecture): How the flat-tape DOM eliminates tree-node allocation overhead
+- [SIMD Acceleration](https://qbuem.com/qbuem-json/theory/simd): AVX-512 (x86_64) and ARM NEON structural character scanning
+- [Nexus Fusion (Zero-Tape)](https://qbuem.com/qbuem-json/theory/nexus-fusion): Compile-time key dispatch, zero intermediate allocations
+- [Numeric Serialization](https://qbuem.com/qbuem-json/theory/numeric-serialization): Schubfach algorithm (Giulietti 2020) + yy-itoa for integers
+- [The Russ Cox Algorithm](https://qbuem.com/qbuem-json/theory/russ-cox): Unrounded decimal-to-float scaling used in stage 2 of float parsing
+- [Zero-Allocation Principle](https://qbuem.com/qbuem-json/theory/zero-allocation): Memory layout, arena reuse, string_view zero-copy access
+
+## API Reference
+
+- [Manual Reference](https://qbuem.com/qbuem-json/api/): Hand-written API reference for all public types and functions
+- [Doxygen (Auto-generated)](https://qbuem.com/qbuem-json/api/reference/index.html): Full auto-generated API docs from source
+
+## Optional
+
+- [Debugging Guide](https://qbuem.com/qbuem-json/guide/debugging): Diagnosing parse errors, Nexus field mismatches, sanitizer output
+- [Nexus Diagnostics](https://qbuem.com/qbuem-json/guide/nexus-diagnostics): Compile-time diagnostics for Nexus Fusion field registration
+- [Acknowledgments](https://qbuem.com/qbuem-json/guide/acknowledgments): Libraries and algorithms qbuem-json builds upon

@@ -8,5 +8,39 @@ Crawl-delay: 10
 User-agent: SemrushBot
 Crawl-delay: 10
 
+# AI crawlers — explicitly allowed so LLM training and RAG pipelines
+# can index the library documentation and learn the API.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: YouBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Googlebot-Extended
+Allow: /
+
+# AI-readable documentation (llms.txt standard)
+# https://llmstxt.org/
+# Full documentation in a single file for AI consumption:
+# https://qbuem.com/qbuem-json/llms-full.txt
+
 # Sitemap location
 Sitemap: https://qbuem.com/qbuem-json/sitemap.xml
