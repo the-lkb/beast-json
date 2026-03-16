@@ -3,15 +3,31 @@ project(qbuem_json_python)
 
 # bindings/python/CMakeLists.txt — qbuem-json Python Bindings (nanobind + ctypes support)
 
-# Find nanobind or fetch it
-include(FetchContent)
-FetchContent_Declare(
-    nanobind
-    GIT_REPOSITORY https://github.com/wjakob/nanobind
-    GIT_TAG        v1.9.0
-)
-FetchContent_MakeAvailable(nanobind)
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
+
+# Prefer the pip-installed nanobind (avoids FetchContent network dependency in CI).
+# nanobind provides a helper: python -m nanobind --cmake_dir
+execute_process(
+    COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    OUTPUT_VARIABLE NB_CMAKE_DIR
+    RESULT_VARIABLE NB_CMAKE_RESULT
+)
+
+if(NB_CMAKE_RESULT EQUAL 0 AND NB_CMAKE_DIR)
+    message(STATUS "Using pip-installed nanobind at: ${NB_CMAKE_DIR}")
+    find_package(nanobind CONFIG REQUIRED HINTS "${NB_CMAKE_DIR}")
+else()
+    # Fallback: fetch from GitHub (for local development without pip install)
+    message(STATUS "nanobind not found via pip — fetching from GitHub")
+    include(FetchContent)
+    FetchContent_Declare(
+        nanobind
+        GIT_REPOSITORY https://github.com/wjakob/nanobind
+        GIT_TAG        v1.9.0
+    )
+    FetchContent_MakeAvailable(nanobind)
+endif()
 
 # The C++ library is header-only; we point to the root include directory.
 set(QBUEM_JSON_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../include")

@@ -78,6 +78,18 @@ jobs:
           fi
         done
 
+    # Set up Python BEFORE CMake configure so nanobind is built against the correct interpreter.
+    # Without this, nanobind gets compiled for the system Python (wrong ABI) and import fails.
+    - name: Setup Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.11'
+
+    - name: Install Python dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install orjson nanobind scikit-build-core
+
     - name: Clean build directory
       run: rm -rf build_bench
 
@@ -218,22 +230,16 @@ PYEOF
         cargo bench --bench qbuem_bench 2>&1 | python3 /tmp/parse_rust_bench.py \
         >> ../../build_bench/benchmarks/bench_output.txt || true
 
-    - name: Setup Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: '3.11'
-
-    - name: Install Python dependencies
-      run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install orjson nanobind scikit-build-core
-
     - name: Run Python benchmarks
       run: |
-        # Point to both the wrapper source and the built native extension
         export PYTHONPATH=$(pwd)/bindings/python:$(pwd)/build_bench/bindings/python
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/build_bench/bindings/c
         export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$(pwd)/build_bench/bindings/c
+        # Show which .so files were built (helps debug ABI/path issues)
+        echo "=== nanobind .so files in build ==="
+        find build_bench/bindings/python -name "*.so" -o -name "*.pyd" 2>/dev/null || echo "(none found)"
+        echo "=== Python import check ==="
+        python3 -c "import qbuem_json_native; print('nanobind OK:', qbuem_json_native.__file__)" 2>&1 || echo "nanobind import FAILED"
         python3 bindings/python/bench/bench.py 2>&1 | tee -a build_bench/benchmarks/bench_output.txt || true
 
     # Run even if the benchmark step failed/crashed — we still upload partial results.
