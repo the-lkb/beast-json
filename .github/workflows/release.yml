@@ -12,7 +12,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  release_header:
+  release:
     name: Create GitHub Release & Upload Header
     runs-on: ubuntu-latest
     steps:
@@ -32,55 +32,4 @@ jobs:
           generate_release_notes: true
           files: |
             include/qbuem_json/qbuem_json.hpp
-            dist/SHA256SUMS.txt
-
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.0
-        with:
-          package-dir: bindings/python
-        env:
-          CIBW_BUILD_FRONTEND: "build"
-          CIBW_SKIP: "*-manylinux_i686 *-musllinux_*"
-          CIBW_MANYLINUX_X86_64_IMAGE: "manylinux_2_28"
-          CIBW_MANYLINUX_AARCH64_IMAGE: "manylinux_2_28"
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
-          MACOSX_DEPLOYMENT_TARGET: "11.0"
-
-      - uses: actions/upload-artifact@v6
-        with:
-          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
-          path: ./wheelhouse/*.whl
-
-  attach_wheels:
-    name: Attach Wheels to Release
-    needs: [release_header, build_wheels]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download wheels
-        uses: actions/download-artifact@v5
-        with:
-          pattern: cibw-wheels-*
-          path: dist
-          merge-multiple: true
-
-      - name: Update Checksums with Wheels
-        run: |
-          cd dist
-          sha256sum *.whl >> SHA256SUMS.txt || true
-
-      - name: Upload Wheels to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*.whl
             dist/SHA256SUMS.txt
