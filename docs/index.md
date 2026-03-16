@@ -60,17 +60,17 @@ features:
   <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
     <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #999; min-width: 5.5rem; flex-shrink: 0;">Standards</span>
     <a href="https://en.cppreference.com/w/cpp/20"><img src="https://img.shields.io/badge/C%2B%2B-20-blue" alt="C++20" /></a>
-    <a href="/guide/correctness#rfc-8259-compliance"><img src="https://img.shields.io/badge/RFC%208259-compliant-brightgreen" alt="RFC 8259" /></a>
-    <a href="/guide/correctness#rfc-8259-compliance"><img src="https://img.shields.io/badge/RFC%206901-JSON%20Pointer-brightgreen" alt="RFC 6901" /></a>
-    <a href="/guide/correctness#rfc-8259-compliance"><img src="https://img.shields.io/badge/RFC%206902-JSON%20Patch-brightgreen" alt="RFC 6902" /></a>
-    <a href="/guide/correctness#ieee-754-floating-point-correctness"><img src="https://img.shields.io/badge/IEEE%20754-round--trip-brightgreen" alt="IEEE 754 round-trip" /></a>
+    <a href="/qbuem-json/guide/correctness#rfc-8259-compliance"><img src="https://img.shields.io/badge/RFC%208259-compliant-brightgreen" alt="RFC 8259" /></a>
+    <a href="/qbuem-json/guide/correctness#rfc-8259-compliance"><img src="https://img.shields.io/badge/RFC%206901-JSON%20Pointer-brightgreen" alt="RFC 6901" /></a>
+    <a href="/qbuem-json/guide/correctness#rfc-8259-compliance"><img src="https://img.shields.io/badge/RFC%206902-JSON%20Patch-brightgreen" alt="RFC 6902" /></a>
+    <a href="/qbuem-json/guide/correctness#ieee-754-floating-point-correctness"><img src="https://img.shields.io/badge/IEEE%20754-round--trip-brightgreen" alt="IEEE 754 round-trip" /></a>
   </div>
 
   <!-- Row 3: Testing -->
   <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
     <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #999; min-width: 5.5rem; flex-shrink: 0;">Testing</span>
-    <a href="/guide/correctness"><img src="https://img.shields.io/badge/tests-521%20passing-brightgreen" alt="521 tests passing" /></a>
-    <a href="/guide/correctness#fuzz-testing"><img src="https://img.shields.io/badge/fuzz-3%20libFuzzer%20targets-orange" alt="3 libFuzzer targets" /></a>
+    <a href="/qbuem-json/guide/correctness"><img src="https://img.shields.io/badge/tests-521%20passing-brightgreen" alt="521 tests passing" /></a>
+    <a href="/qbuem-json/guide/correctness#fuzz-testing"><img src="https://img.shields.io/badge/fuzz-3%20libFuzzer%20targets-orange" alt="3 libFuzzer targets" /></a>
   </div>
 
   <!-- Row 4: Package -->
@@ -95,7 +95,7 @@ features:
   <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📊</div>
   <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">Parsing throughput</div>
   <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">
-    twitter.json (617 KB) · from <a href="/guide/benchmarks">live CI results</a>:<br>
+    twitter.json (617 KB) · from <a href="/qbuem-json/guide/benchmarks">live CI results</a>:<br>
     x86_64 GCC 13: <strong>2.9 GB/s</strong><br>
     Linux aarch64 GCC 14: <strong>2.4 GB/s</strong><br>
     Apple Silicon: <strong>2.5 GB/s</strong>
@@ -106,7 +106,7 @@ features:
   <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🏎️</div>
   <div style="font-weight: 800; color: #1e2e5c; font-size: 1.1rem; margin-bottom: 0.35rem;">Serialization throughput</div>
   <div style="color: rgba(30,46,92,0.65); font-size: 0.88rem; line-height: 1.55;">
-    twitter.json (617 KB) · from <a href="/guide/benchmarks">live CI results</a>:<br>
+    twitter.json (617 KB) · from <a href="/qbuem-json/guide/benchmarks">live CI results</a>:<br>
     x86_64 GCC 13: <strong>5.3 GB/s</strong><br>
     Linux aarch64 GCC 14: <strong>6.1 GB/s</strong><br>
     Apple Silicon: <strong>7.2 GB/s</strong>
@@ -128,7 +128,7 @@ features:
     ② <strong>Russ Cox Unrounded Scaling</strong> (~1.2 %) — ceiling table, always decisive<br>
     ③ <strong><code>strtod</code></strong> — subnormals only (&lt;0.01 %)<br>
     Serialization: <strong>Schubfach</strong> (Giulietti 2020) — shortest decimal, no trailing zeros.<br>
-    <code>parse(serialize(x)) == x</code> for all finite doubles. <a href="/guide/correctness#ieee-754-floating-point-correctness">Details →</a>
+    <code>parse(serialize(x)) == x</code> for all finite doubles. <a href="/qbuem-json/guide/correctness#ieee-754-floating-point-correctness">Details →</a>
   </div>
 </div>
 
@@ -209,12 +209,12 @@ to CI you can inspect:
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
   <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">521 tests · 20 files</div>
-  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;">5,556 lines of C++ tests covering DOM, Nexus, STL mapping, error handling, Unicode, and edge cases.  <a href="/guide/correctness">Details →</a></div>
+  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;">5,556 lines of C++ tests covering DOM, Nexus, STL mapping, error handling, Unicode, and edge cases.  <a href="/qbuem-json/guide/correctness">Details →</a></div>
 </div>
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
   <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">73 RFC 8259 tests</div>
-  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;">y_/n_/i_ JSONTestSuite naming convention.  RFC 6901 JSON Pointer and RFC 6902 JSON Patch with transactional rollback.  <a href="/guide/correctness#rfc-8259-compliance">Details →</a></div>
+  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;">y_/n_/i_ JSONTestSuite naming convention.  RFC 6901 JSON Pointer and RFC 6902 JSON Patch with transactional rollback.  <a href="/qbuem-json/guide/correctness#rfc-8259-compliance">Details →</a></div>
 </div>
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
@@ -224,7 +224,7 @@ to CI you can inspect:
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
   <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">3 libFuzzer targets</div>
-  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;">fuzz_dom · fuzz_parse · fuzz_rfc8259.  Seed corpus from real-world benchmark datasets.  <a href="/guide/correctness#fuzz-testing">Details →</a></div>
+  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;">fuzz_dom · fuzz_parse · fuzz_rfc8259.  Seed corpus from real-world benchmark datasets.  <a href="/qbuem-json/guide/correctness#fuzz-testing">Details →</a></div>
 </div>
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
@@ -234,13 +234,13 @@ to CI you can inspect:
 
 <div style="background: #f0f4ff; border: 1px solid rgba(30,46,92,0.15); border-radius: 10px; padding: 1.1rem;">
   <div style="font-weight: 700; color: #1e2e5c; margin-bottom: 0.4rem;">IEEE 754 round-trip</div>
-  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;"><code>parse(serialize(x)) == x</code> for all finite doubles. Parsing: Eisel-Lemire (~98.8 %) → Russ Cox Unrounded Scaling (~1.2 %) → <code>strtod</code> (subnormals). Serialization: Schubfach (Giulietti 2020).  <a href="/guide/correctness#ieee-754-floating-point-correctness">Details →</a></div>
+  <div style="color: rgba(30,46,92,0.7); font-size: 0.86rem; line-height: 1.55;"><code>parse(serialize(x)) == x</code> for all finite doubles. Parsing: Eisel-Lemire (~98.8 %) → Russ Cox Unrounded Scaling (~1.2 %) → <code>strtod</code> (subnormals). Serialization: Schubfach (Giulietti 2020).  <a href="/qbuem-json/guide/correctness#ieee-754-floating-point-correctness">Details →</a></div>
 </div>
 
 </div>
 
 <div style="text-align: center; margin: 0 0 3rem;">
-  <a href="/guide/correctness" style="display: inline-block; background: #1e2e5c; color: white; padding: 0.65rem 1.6rem; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 0.95rem;">View full correctness report →</a>
+  <a href="/qbuem-json/guide/correctness" style="display: inline-block; background: #1e2e5c; color: white; padding: 0.65rem 1.6rem; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 0.95rem;">View full correctness report →</a>
 </div>
 
 </div>
