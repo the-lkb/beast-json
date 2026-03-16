@@ -42,31 +42,52 @@
 
 ---
 
-**qbuem-json** is a high-performance C++20 JSON engine providing a **Hybrid Strategy** for modern workloads. It offers two specialized engines: **qbuem-json DOM** for massive-scale throughput and **qbuem-json Nexus** for micro-latency Zero-Tape mapping.
+**qbuem-json** is a high-performance C++20 JSON library with two complementary engines in a single header file.
 
-By leveraging **C++20 Concepts**, **SIMD (AVX-512, NEON)**, and **Nexus Fusion (Zero-Tape)** technology, qbuem-json eliminates traditional tree-based DOM overhead while retaining a beautiful, type-safe API.
+---
+
+## Two Engines, One Header
+
+| | DOM Engine | Nexus Engine |
+|:---|:---|:---|
+| **API** | `qbuem::parse()` / `qbuem::read<T>()` | `qbuem::fuse<T>()` |
+| **How it works** | Builds a flat tape in one SIMD pass, then accesses values on demand | Streams JSON directly into struct fields — no tape, no intermediate representation |
+| **Allocation** | Single arena per document | Zero |
+| **Best for** | Dynamic keys, partial reads, mutations, arbitrary JSON | Fixed schemas, HFT, embedded, latency-critical DTOs |
+| **Throughput** | Up to 2.9 GB/s parse · 7.2 GB/s serialize | 50–230 ns struct mapping |
+
+```cpp
+#include <qbuem_json/qbuem_json.hpp>
+
+// ── DOM engine — flexible parsing ────────────────────────────────────
+qbuem::Document doc;
+qbuem::Value root = qbuem::parse(doc, R"({"user":"Alice","score":42})");
+
+std::string_view name  = root["user"].as<std::string_view>();  // zero-copy
+int              score = root["score"].as<int>();
+
+// ── Nexus engine — direct struct mapping (zero tape) ─────────────────
+struct Player {
+    std::string name;
+    int         score = 0;
+};
+QBUEM_JSON_FIELDS(Player, name, score)  // must be outside the struct, at namespace scope
+
+auto player = qbuem::fuse<Player>(R"({"name":"Bob","score":99})");
+std::string json = qbuem::write(player);
+```
 
 ---
 
 ## 🚀 Features
 
-* **Dual-Engine Architecture** — Choose between **qbuem-json DOM** for bulk processing and **qbuem-json Nexus** for sub-microsecond struct mapping.
+* **DOM Engine** — Flat-tape architecture with AVX-512 (x86) / NEON (ARM) SIMD scanning. `string_view` fields point directly into the input buffer. Supports JSON Pointer (RFC 6901), JSON Patch (RFC 6902), and non-destructive mutations.
+* **Nexus Fusion Engine** — Compile-time FNV-1a key dispatch maps JSON directly to struct fields. Zero tape, zero intermediate allocations. Use `qbuem::fuse<T>()` for maximum throughput.
 * **World-Class Performance** — Outperforms `yyjson`, `simdjson`, and `glaze` in real-world complex STL benchmarks.
-* **Nexus Fusion (Zero-Tape)** — Direct JSON-to-struct mapping in a single pass. Zero Tape allocations.
 * **Zero-Allocation Execution** — Sequential memory layout and zero-copy strings for deterministic performance.
-* **Single Header** — Drop `qbuem_json.hpp` into your project and you're ready.
+* **Single Header** — Drop `qbuem_json.hpp` into your project and you're ready. Zero external dependencies.
+* **STL Support** — `std::vector`, `std::map`, `std::optional`, `std::tuple`, `std::variant` and more work out of the box.
 * **Three-stage float parsing** — Eisel-Lemire (~98.8 %) → Russ Cox Unrounded Scaling (~1.2 %) → `std::strtod` (subnormals only). `parse(serialize(x)) == x` for all finite doubles.
-
-```cpp
-struct User {
-    uint64_t id;
-    std::string username;
-    std::vector<std::string> tags;
-    bool active;
-};
-
-QBUEM_JSON_FIELDS(User, id, username, tags, active)
-```
 
 ---
 
