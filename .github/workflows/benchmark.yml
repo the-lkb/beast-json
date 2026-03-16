@@ -120,7 +120,7 @@ jobs:
         ./bench --quick --all 2>&1 | tee bench_output.txt || true
 
     - name: Setup Go for benchmarks
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: '1.24'
         cache: false
@@ -170,7 +170,7 @@ jobs:
         >> ../../build_bench/benchmarks/bench_output.txt || true
 
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.11'
 
@@ -320,7 +320,7 @@ jobs:
     # Upload even when benchmark step failed so aggregate always gets data.
     - name: Upload results artifact
       if: always()
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: bench-results-${{ matrix.arch }}
         path: bench_artifacts/results-${{ matrix.arch }}.json
@@ -342,7 +342,7 @@ jobs:
         fetch-depth: 0
 
     - name: Download all per-platform results
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         pattern: bench-results-*
         path: bench_artifacts
