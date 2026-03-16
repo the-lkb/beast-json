@@ -85,6 +85,19 @@ Results cover all standard datasets (`twitter`, `canada`, `citm`, `gsoc`, `harsh
 
 ---
 
+## 🤖 AI / LLM Reference
+
+AI 에이전트와 RAG 파이프라인을 위한 머신 리더블 문서입니다. Cloudflare 등 봇 차단과 무관하게 항상 접근 가능합니다.
+
+| File | URL |
+|:---|:---|
+| **llms.txt** (문서 인덱스) | [`raw.githubusercontent.com/.../llms.txt`](https://raw.githubusercontent.com/qbuem/qbuem-json/gh-pages/llms.txt) |
+| **llms-full.txt** (전체 레퍼런스) | [`raw.githubusercontent.com/.../llms-full.txt`](https://raw.githubusercontent.com/qbuem/qbuem-json/gh-pages/llms-full.txt) |
+
+> These files follow the [llms.txt standard](https://llmstxt.org/) and contain complete installation instructions, API reference, and usage examples in plain text for direct consumption by LLMs.
+
+---
+
 ## 📖 Documentation
 
 **[qbuem.com/qbuem-json](https://qbuem.com/qbuem-json/)**
